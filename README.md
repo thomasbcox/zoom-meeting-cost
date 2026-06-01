@@ -8,6 +8,8 @@ rates; everyone else sees only the resolved, shared cost screen.
 > The app does **not** integrate with HR, payroll, SSO, or any employee
 > directory. All numbers are honest estimates based on presenter-defined rates.
 
+![Meeting Cost shared screen — live total, cost/minute, elapsed time, and attendee count](docs/screenshot.png)
+
 ## What's in this repo
 
 This is a **runnable browser prototype** with **Zoom-ready structure**:
@@ -78,3 +80,7 @@ See `server/zoom-app-config.md` for Marketplace setup (scopes, redirect URLs,
 SDK capabilities) and `server/.env.example` for OAuth credentials. Set
 `VITE_USE_ZOOM=1` for the client to use the real Zoom SDK, install
 `@zoom/appssdk`, and serve over an HTTPS tunnel (e.g. ngrok).
+
+## License
+
+[MIT](LICENSE) © 2026 Thomas Cox
