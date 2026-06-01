@@ -6,7 +6,8 @@ the **presenter/controller** and owns a private, best-guess table of hourly
 rates; everyone else sees only the resolved, shared cost screen.
 
 > The app does **not** integrate with HR, payroll, SSO, or any employee
-> directory. All numbers are honest estimates based on presenter-defined rates.
+> directory. The presenter is asked to estimate each person's hourly rate; the
+> app computes the cost from those numbers and does not verify them.
 
 ![Meeting Cost shared screen — live total, cost/minute, elapsed time, and attendee count](docs/screenshot.png)
 

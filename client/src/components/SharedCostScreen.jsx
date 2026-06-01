@@ -48,8 +48,8 @@ export default function SharedCostScreen({ state }) {
       )}
 
       <p className="estimate-note">
-        Estimated cost based on presenter-defined rates. These are best-guess
-        estimates, not payroll figures.
+        The presenter was asked to estimate each person's hourly rate. These
+        numbers aren't verified.
       </p>
     </div>
   );
