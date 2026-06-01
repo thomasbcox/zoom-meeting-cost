@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+.env.local
+*.log
+.DS_Store
+client/node_modules/
+server/node_modules/
+
+# Machine-local Claude settings (contains local paths; not for sharing)
+.claude/settings.local.json
