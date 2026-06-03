@@ -86,3 +86,9 @@ git diff --stat main...HEAD:
 ## Decisions (2026-06-03)
 
 - **BLOCKER — Unconditional telemetry in client/index.html:** Thomas: "fix it and re-review." → FIXED by removing the inline telemetry `<script>` from client/index.html. Diagnostic logging is fully covered by the gated zoomDiagnostics.js + server /api/log endpoint; removal also eliminates the console.log → /api/log feedback loop.
+
+## Codex re-review (2026-06-03, base e32105e, HEAD c7e0d29)
+
+**Summary:** Re-review of the delta since last review. The unconditional telemetry hook (prior BLOCKER) is removed and the prior disposition recorded. **No findings.** ✅
+
+(Gate `npm test && npm run build` verified GREEN locally.)
