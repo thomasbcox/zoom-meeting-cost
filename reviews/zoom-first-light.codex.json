@@ -1,0 +1,1 @@
+{"summary":"Reviewed only `git diff e32105e...HEAD`, `git log --oneline e32105e..HEAD`, and `reviews/zoom-first-light.md`. The re-review changes remove the unconditional client telemetry hook that was previously blocking AC4 and record the prior review/disposition; I found no new issues in the changed files.","findings":[]}
