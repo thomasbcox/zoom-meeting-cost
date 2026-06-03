@@ -4,54 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Meeting Cost</title>
-    <script>
-      (function() {
-        function logError(type, data) {
-          fetch('/api/log', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ type: type, href: window.location.href, data: data })
-          }).catch(function() {});
-        }
-        window.onerror = function(message, source, lineno, colno, error) {
-          logError('onerror', {
-            message: message,
-            source: source,
-            lineno: lineno,
-            colno: colno,
-            stack: error ? error.stack : null
-          });
-          return false;
-        };
-        window.onunhandledrejection = function(event) {
-          logError('unhandledrejection', {
-            reason: event.reason ? (event.reason.stack || String(event.reason)) : null
-          });
-        };
-        console.log = (function(orig) {
-          return function() {
-            var args = Array.prototype.slice.call(arguments);
-            logError('console.log', { message: args.join(' ') });
-            orig.apply(console, arguments);
-          };
-        })(console.log);
-        console.error = (function(orig) {
-          return function() {
-            var args = Array.prototype.slice.call(arguments);
-            logError('console.error', { message: args.join(' ') });
-            orig.apply(console, arguments);
-          };
-        })(console.error);
-        console.warn = (function(orig) {
-          return function() {
-            var args = Array.prototype.slice.call(arguments);
-            logError('console.warn', { message: args.join(' ') });
-            orig.apply(console, arguments);
-          };
-        })(console.warn);
-        console.log('telemetry initialized');
-      })();
-    </script>
   </head>
   <body>
     <div id="root"></div>

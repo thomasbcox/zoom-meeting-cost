@@ -82,3 +82,7 @@ git diff --stat main...HEAD:
 ### BLOCKER
 - **Unconditional telemetry changes mock-mode behavior** — client/index.html:7. An inline `<script>` runs on every page load regardless of `VITE_USE_ZOOM`/`?diag=1`: it installs global `window.onerror`/`onunhandledrejection`, monkey-patches `console.log/warn/error` to POST all output to `/api/log`, and immediately posts "telemetry initialized". Observable behavior in default mock mode → violates AC4. (Also creates a feedback loop with zoomDiagnostics' console.log → /api/log path.)
   - *Suggestion:* Remove the global HTML telemetry hook (or gate it behind the same Zoom diagnostics trigger); keep diagnostic logging inside zoomDiagnostics.js without global console monkey-patching.
+
+## Decisions (2026-06-03)
+
+- **BLOCKER — Unconditional telemetry in client/index.html:** Thomas: "fix it and re-review." → FIXED by removing the inline telemetry `<script>` from client/index.html. Diagnostic logging is fully covered by the gated zoomDiagnostics.js + server /api/log endpoint; removal also eliminates the console.log → /api/log feedback loop.
