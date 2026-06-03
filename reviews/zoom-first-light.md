@@ -45,3 +45,40 @@ This story is a **recon/diagnostic spike**: get the app to emit raw, per-call Zo
 1. **Are we actually loadable in Zoom yet?** This story makes the *code* ready to emit diagnostics, but executing the manual step requires the Marketplace app's Home URL to point at the live tunnel and the OAuth install to have completed at least once. Is that already set up (`dev-state.md` shows a Cloudflare tunnel; `.env` is populated), or is standing that up a blocking prerequisite we should do first?
 2. **Trigger mechanism:** I propose `?diag=1` on the URL (flip-able via the Marketplace Home URL without a rebuild). Acceptable, or do you prefer a build-time `VITE_ZOOM_DIAG=1` env flag, or simply "always run diagnostics whenever `VITE_USE_ZOOM=1`" for this spike?
 3. **Pre-existing uncommitted changes:** the working tree had unrelated modifications (the `@zoom/appssdk` dependency, vitest wiring, server logging) before this branch. Leave them as-is and out of this story's commits, or fold them into a setup commit first?
+
+## Build note (2026-06-03)
+
+AC → file map:
+- AC1 (ordered per-call entries) — `runZoomDiagnostics` in client/src/zoom/zoomDiagnostics.js
+- AC2 (never throws on reject/throw/missing/null sdk) — `runZoomDiagnostics`
+- AC3 (safe `/api/log` POST) — `postLog` in client/src/zoom/zoomDiagnostics.js
+- AC4 (in-Zoom-only trigger; mock dev unchanged) — `shouldRunDiagnostics` + `maybeRunZoomDiagnostics`, wired in client/src/main.jsx (App.jsx untouched)
+- AC5 (greppable `zoom-diagnostics` bundle) — `runZoomDiagnostics`
+- AC6 (gate green) — client/src/zoom/zoomDiagnostics.test.js (+ existing suite); `npm test && npm run build`
+
+git diff --stat main...HEAD:
+ .claude/workflow.json                   |    6 +
+ AGENTS.md                               |   25 +
+ client/index.html                       |   48 ++
+ client/package.json                     |    7 +-
+ client/src/lib/cost.test.js             |   77 ++
+ client/src/lib/matching.test.js         |  111 +++
+ client/src/lib/normalize.test.js        |   33 +
+ client/src/main.jsx                     |    5 +
+ client/src/zoom/zoomAdapter.js          |    3 +-
+ client/src/zoom/zoomDiagnostics.js      |  131 ++++
+ client/src/zoom/zoomDiagnostics.test.js |  157 ++++
+ package-lock.json                       | 1283 +++++++++++++++++++++++++++++--
+ package.json                            |    3 +-
+ reviews/zoom-first-light.md             |   47 ++
+ server/package.json                     |    4 +-
+ server/src/index.js                     |   18 +-
+ 16 files changed, 1900 insertions(+), 58 deletions(-)
+
+## Codex review (2026-06-03, base main, HEAD e32105e)
+
+**Summary:** Core diagnostics probe matches the requested shape, but the branch also carries unconditional client telemetry (in client/index.html, via the baseline setup commit) that violates the mock-mode/no-touch criterion (AC4). Note: Codex could not run the gate itself (read-only sandbox blocks Vite/Vitest temp-file writes) — the gate `npm test && npm run build` was verified GREEN locally before this review.
+
+### BLOCKER
+- **Unconditional telemetry changes mock-mode behavior** — client/index.html:7. An inline `<script>` runs on every page load regardless of `VITE_USE_ZOOM`/`?diag=1`: it installs global `window.onerror`/`onunhandledrejection`, monkey-patches `console.log/warn/error` to POST all output to `/api/log`, and immediately posts "telemetry initialized". Observable behavior in default mock mode → violates AC4. (Also creates a feedback loop with zoomDiagnostics' console.log → /api/log path.)
+  - *Suggestion:* Remove the global HTML telemetry hook (or gate it behind the same Zoom diagnostics trigger); keep diagnostic logging inside zoomDiagnostics.js without global console monkey-patching.
