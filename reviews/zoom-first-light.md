@@ -92,3 +92,9 @@ git diff --stat main...HEAD:
 **Summary:** Re-review of the delta since last review. The unconditional telemetry hook (prior BLOCKER) is removed and the prior disposition recorded. **No findings.** ✅
 
 (Gate `npm test && npm run build` verified GREEN locally.)
+
+## Fixes (2026-06-03)
+
+- **BLOCKER — Unconditional telemetry in client/index.html (approved: fix):** Removed the inline telemetry `<script>` in commit c7e0d29. Diagnostic logging is covered by the gated zoomDiagnostics probe + server /api/log; removal also eliminated the console.log → /api/log feedback loop. Re-reviewed clean (0 findings) at base e32105e.
+
+No other approved findings outstanding.
