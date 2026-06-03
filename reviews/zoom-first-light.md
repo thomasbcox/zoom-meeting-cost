@@ -1,4 +1,4 @@
-Date: 2026-06-03 · Branch: claude/zoom-first-light · Status: approved
+Date: 2026-06-03 · Branch: claude/zoom-first-light · Status: merged
 
 > Approved by Thomas (2026-06-03): "A please and yes I approve - proceed." Q1 loadable-in-Zoom: done. Q2 trigger: `?diag=1` URL flag. Q3: fold pre-existing changes into a distinct setup commit (Option A).
 
