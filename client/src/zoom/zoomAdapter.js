@@ -156,8 +156,7 @@ export async function getZoomAdapter() {
     try {
       // The package is optional and only present for real in-Zoom builds, so we
       // hide it from Vite's static dependency scan.
-      const pkg = '@zoom/appssdk';
-      const mod = await import(/* @vite-ignore */ pkg);
+      const mod = await import('@zoom/appssdk');
       _adapter = new RealZoom(mod.default ?? mod);
       return _adapter;
     } catch (err) {

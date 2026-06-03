@@ -1,0 +1,6 @@
+{
+  "baseBranch": "main",
+  "branchPrefix": "claude/",
+  "testCommand": "npm test && npm run build",
+  "codexModel": ""
+}

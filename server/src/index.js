@@ -17,9 +17,19 @@ const PORT = process.env.API_PORT || process.env.PORT || 8787;
 const app = express();
 app.use(express.json());
 
+app.use((req, res, next) => {
+  console.log(`[server] ${req.method} ${req.url}`);
+  next();
+});
+
 // --- Health / debug ---------------------------------------------------------
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true, zoomConfigured, rooms: roomStats() });
+});
+
+app.post('/api/log', (req, res) => {
+  console.error('[client-log]', JSON.stringify(req.body, null, 2));
+  res.sendStatus(204);
 });
 
 // --- Zoom OAuth (scaffold; inert until configured) --------------------------
@@ -27,7 +37,13 @@ app.use('/auth', createOAuthRouter());
 
 // --- Serve the built client in production -----------------------------------
 const clientDist = path.resolve(__dirname, '../../client/dist');
-app.use(express.static(clientDist));
+app.use((req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  next();
+});
+app.use(express.static(clientDist, { etag: false }));
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api') || req.path.startsWith('/auth') || req.path.startsWith('/ws')) {
     return next();
