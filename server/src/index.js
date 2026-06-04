@@ -1,3 +1,6 @@
+// Load a local .env (dev) before anything reads process.env. Must be first.
+import './loadEnv.js';
+
 import { createApp } from './app.js';
 import { resolvePort } from './port.js';
 import { zoomConfigured } from './zoom/oauth.js';
