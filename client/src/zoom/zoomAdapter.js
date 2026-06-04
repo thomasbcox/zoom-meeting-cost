@@ -36,7 +36,12 @@ export const ZOOM_CAPABILITIES = [
   'drawWebView',
   'clearWebView',
   'closeRenderingContext',
-  // Side panel <-> camera context state bridge:
+  // Side panel <-> camera context state bridge. These are "App Instances
+  // Communication" APIs: postMessage fails with error 10041 ("app instances
+  // aren't connected") until the instances call connect(), so connect/onConnect
+  // must be requested alongside postMessage/onMessage.
+  'connect',
+  'onConnect',
   'postMessage',
   'onMessage',
 ];
@@ -128,13 +133,20 @@ export class MockZoom {
 
 // Real implementation — only instantiated inside the Zoom client. Kept minimal
 // and dependency-lazy so the prototype build doesn't require @zoom/appssdk.
-class RealZoom {
+// Exported so the connect/postMessage bridge can be unit-tested against a fake
+// SDK (the real SDK only exists inside the Zoom client).
+export class RealZoom {
   constructor(sdk) {
     this.isMock = false;
     this._sdk = sdk;
     this._participants = [];
     this._subs = new Set();
     this._msgSubs = new Set();
+    // App-instance connection state for the postMessage bridge. postMessage
+    // fails with 10041 until the panel and camera instances are connected, so
+    // we hold the latest payload and replay it once onConnect fires.
+    this._connected = false;
+    this._pendingMsg = null;
   }
 
   async init() {
@@ -163,6 +175,29 @@ class RealZoom {
       });
     }
 
+    // Establish the app-instance connection that the postMessage bridge needs.
+    // onConnect fires when the peer instance (panel <-> camera) connection
+    // settles — but the event reports either outcome (action: 'success' |
+    // 'failure'), so only a success means the channel is live. A failure must
+    // NOT mark us connected or flush the held payload (that would post over a
+    // dead bridge and lose the snapshot); we keep waiting for a later success.
+    if (typeof sdk.onConnect === 'function') {
+      sdk.onConnect((evt) => {
+        if (evt?.action !== 'success') return;
+        this._connected = true;
+        if (this._pendingMsg != null) {
+          const payload = this._pendingMsg;
+          this._pendingMsg = null;
+          this._send(payload);
+        }
+      });
+    }
+    if (typeof sdk.connect === 'function') {
+      // The peer instance may not be up yet (error 10039); that's non-fatal —
+      // onConnect will fire when it is, and the held payload is replayed then.
+      Promise.resolve(sdk.connect()).catch(() => {});
+    }
+
     return { context, self, participants: this.getParticipants() };
   }
 
@@ -180,7 +215,20 @@ class RealZoom {
 
   // --- State bridge: side panel -> camera context --------------------------
   postMessage(payload) {
-    this._sdk.postMessage(payload);
+    // Until the instances are connected, postMessage would reject with 10041.
+    // Hold only the latest payload (overlay state is a full snapshot, so an
+    // older one is worthless) and replay it from the onConnect handler.
+    if (!this._connected) {
+      this._pendingMsg = payload;
+      return;
+    }
+    this._send(payload);
+  }
+
+  _send(payload) {
+    // Swallow rejections so a failed push can't surface as an unhandled
+    // rejection; the next tick pushes a fresh snapshot anyway.
+    Promise.resolve(this._sdk.postMessage(payload)).catch(() => {});
   }
 
   onMessage(cb) {
