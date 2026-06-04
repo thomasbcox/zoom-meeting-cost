@@ -158,3 +158,13 @@ its history despite the (now-corrected) note claiming history was rebuilt.
    `/close` resolves this cleanly within the guard — the squashed commit on
    `main` equals the tip tree (synthetic fixture only), so `5cf869f` never enters
    `main`'s history and the branch ref (with `5cf869f`) is deleted on merge.
+
+## Decisions (2026-06-04, re-review)
+
+- **BLOCKER 2 (secret commit `5cf869f` reachable from HEAD): RESOLVE VIA
+  SQUASH-MERGE.** Thomas chose "Squash-merge at /close (recommended)." `/close`
+  must merge PR #6 with `--squash` so `main` receives only the tip tree
+  (synthetic fixture; verified 0 occurrences of the old secret in the net
+  `main...HEAD` diff), and the feature branch (carrying `5cf869f`) is deleted on
+  merge. Stays within the no-force-push guard. The stale "history rebuilt /
+  force-pushed" note was corrected above.
