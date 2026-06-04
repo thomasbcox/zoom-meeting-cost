@@ -176,10 +176,14 @@ export class RealZoom {
     }
 
     // Establish the app-instance connection that the postMessage bridge needs.
-    // onConnect fires once the peer instance (panel <-> camera) is reachable;
-    // at that point we flush any payload that was held while disconnected.
+    // onConnect fires when the peer instance (panel <-> camera) connection
+    // settles — but the event reports either outcome (action: 'success' |
+    // 'failure'), so only a success means the channel is live. A failure must
+    // NOT mark us connected or flush the held payload (that would post over a
+    // dead bridge and lose the snapshot); we keep waiting for a later success.
     if (typeof sdk.onConnect === 'function') {
-      sdk.onConnect(() => {
+      sdk.onConnect((evt) => {
+        if (evt?.action !== 'success') return;
         this._connected = true;
         if (this._pendingMsg != null) {
           const payload = this._pendingMsg;

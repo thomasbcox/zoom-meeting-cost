@@ -83,8 +83,9 @@ function makeFakeSdk({ postMessageRejects = false } = {}) {
     onConnect(cb) {
       connectHandler = cb;
     },
-    fireConnect() {
-      if (connectHandler) connectHandler({});
+    // Mirror the real OnConnectEvent shape: { timestamp, action }.
+    fireConnect(action = 'success') {
+      if (connectHandler) connectHandler({ timestamp: 0, action });
     },
     postMessage(payload) {
       if (postMessageRejects) return Promise.reject(new Error('10041'));
@@ -119,6 +120,22 @@ describe('RealZoom postMessage bridge', () => {
     // After connect, messages pass straight through.
     a.postMessage({ totalCost: 3 });
     expect(sdk.posted).toEqual([{ totalCost: 2 }, { totalCost: 3 }]);
+  });
+
+  it('ignores a failed onConnect: stays disconnected and keeps the pending payload', async () => {
+    const sdk = makeFakeSdk();
+    const a = new RealZoom(sdk);
+    await a.init();
+
+    a.postMessage({ totalCost: 7 });
+
+    // A failure event must NOT mark the bridge live or flush the held snapshot.
+    sdk.fireConnect('failure');
+    expect(sdk.posted).toEqual([]);
+
+    // A later success flushes the still-pending latest snapshot.
+    sdk.fireConnect('success');
+    expect(sdk.posted).toEqual([{ totalCost: 7 }]);
   });
 
   it('does not throw or reject when sdk.postMessage rejects', async () => {

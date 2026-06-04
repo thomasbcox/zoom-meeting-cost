@@ -146,3 +146,14 @@ AC → file map:
 - **BLOCKER 1 (failed onConnect marks bridge connected):** FIX — Thomas: "fix".
   Gate `onConnect` on `action === 'success'`; keep `_connected` false and retain
   `_pendingMsg` on failure; add a fake-SDK test firing failure before success.
+
+## Fixes (2026-06-04)
+
+- **BLOCKER 1 — failed onConnect no longer marks the bridge connected**
+  (`client/src/zoom/zoomAdapter.js`): the `onConnect` handler now inspects the
+  event and returns early unless `action === 'success'`. On a `'failure'` event
+  the bridge stays `_connected = false` and retains `_pendingMsg`, so the held
+  snapshot is replayed only on a later success. The fake SDK now fires the real
+  `{ timestamp, action }` event shape (default `'success'`), and a new test
+  asserts a `'failure'` event posts nothing and keeps the payload, then a
+  `'success'` flushes it.
