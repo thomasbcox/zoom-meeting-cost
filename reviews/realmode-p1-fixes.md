@@ -1,0 +1,109 @@
+Date: 2026-06-04 · Branch: claude/realmode-p1-fixes · Status: approved
+
+> Approved by Thomas (2026-06-04): "yes use your defaults" — both open-question defaults accepted (log `req.path`; no connect retry/backoff).
+
+## Problem
+
+An advisor review surfaced two P1 issues that only bite in the real-Zoom path
+(both invisible to the current test suite, which exercises only `MockZoom`):
+
+1. **OAuth authorization codes are logged.** The request-logging middleware in
+   `server/src/app.js` logs `req.url`, so the Zoom OAuth redirect
+   `/auth/callback?code=<authorization code>` prints the single-use code to the
+   server log before `oauth.js` exchanges it. The code is short-lived and can't
+   be redeemed without our client secret, but writing any credential material to
+   logs is wrong and trivially avoidable.
+
+2. **The side-panel ↔ camera state bridge is missing `connect()`.** The overlay
+   feature pushes live cost from the side-panel instance to the camera-rendering
+   instance via `postMessage`/`onMessage`. The bundled `@zoom/appssdk` docs are
+   explicit that these are "App Instances Communication" APIs: `postMessage`
+   fails with error `10041` ("app instances aren't connected") unless the
+   instances first call `zoomSdk.connect()`, and the SDK's own `config` example
+   lists `connect`/`onConnect` alongside `postMessage`/`onMessage`. Today
+   `ZOOM_CAPABILITIES` requests `postMessage`/`onMessage` but **not**
+   `connect`/`onConnect`, and `RealZoom` never calls `sdk.connect()` — so in real
+   Zoom the overlay would silently never receive state. Additionally
+   `RealZoom.postMessage()` calls `this._sdk.postMessage(payload)` without
+   returning or catching the promise, so an SDK rejection becomes an unhandled
+   rejection.
+
+The remaining three review findings are deferred to the backlog (see AC5).
+
+## In scope
+
+- **OAuth log redaction** (Finding 1): stop the request logger from emitting
+  OAuth (and any other) query strings, so authorization codes never reach the
+  log.
+- **Connect the app instances** (Finding 2):
+  - Add `connect` and `onConnect` to `ZOOM_CAPABILITIES`, and update the
+    mirrored capability list in `server/zoom-app-config.md`.
+  - Have `RealZoom` establish the app-instance connection: call `sdk.connect()`,
+    register `onConnect`, and only `postMessage` over a live connection
+    (replaying the latest state once connected) so the first/early pushes aren't
+    dropped with `10041`.
+  - Make `RealZoom.postMessage()` swallow/handle SDK promise rejections (no
+    unhandled rejection).
+- Backlog the other three findings (AC5).
+
+## Non-goals
+
+- No change to `MockZoom`'s behaviour or the adapter interface contract
+  (`postMessage`/`onMessage`/`startCameraOverlay`/…) — the public shape stays
+  identical so `App.jsx`/`Root.jsx` are untouched.
+- No fix for the deferred findings (drawWebView `webviewId` shape, silent `$0`
+  meeting on participant-fetch failure, hardcoded `Thomas Cox` identity) — those
+  only get backlog entries here.
+- No attempt to fully verify the real Zoom messaging round-trip from the test
+  suite (it requires running inside the Zoom client). Tests cover the adapter
+  logic against a fake SDK stub.
+
+## Acceptance criteria
+
+1. The server request logger no longer emits query strings: a request to
+   `/auth/callback?code=SECRET123` produces a log line containing the path
+   `/auth/callback` and **not** `SECRET123` (nor `code=`).
+2. `ZOOM_CAPABILITIES` in `client/src/zoom/zoomAdapter.js` includes `connect`
+   and `onConnect`, and the capability list in `server/zoom-app-config.md` is
+   updated to match (the doc states the two must match).
+3. `RealZoom` calls `sdk.connect()` during `init()` and registers an `onConnect`
+   handler; given a fake SDK, `connect()` is invoked and the connection state is
+   tracked.
+4. `RealZoom.postMessage()` does not send over a not-yet-connected channel and
+   does not produce an unhandled rejection: messages sent before `onConnect`
+   fires are held and the latest is replayed once connected; a rejected
+   `sdk.postMessage` is caught.
+5. The three deferred findings are appended to `reviews/backlog.md` (drawWebView
+   `webviewId` real-Zoom risk; silent `$0` meeting on `getMeetingParticipants`
+   failure; hardcoded presenter identity / `self` ignored by `Root`).
+
+## Test notes
+
+- **AC1:** Server test (vitest + supertest, like `server/test/headers.test.js`)
+  that spies `console.log`, issues `GET /auth/callback?code=SECRET123`, and
+  asserts the captured log line includes `/auth/callback` and excludes
+  `SECRET123`/`code=`.
+- **AC2:** Client unit assertion that `ZOOM_CAPABILITIES` contains `connect` and
+  `onConnect` (extends the existing capabilities test). Doc change verified by
+  inspection.
+- **AC3/AC4:** Client unit test (vitest) constructing `RealZoom` with a fake SDK
+  stub exposing `config`, `getRunningContext`, `getUserContext`,
+  `getMeetingParticipants`, `connect`, and `onConnect`. Assert: `connect()` is
+  called during `init()`; a `postMessage` issued before the stub fires
+  `onConnect` is not sent through, then is delivered (latest value) after
+  `onConnect`; and a stub whose `postMessage` rejects does not throw/reject out
+  of `RealZoom.postMessage`.
+- Full gate: `npm test && npm run build`.
+
+## Open questions
+
+1. **Log redaction approach.** Simplest is to log `req.path` (drops *all* query
+   strings, not just `/auth/*`). That also removes potentially-useful non-secret
+   query params from `/api` debug logs. Default proposed: **log `req.path`**
+   (least code, zero leak surface). Alternative: redact query only for `/auth/*`
+   and keep it elsewhere. OK with the `req.path` default?
+2. **Connect sequencing.** Calling `connect()` in `init()` runs it in both the
+   panel and camera instances (both mount the adapter). If a peer instance isn't
+   up yet `connect()` may reject (`10039`); the design treats that as non-fatal
+   and relies on `onConnect` + latest-state replay. Acceptable for the prototype,
+   or do you want explicit retry/backoff? (Default: no retry — keep minimal.)
