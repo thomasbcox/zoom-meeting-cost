@@ -13,12 +13,17 @@
 // at evaluation time (e.g. zoom/oauth.js).
 
 export function loadLocalEnv(path = '.env') {
+  // Older Node has no loadEnvFile — skip without pretending we loaded anything.
+  if (typeof process.loadEnvFile !== 'function') return false;
   try {
-    process.loadEnvFile?.(path);
+    process.loadEnvFile(path);
     return true;
-  } catch {
-    // No .env present (e.g. Railway) — config comes from injected env vars.
-    return false;
+  } catch (err) {
+    // A missing .env is the expected case (e.g. Railway injects config as env
+    // vars) — swallow it. Any OTHER failure (unreadable/malformed .env) is a real
+    // problem worth surfacing rather than booting with config silently absent.
+    if (err?.code === 'ENOENT') return false;
+    throw err;
   }
 }
 

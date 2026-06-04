@@ -28,3 +28,9 @@ test('loadLocalEnv returns false and does not throw when the file is missing', (
     assert.equal(loaded, false);
   });
 });
+
+test('loadLocalEnv surfaces a non-missing load failure (e.g. path is a directory)', () => {
+  // Reading a directory as an env file throws EISDIR, not ENOENT — a real
+  // problem that must propagate rather than look like "no .env".
+  assert.throws(() => loadLocalEnv(tmpdir()), (err) => err && err.code !== 'ENOENT');
+});

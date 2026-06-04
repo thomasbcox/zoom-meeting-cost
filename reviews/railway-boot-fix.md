@@ -1,4 +1,4 @@
-Date: 2026-06-04 · Branch: claude/railway-boot-fix · Status: approved
+Date: 2026-06-04 · Branch: claude/railway-boot-fix · Status: merged
 
 > Approved by Thomas 2026-06-04: "railway just deployed successfully although I'm
 > having other problems - go ahead with .nvmrc." Q1 → use `.nvmrc` (22). Q2 moot:
@@ -118,3 +118,12 @@ _No BLOCKER, QUESTION, or NIT findings._
 ## Decisions (2026-06-04)
 
 - **IMPORTANT #1 (env loader swallows non-missing errors, loadEnv.js):** Thomas — **Fix**. Ignore only ENOENT, rethrow other load errors, return false when `process.loadEnvFile` is unavailable; add a test that a real failure surfaces. Applied in /close.
+
+## Fixes (2026-06-04)
+
+- **IMPORTANT #1:** `server/src/loadEnv.js` — `loadLocalEnv` now returns false
+  when `process.loadEnvFile` is unavailable (older Node), ignores only the
+  missing-file `ENOENT` case, and rethrows any other load failure (unreadable /
+  malformed `.env`) so a real config problem surfaces instead of booting silently
+  without local config. Added `server/test/loadEnv.test.js` case asserting a
+  non-ENOENT failure (directory path → EISDIR) propagates.
