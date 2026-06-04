@@ -10,6 +10,8 @@
 // This is recon-only. It does not configure the app for normal use and is wired
 // to run exclusively inside Zoom behind a URL flag (see shouldRunDiagnostics).
 
+import { postLog } from '../lib/postLog.js';
+
 // Methods probed, in order. `config` must run first (it gates everything else),
 // using the same capabilities RealZoom requests.
 export const PROBE_METHODS = [
@@ -80,18 +82,9 @@ export async function runZoomDiagnostics(sdk, { log = defaultLog, methods = PROB
   return entries;
 }
 
-/** POST a payload to the server log sink; swallow any failure. */
-export async function postLog(payload) {
-  try {
-    await fetch('/api/log', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-  } catch {
-    /* server may be unreachable; non-fatal */
-  }
-}
+// postLog now lives in lib/postLog.js (shared with the client error reporter).
+// Re-exported here so existing imports — including tests — keep working.
+export { postLog };
 
 async function defaultLog(bundle) {
   // eslint-disable-next-line no-console
