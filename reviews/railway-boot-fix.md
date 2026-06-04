@@ -114,3 +114,7 @@ Tests added: `server/test/loadEnv.test.js` (present-file load + missing-file no-
 1. **Env loader suppresses non-missing .env failures** — `server/src/loadEnv.js:19`. The catch treats every `process.loadEnvFile` exception as a harmless missing `.env`; an unreadable/bad `.env` (or other load failure) would silently boot with local env vars absent, making a config problem look like ordinary unconfigured state. *Suggestion:* return false when `process.loadEnvFile` is unavailable, ignore only the missing-file (ENOENT) error, and rethrow other failures.
 
 _No BLOCKER, QUESTION, or NIT findings._
+
+## Decisions (2026-06-04)
+
+- **IMPORTANT #1 (env loader swallows non-missing errors, loadEnv.js):** Thomas — **Fix**. Ignore only ENOENT, rethrow other load errors, return false when `process.loadEnvFile` is unavailable; add a test that a real failure surfaces. Applied in /close.
