@@ -1,4 +1,4 @@
-Date: 2026-06-04 · Branch: claude/zoom-cred-fingerprint · Status: approved
+Date: 2026-06-04 · Branch: claude/zoom-cred-fingerprint · Status: merged
 
 > Approved by Thomas (2026-06-04): "implement that then /review please" — approved as-is, both open-question defaults accepted (keep the log; helper in oauth.js).
 
@@ -168,3 +168,14 @@ its history despite the (now-corrected) note claiming history was rebuilt.
   `main...HEAD` diff), and the feature branch (carrying `5cf869f`) is deleted on
   merge. Stays within the no-force-push guard. The stale "history rebuilt /
   force-pushed" note was corrected above.
+
+## Fixes (2026-06-04)
+
+- **BLOCKER 1 (live secret in test):** already fixed in the prior round —
+  synthetic fixture in `server/test/oauthFingerprint.test.js`. No further change.
+- **BLOCKER 2 (secret commit `5cf869f` in history):** no code change required;
+  resolved by the chosen merge strategy. `/close` merges PR #6 with `--squash`
+  so `main` receives only the synthetic-fixture tip tree (net `main...HEAD` diff
+  verified to contain 0 occurrences of the old secret), and the feature branch
+  carrying `5cf869f` is deleted on merge. Status set to `merged` on the branch so
+  the trail lands with the squashed merge.
