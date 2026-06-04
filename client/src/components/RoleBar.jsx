@@ -1,21 +1,11 @@
 import { useState } from 'react';
 
-// Prototype harness bar. In real Zoom, role/room/identity come from the SDK and
+// Prototype harness bar. In real Zoom, identity comes from the SDK and
 // participants come from Zoom events — none of this UI would be shown. It exists
-// so you can open multiple browser tabs and act as presenter + viewers against
-// the same room to see the WebSocket broadcast working.
+// so you can simulate participants joining/leaving (mock only) and rename
+// yourself while exercising the overlay locally.
 
-export default function RoleBar({
-  role,
-  setRole,
-  roomId,
-  setRoomId,
-  myName,
-  setMyName,
-  connStatus,
-  adapter,
-  participants,
-}) {
+export default function RoleBar({ myName, setMyName, adapter, participants }) {
   const [newName, setNewName] = useState('');
   const isMock = adapter?.isMock;
 
@@ -30,29 +20,12 @@ export default function RoleBar({
         <span className="proto-tag">PROTOTYPE</span>
 
         <label className="rb-field">
-          Role
-          <select value={role} onChange={(e) => setRole(e.target.value)}>
-            <option value="presenter">Presenter</option>
-            <option value="viewer">Viewer</option>
-          </select>
-        </label>
-
-        <label className="rb-field">
-          Meeting / room id
-          <input value={roomId} onChange={(e) => setRoomId(e.target.value)} />
-        </label>
-
-        <label className="rb-field">
           Your name
           <input value={myName} onChange={(e) => setMyName(e.target.value)} />
         </label>
-
-        <span className={`conn conn-${connStatus}`} title="WebSocket status">
-          {connStatus}
-        </span>
       </div>
 
-      {isMock && role === 'presenter' && (
+      {isMock && (
         <div className="rolebar-row sim">
           <span className="muted small">Simulate Zoom join/leave:</span>
           <input

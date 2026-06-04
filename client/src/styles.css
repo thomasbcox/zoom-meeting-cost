@@ -418,6 +418,98 @@ input.inline.num {
   flex: 0 0 90px;
 }
 
+/* --- Camera overlay (taxi meter) ----------------------------------------- */
+/* In the real camera rendering context the page must be transparent so only
+   the card composites over the video. */
+.overlay-mode,
+.overlay-mode body {
+  background: transparent !important;
+}
+
+.cost-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end; /* top-right corner */
+  padding: 16px;
+}
+.cost-overlay-card {
+  background: rgba(11, 15, 26, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  padding: 10px 14px;
+  backdrop-filter: blur(6px);
+  text-align: right;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+}
+.cost-overlay-label {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--muted);
+}
+.cost-overlay-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+.cost-overlay-dot.live {
+  background: var(--green);
+}
+.cost-overlay-dot.paused {
+  background: var(--amber);
+}
+.cost-overlay-total {
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+}
+.cost-overlay-meta {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  font-size: 12px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Mock-only simulated camera frame so `npm run dev` shows the overlay. */
+.sim-camera {
+  position: relative;
+  margin-top: 16px;
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: repeating-linear-gradient(
+      45deg,
+      #0d1320,
+      #0d1320 16px,
+      #0f1626 16px,
+      #0f1626 32px
+    );
+  overflow: hidden;
+}
+.sim-camera-tag {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  font-size: 11px;
+  color: var(--muted);
+  background: rgba(11, 15, 26, 0.6);
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
 /* --- Error boundary fallback --------------------------------------------- */
 .app-error {
   max-width: 560px;

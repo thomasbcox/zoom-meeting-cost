@@ -1,47 +1,34 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import RoleBar from './components/RoleBar.jsx';
 import SharedCostScreen from './components/SharedCostScreen.jsx';
-import ViewerScreen from './components/ViewerScreen.jsx';
+import OverlayApp from './components/OverlayApp.jsx';
 import PresenterControls from './components/PresenterControls.jsx';
 
 import { usePresenterStore } from './state/usePresenterStore.js';
-import { getZoomAdapter } from './zoom/zoomAdapter.js';
-import { createSyncClient } from './sync/syncClient.js';
 import { resolveAll } from './lib/matching.js';
 import { computeTotals } from './lib/cost.js';
-import { buildSharedState } from './lib/sharedState.js';
+import { buildOverlayState } from './lib/overlayState.js';
 
-export default function App() {
-  // --- Identity / role (prototype harness; from Zoom SDK in production) -----
-  const [role, setRole] = useState('presenter');
-  const [roomId, setRoomId] = useState('demo-meeting');
+// The in-meeting SIDE PANEL: the presenter privately configures rates, sees a
+// live readout, and starts/stops the camera overlay. The overlay itself renders
+// in the camera rendering context (see OverlayApp via Root) and receives state
+// pushed over the adapter's message bridge — there is no viewer webview and no
+// shared-state broadcast for the display.
+
+export default function App({ adapter, initialParticipants = [] }) {
   const [myName, setMyName] = useState('Thomas Cox');
 
-  // --- Zoom adapter + participants -----------------------------------------
-  const [adapter, setAdapter] = useState(null);
-  const [participants, setParticipants] = useState([]);
-
+  // --- Participants (seeded by Root.init, kept live via adapter events) -----
+  const [participants, setParticipants] = useState(initialParticipants);
   useEffect(() => {
-    let unsub = () => {};
-    let cancelled = false;
-    getZoomAdapter().then((a) => {
-      if (cancelled) return;
-      setAdapter(a);
-      a.init().then(({ participants }) => {
-        if (!cancelled) setParticipants(participants);
-      });
-      unsub = a.onParticipantsChange((list) => setParticipants(list));
-    });
-    return () => {
-      cancelled = true;
-      unsub();
-    };
-  }, []);
+    if (!adapter) return;
+    const unsub = adapter.onParticipantsChange((list) => setParticipants(list));
+    return () => unsub && unsub();
+  }, [adapter]);
 
   // --- Presenter private config --------------------------------------------
   const { config, overrides, actions } = usePresenterStore();
-  const [prefs, setPrefs] = useState({ aggregateOnly: false, hideRates: false });
 
   // --- Session + cost engine -----------------------------------------------
   const [session, setSession] = useState({ status: 'idle' });
@@ -79,13 +66,45 @@ export default function App() {
   );
   const totals = useMemo(() => computeTotals(resolved), [resolved]);
 
-  // Keep the latest values available to the interval without re-arming it.
-  const liveRef = useRef({});
-  liveRef.current = { totals };
+  // --- Camera overlay control ----------------------------------------------
+  const [overlayOn, setOverlayOn] = useState(false);
+  const overlayOnRef = useRef(false);
+  overlayOnRef.current = overlayOn;
 
-  // Tick: advance elapsed + accumulated cost while running (presenter only).
+  // Latest values for the interval/poster without re-arming effects.
+  const liveRef = useRef({});
+  liveRef.current = { totals, status: session.status };
+
+  const postOverlay = useCallback(() => {
+    if (!adapter?.postMessage) return;
+    const { totals: t, status } = liveRef.current;
+    adapter.postMessage(
+      buildOverlayState({
+        status,
+        totalCost: totalRef.current,
+        totals: t,
+        elapsedSeconds: elapsedRef.current,
+        updatedAt: Date.now(),
+      })
+    );
+  }, [adapter]);
+
+  const startOverlay = useCallback(async () => {
+    if (liveRef.current.status === 'idle') sessionActions.start();
+    await adapter?.startCameraOverlay?.();
+    setOverlayOn(true);
+    postOverlay(); // push current numbers immediately
+  }, [adapter, sessionActions, postOverlay]);
+
+  const stopOverlay = useCallback(async () => {
+    await adapter?.stopCameraOverlay?.();
+    setOverlayOn(false);
+  }, [adapter]);
+
+  // Tick: advance elapsed + accumulated cost while running, and stream the
+  // overlay state once a second when the overlay is on.
   useEffect(() => {
-    if (role !== 'presenter' || session.status !== 'running') return;
+    if (session.status !== 'running') return;
     lastTickRef.current = Date.now();
     const id = setInterval(() => {
       const now = Date.now();
@@ -95,83 +114,41 @@ export default function App() {
       totalRef.current += cps * dt;
       elapsedRef.current += dt;
       forceTick((n) => n + 1);
+      if (overlayOnRef.current) postOverlay();
     }, 1000);
     return () => clearInterval(id);
-  }, [role, session.status]);
+  }, [session.status, postOverlay]);
 
-  // --- Build shared state (presenter is the source of truth) ---------------
-  const presenterFullState = useMemo(() => {
-    return {
-      version: 1,
-      roomId,
+  // Push a fresh snapshot whenever the overlay turns on or the session status
+  // changes (so a paused/ended overlay shows the frozen number, not stale data).
+  useEffect(() => {
+    if (overlayOn) postOverlay();
+  }, [overlayOn, session.status, postOverlay]);
+
+  // --- Presenter's own live readout (private; full detail) ------------------
+  const readoutState = useMemo(
+    () => ({
+      status: session.status,
       presenterName: myName,
-      status: session.status === 'idle' ? 'idle' : session.status,
       elapsedSeconds: elapsedRef.current,
       totalCost: totalRef.current,
       totals,
-      prefs: { aggregateOnly: false, hideRates: false }, // presenter always sees full detail
       participants: resolved.map((p) => ({
         id: p.id,
         displayName: p.displayName,
         rate: p.rate,
         source: p.source,
       })),
-      updatedAt: Date.now(),
-    };
+    }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roomId, myName, session.status, totals, resolved, /* tick */ elapsedRef.current, totalRef.current]);
-
-  const broadcastState = useMemo(() => {
-    return buildSharedState({
-      roomId,
-      presenterName: myName,
-      status: session.status === 'idle' ? 'idle' : session.status,
-      elapsedSeconds: elapsedRef.current,
-      totalCost: totalRef.current,
-      resolved,
-      totals,
-      prefs,
-      updatedAt: Date.now(),
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roomId, myName, session.status, resolved, totals, prefs, elapsedRef.current, totalRef.current]);
-
-  // --- Sync client ----------------------------------------------------------
-  const [connStatus, setConnStatus] = useState('connecting');
-  const [receivedState, setReceivedState] = useState(null);
-  const syncRef = useRef(null);
-
-  useEffect(() => {
-    const client = createSyncClient({
-      roomId,
-      role,
-      onState: (s) => setReceivedState(s),
-      onStatus: setConnStatus,
-    });
-    syncRef.current = client;
-    return () => client.close();
-  }, [roomId, role]);
-
-  // Presenter publishes whenever the broadcast state changes.
-  useEffect(() => {
-    if (role !== 'presenter') return;
-    if (session.status === 'idle') return; // nothing to share until started
-    syncRef.current?.publish(broadcastState);
-  }, [role, session.status, broadcastState]);
-
-  // --- Render ---------------------------------------------------------------
-  const isPresenter = role === 'presenter';
+    [myName, session.status, totals, resolved, elapsedRef.current, totalRef.current]
+  );
 
   return (
     <div className="app">
       <RoleBar
-        role={role}
-        setRole={setRole}
-        roomId={roomId}
-        setRoomId={setRoomId}
         myName={myName}
         setMyName={setMyName}
-        connStatus={connStatus}
         adapter={adapter}
         participants={participants}
       />
@@ -179,42 +156,47 @@ export default function App() {
       <header className="app-header">
         <h1>Meeting Cost</h1>
         <p className="muted small">
-          Live estimated cost of this meeting, shared with everyone.
+          Private to you. Start the overlay to show the live cost on your video.
         </p>
       </header>
 
-      <main className={isPresenter ? 'layout presenter' : 'layout viewer'}>
+      <main className="layout presenter">
         <div className="screen-col">
-          {isPresenter ? (
-            session.status === 'idle' ? (
-              <div className="cost-screen empty">
-                <p className="muted">
-                  Start a shared session to begin counting. Viewers in room{' '}
-                  <code>{roomId}</code> will see the live cost.
-                </p>
-              </div>
-            ) : (
-              <SharedCostScreen state={presenterFullState} />
-            )
+          {session.status === 'idle' ? (
+            <div className="cost-screen empty">
+              <p className="muted">
+                Configure rates, then <strong>Show cost on video</strong> to put the
+                live meter on your camera feed for everyone to see.
+              </p>
+            </div>
           ) : (
-            <ViewerScreen state={receivedState} />
+            <SharedCostScreen state={readoutState} />
+          )}
+
+          {adapter?.isMock && (
+            <div className="sim-camera" aria-label="Simulated camera preview">
+              <span className="sim-camera-tag">Camera preview (simulated)</span>
+              {/* Only mount the meter while the overlay is on, so the frame
+                  empties on "Hide from video" — mirroring closeRenderingContext
+                  removing it from the real camera feed. */}
+              {overlayOn && <OverlayApp adapter={adapter} transparentBody={false} />}
+            </div>
           )}
         </div>
 
-        {isPresenter && (
-          <aside className="controls-col">
-            <PresenterControls
-              config={config}
-              overrides={overrides}
-              actions={actions}
-              session={session}
-              sessionActions={sessionActions}
-              prefs={prefs}
-              setPrefs={setPrefs}
-              resolved={resolved}
-            />
-          </aside>
-        )}
+        <aside className="controls-col">
+          <PresenterControls
+            config={config}
+            overrides={overrides}
+            actions={actions}
+            session={session}
+            sessionActions={sessionActions}
+            overlayOn={overlayOn}
+            startOverlay={startOverlay}
+            stopOverlay={stopOverlay}
+            resolved={resolved}
+          />
+        </aside>
       </main>
     </div>
   );
