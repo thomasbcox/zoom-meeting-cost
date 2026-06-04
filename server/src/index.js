@@ -3,7 +3,7 @@ import './loadEnv.js';
 
 import { createApp } from './app.js';
 import { resolvePort } from './port.js';
-import { zoomConfigured } from './zoom/oauth.js';
+import { zoomConfigured, zoomCredentialFingerprint } from './zoom/oauth.js';
 
 // API_PORT takes precedence so dev launchers that inject a generic PORT (e.g.
 // the Claude preview panel sets PORT to the web port) can't accidentally steer
@@ -15,6 +15,7 @@ const app = createApp();
 const server = app.listen(PORT, () => {
   console.log(`[meeting-cost] server on http://localhost:${PORT}`);
   console.log(`[meeting-cost] zoom oauth configured: ${zoomConfigured}`);
+  console.log(`[meeting-cost] zoom creds ${zoomCredentialFingerprint()}`);
 });
 
 server.on('error', (err) => {
