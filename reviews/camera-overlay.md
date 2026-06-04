@@ -157,3 +157,11 @@ _No BLOCKER, QUESTION, or NIT findings._
 ## Decisions (2026-06-03)
 
 - **IMPORTANT #1 (mock preview doesn't hide):** Thomas — **Fix**. Gate the mock `OverlayApp` on `overlayOn` so the simulated camera frame empties when "Hide from video" is clicked; re-run the gate. To be applied in /close.
+
+## Fixes (2026-06-03)
+
+- **IMPORTANT #1 (mock preview doesn't hide):** `client/src/App.jsx` — the
+  simulated camera frame now mounts `OverlayApp` only when `overlayOn`, so the
+  frame empties on "Hide from video", matching the control state (and the real
+  `closeRenderingContext` removing the overlay from the camera). Frame box itself
+  stays visible as an empty "video".

@@ -176,7 +176,10 @@ export default function App({ adapter, initialParticipants = [] }) {
           {adapter?.isMock && (
             <div className="sim-camera" aria-label="Simulated camera preview">
               <span className="sim-camera-tag">Camera preview (simulated)</span>
-              <OverlayApp adapter={adapter} transparentBody={false} />
+              {/* Only mount the meter while the overlay is on, so the frame
+                  empties on "Hide from video" — mirroring closeRenderingContext
+                  removing it from the real camera feed. */}
+              {overlayOn && <OverlayApp adapter={adapter} transparentBody={false} />}
             </div>
           )}
         </div>
