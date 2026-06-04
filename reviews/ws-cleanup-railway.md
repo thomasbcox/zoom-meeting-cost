@@ -1,4 +1,4 @@
-Date: 2026-06-04 · Branch: claude/ws-cleanup-railway · Status: approved
+Date: 2026-06-04 · Branch: claude/ws-cleanup-railway · Status: merged
 
 > Approved by Thomas 2026-06-04: "1 yes you assume correctly; 2 explicit
 > railway.json please; 3 yes railway is the intended host." Open questions
@@ -170,3 +170,11 @@ _No BLOCKER, IMPORTANT, or QUESTION findings._
 - **NIT #2 (comment references deleted sharedState.js, usePresenterStore.js:5):** Thomas — **Fix**.
 
 Both applied in /close (comment-only rewords), then re-run the gate and merge.
+
+## Fixes (2026-06-04)
+
+- **NIT #1:** `server/src/app.js` — `createApp()` docstring reworded to "no
+  listening — that lives in index.js" (dropped the stale WebSocket reference).
+- **NIT #2:** `client/src/state/usePresenterStore.js` — privacy comment now
+  references `lib/overlayState.js` (the overlay payload path) instead of the
+  deleted `lib/sharedState.js`.

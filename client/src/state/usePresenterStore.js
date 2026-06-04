@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 // The presenter's PRIVATE configuration. Persisted to localStorage so it
 // survives reloads. This data NEVER leaves the browser except as resolved,
-// sanitized shared state (see lib/sharedState.js).
+// sanitized aggregate numbers in the overlay payload (see lib/overlayState.js).
 //
 //   rateTable : [{ id, name, rate }]      persistent best-guess rates
 //   aliases   : [{ id, alias, canonical }] persistent name aliases

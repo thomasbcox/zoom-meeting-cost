@@ -40,7 +40,7 @@ export function securityHeaders(_req, res, next) {
 }
 
 /**
- * Build the Express app (no listening, no WebSocket — those live in index.js).
+ * Build the Express app (no listening — that lives in index.js).
  * Exported so tests can exercise routes/headers without starting a server.
  */
 export function createApp({
