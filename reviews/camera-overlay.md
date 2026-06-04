@@ -153,3 +153,7 @@ Tests added: `renderMode.test.js`, `overlayState.test.js`, `zoomAdapter.test.js`
    *Suggestion:* gate the mock `OverlayApp` render on `overlayOn`, or have `stopOverlay`/`MockZoom.stopCameraOverlay` clear the overlay state and notify subscribers so the frame empties when hidden.
 
 _No BLOCKER, QUESTION, or NIT findings._
+
+## Decisions (2026-06-03)
+
+- **IMPORTANT #1 (mock preview doesn't hide):** Thomas — **Fix**. Gate the mock `OverlayApp` on `overlayOn` so the simulated camera frame empties when "Hide from video" is clicked; re-run the gate. To be applied in /close.
