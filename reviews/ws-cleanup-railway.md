@@ -118,3 +118,48 @@ vars Railway must supply. `PORT` handling already falls back correctly
 2. **`railway.json` vs zero-config** — RESOLVED: ship the explicit `railway.json`.
 3. **Redirect host** — RESOLVED: `ZOOM_REDIRECT_URI` host is the Railway app URL
    (`https://<app>.up.railway.app/auth/callback`), mirrored in the Zoom Marketplace.
+
+## Build note (2026-06-04)
+
+AC → implementing files:
+1. Server WS removed → `server/src/index.js` (no WebSocketServer), deleted `server/src/rooms.js`, `server/package.json` (no `ws`)
+2. Client WS removed → deleted `client/src/sync/syncClient.js`, `client/src/lib/sharedState.js`; `client/vite.config.js` (no `/ws` proxy)
+3. Health decoupled from rooms → `server/src/app.js` (no `roomStats`; `/api/health` → `{ok,zoomConfigured}`; SPA fallback no `/ws`)
+4. Boots without `.env` → `server/package.json` scripts use `--env-file-if-exists=.env`; verified manually + `server/test/health.test.js`
+5. Port resolution tested → `server/src/port.js` (`resolvePort`), `server/test/port.test.js`, used in `index.js`
+6. Railway config → `railway.json`; `engines.node>=22` in root + `server/package.json`
+7. Docs + no secrets → `README.md` "Deploy to Railway", `server/.env.example`; removed `reviews/railway-deploy.md`; backlog marked done
+8. Gate → `npm test && npm run build`
+
+Tests added: `server/test/port.test.js`, `server/test/health.test.js` (resolvePort + no-`.env` health + railway.json shape).
+
+`git diff --stat main...HEAD`:
+ README.md                      |  30 +++++++++--
+ client/src/lib/overlayState.js |   6 +--
+ client/src/lib/sharedState.js  |  71 ------------------------
+ client/src/sync/syncClient.js  |  77 --------------------------
+ client/vite.config.js          |   4 --
+ package-lock.json              |  30 +++--------
+ package.json                   |   3 ++
+ railway.json                   |  14 +++++
+ reviews/backlog.md             |  15 ++----
+ reviews/ws-cleanup-railway.md  | 120 +++++++++++++++++++++++++++++++++++++++++
+ server/.env.example            |  19 +++++--
+ server/package.json            |  10 ++--
+ server/src/app.js              |   9 +---
+ server/src/index.js            |  63 +++-------------------
+ server/src/port.js             |  10 ++++
+ server/src/rooms.js            |  74 -------------------------
+ server/test/health.test.js     |  37 +++++++++++++
+ server/test/port.test.js       |  16 ++++++
+ 18 files changed, 270 insertions(+), 338 deletions(-)
+
+## Codex review (2026-06-04, base main, HEAD 17938df)
+
+**Summary:** The branch satisfies the substantive WebSocket-removal and Railway-readiness requirements in the diff. (Codex could not run the full gate in its read-only sandbox — Vitest needs to write Vite temp files; the standalone port unit test passed. Gate was run green outside Codex: 55 client + 8 server tests, build OK.)
+
+### NIT
+1. **Stale WebSocket comment after removal** — `server/src/app.js:43`. The `createApp()` docstring still says "no WebSocket — those live in index.js", but index.js no longer has a WebSocket. *Suggestion:* reword to say createApp builds the Express app without starting a listener.
+2. **Comment points at deleted sharedState module** — `client/src/state/usePresenterStore.js:5`. Privacy comment says "see lib/sharedState.js", which this branch deletes. *Suggestion:* reword to reference the current overlay payload path (`lib/overlayState.js`) or drop the file reference.
+
+_No BLOCKER, IMPORTANT, or QUESTION findings._
