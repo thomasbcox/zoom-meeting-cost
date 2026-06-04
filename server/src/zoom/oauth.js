@@ -12,6 +12,7 @@
 //
 // Docs: https://developers.zoom.us/docs/zoom-apps/authentication/
 
+import { createHash } from 'node:crypto';
 import express from 'express';
 
 const {
@@ -23,6 +24,26 @@ const {
 export const zoomConfigured = Boolean(
   ZOOM_CLIENT_ID && ZOOM_CLIENT_SECRET && ZOOM_REDIRECT_URI
 );
+
+// Safe diagnostic for the `invalid_client` class of failures: it reveals whether
+// the LIVE process holds the credential value we expect — catching hidden
+// whitespace (len/trimmed mismatch) and stale/wrong values (sha mismatch)
+// WITHOUT ever printing the secret. Compare the sha/len against the known-good
+// values from the Zoom Marketplace.
+export function fingerprint(value) {
+  if (value == null) return 'MISSING';
+  const sha = createHash('sha256').update(value).digest('hex').slice(0, 12);
+  const ws = value !== value.trim() ? ' WHITESPACE!' : '';
+  return `len=${value.length} sha=${sha}${ws}`;
+}
+
+export function zoomCredentialFingerprint() {
+  return (
+    `id[${fingerprint(ZOOM_CLIENT_ID)}] ` +
+    `secret[${fingerprint(ZOOM_CLIENT_SECRET)}] ` +
+    `redirect[${fingerprint(ZOOM_REDIRECT_URI)}]`
+  );
+}
 
 export function createOAuthRouter() {
   const router = express.Router();
