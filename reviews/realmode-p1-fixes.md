@@ -131,3 +131,12 @@ AC → file map:
  server/zoom-app-config.md           |   3 +
  7 files changed, 327 insertions(+), 5 deletions(-)
 ```
+
+## Codex review (2026-06-04, base main, HEAD f7316ba)
+
+**Summary:** Reviewed `git diff main...HEAD`, `git log --oneline main..HEAD`, and `reviews/realmode-p1-fixes.md`. The logging redaction, capability doc updates, tests, and backlog entries align with the spec, but the new RealZoom connection handling has one blocker. Targeted tests were attempted but blocked by sandbox permissions: Vitest could not write Vite temp files, and the server test could not bind a listener.
+
+### BLOCKER
+1. **Failed onConnect events mark the bridge connected** — `client/src/zoom/zoomAdapter.js:183`
+   - **Claim:** The new `onConnect` handler unconditionally sets `_connected = true` and flushes `_pendingMsg`. The installed Zoom SDK's `OnConnectEvent` carries `action: 'success' | 'failure'`, so a failure event is treated as a live channel; the pending snapshot is sent over a not-connected bridge and cleared, violating AC4's requirement to only post over a live connection and replay once connected.
+   - **Suggestion:** Accept the event argument and only set `_connected`/flush when the event reports success. On failure, keep `_connected` false and retain the latest pending payload; add a fake-SDK test that fires a failure event before a success event.
