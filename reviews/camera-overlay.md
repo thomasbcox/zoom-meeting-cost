@@ -106,5 +106,50 @@ space, no shared-state broadcast for the display.
    treat a `drawWebView` no-op as a Zoom-side issue if it recurs.
 4. **Mock preview fidelity** — RESOLVED: a lightweight simulated camera frame is
    enough for visual review.
-</content>
-</invoke>
+
+## Build note (2026-06-03)
+
+AC → implementing files:
+1. Context routing → `client/src/lib/renderMode.js`, `client/src/Root.jsx`, `client/src/main.jsx`
+2. Overlay Start/Stop control → `client/src/components/PresenterControls.jsx`, `client/src/App.jsx` (startOverlay/stopOverlay), adapter `startCameraOverlay`/`stopCameraOverlay`
+3. Overlay render (transparent, taxi meter) → `client/src/components/CostOverlay.jsx`, `client/src/components/OverlayApp.jsx`, `client/src/styles.css`
+4. Sanitized state hand-off → `client/src/lib/overlayState.js` (`buildOverlayState`), adapter `postMessage`/`onMessage` bridge, `App.jsx` `postOverlay`
+5. Collaborate/viewer path removed → deleted `client/src/components/ViewerScreen.jsx`; `RoleBar.jsx` (role dropdown/conn/room removed); App no longer uses sync/buildSharedState
+6. Capabilities + docs → `client/src/zoom/zoomAdapter.js` (`ZOOM_CAPABILITIES`), `server/zoom-app-config.md`, `README.md`
+7. Runnable mock preview → `App.jsx` simulated camera frame (mock only), `MockZoom` call recording + message loopback
+
+Tests added: `renderMode.test.js`, `overlayState.test.js`, `zoomAdapter.test.js`, `CostOverlay.test.js`.
+
+`git diff --stat main...HEAD`:
+ README.md                                   |  72 +++++----
+ client/src/App.jsx                          | 217 +++++++++++++---------------
+ client/src/Root.jsx                         |  49 +++++++
+ client/src/components/CostOverlay.jsx       |  36 +++++
+ client/src/components/CostOverlay.test.js   |  38 +++++
+ client/src/components/OverlayApp.jsx        |  37 +++++
+ client/src/components/PresenterControls.jsx |  50 +++----
+ client/src/components/RoleBar.jsx           |  37 +----
+ client/src/components/ViewerScreen.jsx      |  33 -----
+ client/src/lib/overlayState.js              |  56 +++++++
+ client/src/lib/overlayState.test.js         |  84 +++++++++++
+ client/src/lib/renderMode.js                |  13 ++
+ client/src/lib/renderMode.test.js           |  18 +++
+ client/src/main.jsx                         |   4 +-
+ client/src/styles.css                       |  92 ++++++++++++
+ client/src/zoom/zoomAdapter.js              | 104 +++++++++++--
+ client/src/zoom/zoomAdapter.test.js         |  58 ++++++++
+ reviews/backlog.md                          |  12 ++
+ reviews/camera-overlay.md                   | 110 ++++++++++++++
+ server/zoom-app-config.md                   |  20 ++-
+ 20 files changed, 875 insertions(+), 265 deletions(-)
+
+## Codex review (2026-06-03, base main, HEAD d65b573)
+
+**Summary:** Reviewed `git diff main...HEAD`, `git log --oneline main..HEAD`, and the spec. The branch generally implements the requested context routing, sanitized overlay state, capability docs, and viewer-path removal. (Codex could not run `npm test` — the read-only sandbox blocked Vitest/Vite from writing its temp config; gate was run green outside Codex.)
+
+### IMPORTANT
+1. **Mock preview does not hide when overlay is stopped** — `client/src/App.jsx:176`.
+   The simulated camera frame always mounts `OverlayApp` whenever `adapter.isMock`. `stopOverlay()` only calls `stopCameraOverlay()` and flips `overlayOn` false, but the mounted `OverlayApp` retains the last message state and keeps rendering (and ticking) the cost meter in the mock preview after "Hide from video". The control state then disagrees with the preview — breaks AC-7 mock visual-review fidelity.
+   *Suggestion:* gate the mock `OverlayApp` render on `overlayOn`, or have `stopOverlay`/`MockZoom.stopCameraOverlay` clear the overlay state and notify subscribers so the frame empties when hidden.
+
+_No BLOCKER, QUESTION, or NIT findings._
