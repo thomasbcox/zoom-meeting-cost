@@ -135,3 +135,21 @@ hardening deferred to backlog.)
  server/src/index.js                         |  49 ++------------
  server/test/headers.test.js                 |  63 ++++++++++++++++++
 ```
+
+## Codex review (2026-06-03, base main, HEAD 6c2fdbb)
+
+**Summary:** Reviewed `git diff main...HEAD`, `git log --oneline main..HEAD`,
+and the spec. The changed code matches the spec: required headers are applied
+before all routes/static assets, CSP includes the required sources,
+`dev-state.md` is ignored and untracked, error reporting and the error boundary
+are wired, and the backlog entry exists. (Codex could not run the gate in its
+read-only sandbox — Vitest needs to write a Vite temp config and the server
+tests cannot bind a local port there; the gate was run green by Claude before
+review.)
+
+**Findings:** none.
+
+- BLOCKER: 0
+- IMPORTANT: 0
+- QUESTION: 0
+- NIT: 0
