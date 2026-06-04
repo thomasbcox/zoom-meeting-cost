@@ -87,9 +87,9 @@ overrides ──────────┘            │
 - Zoom integration adapter: `client/src/zoom/zoomAdapter.js` — `MockZoom` (records
   overlay calls + loops the message bridge back for the simulated preview) and
   `RealZoom` (camera rendering context via `@zoom/appssdk`).
-- The legacy WebSocket sync (`client/src/sync/syncClient.js` +
-  `server/src/rooms.js`) is no longer used for the display; removal is tracked as
-  a follow-up cleanup.
+- The server (`server/`) is a thin Express app: OWASP secure headers, Zoom OAuth
+  scaffold, `/api/health`, and serving the built client. State flows entirely
+  through Zoom's in-client message bridge — there is no server-side WebSocket.
 
 ## Going live in Zoom (later)
 
@@ -97,6 +97,30 @@ See `server/zoom-app-config.md` for Marketplace setup (scopes, redirect URLs,
 SDK capabilities) and `server/.env.example` for OAuth credentials. Set
 `VITE_USE_ZOOM=1` for the client to use the real Zoom SDK, install
 `@zoom/appssdk`, and serve over an HTTPS tunnel (e.g. ngrok).
+
+## Deploy to Railway (from GitHub)
+
+The repo is deploy-ready: `railway.json` declares the build (`npm run build`),
+start (`npm start`), and a health check at `/api/health`. The server boots with
+**no committed `.env`** — config comes from environment variables you set in the
+Railway dashboard.
+
+1. Create a Railway project and **Deploy from GitHub repo** (this repo); pushes to
+   `main` then build and deploy automatically.
+2. Set these **variables** in the Railway service:
+   - `ZOOM_CLIENT_ID` — Zoom app client id (runtime)
+   - `ZOOM_CLIENT_SECRET` — Zoom app client secret (runtime)
+   - `ZOOM_REDIRECT_URI` — `https://<app>.up.railway.app/auth/callback` (runtime)
+   - `VITE_USE_ZOOM` — `1` so the **build** inlines the real Zoom SDK (build-time;
+     Vite bakes it into the bundle, so it must be set before/at build)
+   - **Do not set `PORT`** — Railway injects it; the server reads it automatically.
+3. In the **Zoom Marketplace** app, set the OAuth redirect URL and domain allow
+   list to the same `https://<app>.up.railway.app` host (see
+   `server/zoom-app-config.md`).
+4. Railway marks the deploy healthy once `GET /api/health` returns `200`.
+
+No secrets live in the repo — `server/.env.example` lists the keys with empty
+values for local use only.
 
 ## License
 

@@ -7,6 +7,9 @@
     "client",
     "server"
   ],
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "npm-run-all --parallel dev:server dev:client",
     "dev:server": "npm --workspace server run dev",
