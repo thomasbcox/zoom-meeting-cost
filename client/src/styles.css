@@ -417,3 +417,28 @@ input.inline.num {
 .add-row input[type='number'] {
   flex: 0 0 90px;
 }
+
+/* --- Error boundary fallback --------------------------------------------- */
+.app-error {
+  max-width: 560px;
+  margin: 48px auto;
+  padding: 20px 22px;
+  background: var(--panel);
+  border: 1px solid var(--red);
+  border-radius: var(--radius);
+  color: var(--text);
+}
+.app-error h2 {
+  margin: 0 0 8px;
+  color: var(--red);
+}
+.app-error-detail {
+  margin-top: 12px;
+  padding: 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

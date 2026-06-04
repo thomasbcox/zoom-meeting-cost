@@ -1,58 +1,17 @@
 import http from 'node:http';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import express from 'express';
 import { WebSocketServer } from 'ws';
 
-import { joinRoom, leaveRoom, publishState, getState, roomStats } from './rooms.js';
-import { createOAuthRouter, zoomConfigured } from './zoom/oauth.js';
+import { createApp } from './app.js';
+import { joinRoom, leaveRoom, publishState, getState } from './rooms.js';
+import { zoomConfigured } from './zoom/oauth.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // API_PORT takes precedence so dev launchers that inject a generic PORT (e.g.
 // the Claude preview panel sets PORT to the web port) can't accidentally steer
 // the API server onto the Vite port. In production (single Express server) we
 // fall back to the conventional PORT.
 const PORT = process.env.API_PORT || process.env.PORT || 8787;
 
-const app = express();
-app.use(express.json());
-
-app.use((req, res, next) => {
-  console.log(`[server] ${req.method} ${req.url}`);
-  next();
-});
-
-// --- Health / debug ---------------------------------------------------------
-app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, zoomConfigured, rooms: roomStats() });
-});
-
-app.post('/api/log', (req, res) => {
-  console.error('[client-log]', JSON.stringify(req.body, null, 2));
-  res.sendStatus(204);
-});
-
-// --- Zoom OAuth (scaffold; inert until configured) --------------------------
-app.use('/auth', createOAuthRouter());
-
-// --- Serve the built client in production -----------------------------------
-const clientDist = path.resolve(__dirname, '../../client/dist');
-app.use((req, res, next) => {
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Expires', '0');
-  next();
-});
-app.use(express.static(clientDist, { etag: false }));
-app.get('*', (req, res, next) => {
-  if (req.path.startsWith('/api') || req.path.startsWith('/auth') || req.path.startsWith('/ws')) {
-    return next();
-  }
-  res.sendFile(path.join(clientDist, 'index.html'), (err) => {
-    if (err) next();
-  });
-});
-
+const app = createApp();
 const server = http.createServer(app);
 
 // --- WebSocket: shared meeting-cost state -----------------------------------
