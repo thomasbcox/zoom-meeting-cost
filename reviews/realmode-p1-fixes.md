@@ -140,3 +140,9 @@ AC → file map:
 1. **Failed onConnect events mark the bridge connected** — `client/src/zoom/zoomAdapter.js:183`
    - **Claim:** The new `onConnect` handler unconditionally sets `_connected = true` and flushes `_pendingMsg`. The installed Zoom SDK's `OnConnectEvent` carries `action: 'success' | 'failure'`, so a failure event is treated as a live channel; the pending snapshot is sent over a not-connected bridge and cleared, violating AC4's requirement to only post over a live connection and replay once connected.
    - **Suggestion:** Accept the event argument and only set `_connected`/flush when the event reports success. On failure, keep `_connected` false and retain the latest pending payload; add a fake-SDK test that fires a failure event before a success event.
+
+## Decisions (2026-06-04)
+
+- **BLOCKER 1 (failed onConnect marks bridge connected):** FIX — Thomas: "fix".
+  Gate `onConnect` on `action === 'success'`; keep `_connected` false and retain
+  `_pendingMsg` on failure; add a fake-SDK test firing failure before success.
