@@ -83,3 +83,34 @@ Railway serves the fallback.
 2. **Different failure mode** — MOOT: a deploy is now live, so this is a
    regression-hardening change rather than the active fix. Thomas's remaining
    "other problems" are separate and out of scope here.
+
+## Build note (2026-06-04)
+
+AC → implementing files:
+1. `.nvmrc` pins Node 22 → `.nvmrc`
+2. Guarded env loading → `server/src/loadEnv.js` (`loadLocalEnv`), imported first in `server/src/index.js`
+3. Scripts use plain `node` → `server/package.json` (dev/start)
+4. Boots without `.env` → covered by `server/test/health.test.js` + manual `node src/index.js` (no .env) check
+5. Loads `.env` when present → `server/test/loadEnv.test.js`
+6. Gate → `npm test && npm run build`
+7. Manual (Thomas) → redeploy on Railway, re-check headers / Zoom Home URL
+
+Tests added: `server/test/loadEnv.test.js` (present-file load + missing-file no-throw).
+
+`git diff --stat main...HEAD`:
+ .nvmrc                      |  1 +
+ reviews/railway-boot-fix.md | 85 +++++++++++++++++++++++++++++++++++++++++++++
+ server/package.json         |  4 +--
+ server/src/index.js         |  3 ++
+ server/src/loadEnv.js       | 25 +++++++++++++
+ server/test/loadEnv.test.js | 30 ++++++++++++++++
+ 6 files changed, 146 insertions(+), 2 deletions(-)
+
+## Codex review (2026-06-04, base main, HEAD ab421b3)
+
+**Summary:** The branch implements the Node 22 pin, removes the CLI env-file flag, imports the env loader first, and adds loadEnv tests. One issue: the loader suppresses more failures than the spec calls for. (Codex could not run the gate in its read-only sandbox — EPERM on fs/socket writes; gate was run green outside Codex: 55 client + 10 server tests, build OK.)
+
+### IMPORTANT
+1. **Env loader suppresses non-missing .env failures** — `server/src/loadEnv.js:19`. The catch treats every `process.loadEnvFile` exception as a harmless missing `.env`; an unreadable/bad `.env` (or other load failure) would silently boot with local env vars absent, making a config problem look like ordinary unconfigured state. *Suggestion:* return false when `process.loadEnvFile` is unavailable, ignore only the missing-file (ENOENT) error, and rethrow other failures.
+
+_No BLOCKER, QUESTION, or NIT findings._
