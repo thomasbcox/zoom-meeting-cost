@@ -1,6 +1,6 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import App from './App.jsx';
+import Root from './Root.jsx';
 import './styles.css';
 import { maybeRunZoomDiagnostics } from './zoom/zoomDiagnostics.js';
 import { installGlobalErrorReporting } from './lib/reportError.js';
@@ -17,7 +17,7 @@ maybeRunZoomDiagnostics();
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <ErrorBoundary>
-      <App />
+      <Root />
     </ErrorBoundary>
   </React.StrictMode>
 );

@@ -11,8 +11,9 @@ export default function PresenterControls({
   actions,
   session,
   sessionActions,
-  prefs,
-  setPrefs,
+  overlayOn,
+  startOverlay,
+  stopOverlay,
   resolved,
 }) {
   const running = session.status === 'running';
@@ -21,13 +22,17 @@ export default function PresenterControls({
 
   return (
     <div className="controls">
-      {/* --- Session ------------------------------------------------------ */}
+      {/* --- Session + camera overlay ------------------------------------- */}
       <section className="panel">
-        <h3>Shared session</h3>
+        <h3>Cost overlay</h3>
         <div className="btn-row">
-          {!active && (
-            <button className="btn primary" onClick={sessionActions.start}>
-              Start shared session
+          {!overlayOn ? (
+            <button className="btn primary" onClick={startOverlay}>
+              Show cost on video
+            </button>
+          ) : (
+            <button className="btn danger" onClick={stopOverlay}>
+              Hide from video
             </button>
           )}
           {running && (
@@ -41,36 +46,19 @@ export default function PresenterControls({
             </button>
           )}
           {active && (
-            <button className="btn danger" onClick={sessionActions.end}>
+            <button className="btn" onClick={sessionActions.end}>
               End session
             </button>
           )}
         </div>
         <p className="muted small">
-          Status: <strong>{session.status}</strong>
+          Overlay: <strong>{overlayOn ? 'on your video' : 'hidden'}</strong> ·
+          counting: <strong>{session.status}</strong>
         </p>
-      </section>
-
-      {/* --- Display preferences ------------------------------------------ */}
-      <section className="panel">
-        <h3>Viewer display</h3>
-        <label className="check">
-          <input
-            type="checkbox"
-            checked={!!prefs.aggregateOnly}
-            onChange={(e) => setPrefs({ ...prefs, aggregateOnly: e.target.checked })}
-          />
-          Show aggregate totals only (hide the participant list)
-        </label>
-        <label className="check">
-          <input
-            type="checkbox"
-            checked={!!prefs.hideRates}
-            disabled={prefs.aggregateOnly}
-            onChange={(e) => setPrefs({ ...prefs, hideRates: e.target.checked })}
-          />
-          Show names but hide individual rates
-        </label>
+        <p className="muted small">
+          The meter renders on your camera feed, so everyone sees it natively —
+          no app install needed for other participants.
+        </p>
       </section>
 
       {/* --- Global rate settings ----------------------------------------- */}

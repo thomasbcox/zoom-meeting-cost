@@ -5,6 +5,10 @@
 //   adapter.init()                  -> { context, self, participants }
 //   adapter.getParticipants()       -> Participant[]
 //   adapter.onParticipantsChange(cb)-> unsubscribe()
+//   adapter.startCameraOverlay()    -> render the app onto the camera feed
+//   adapter.stopCameraOverlay()     -> stop rendering onto the camera feed
+//   adapter.postMessage(payload)    -> side panel -> camera context state push
+//   adapter.onMessage(cb)           -> camera context receives state; unsubscribe()
 //   adapter.isMock                  -> boolean
 //
 // where Participant = { id, displayName, email? }
@@ -12,9 +16,30 @@
 // Two implementations:
 //   - MockZoom  : used in the local prototype. Lets the UI add/remove fake
 //                 participants to simulate join/leave, mirroring real Zoom
-//                 events (which arrive from the SDK, not from the UI).
+//                 events (which arrive from the SDK, not from the UI). The
+//                 camera-overlay methods are recorded and the message bridge
+//                 loops back so the simulated overlay preview can be exercised.
 //   - RealZoom  : wraps @zoom/appssdk. Wired but only used when running inside
 //                 the Zoom client. Left as a clearly-marked integration point.
+
+// Capabilities requested in zoomSdk.config(). Includes the camera-rendering and
+// inter-webview messaging APIs the overlay needs. Exported so it can be asserted
+// in tests and kept in sync with server/zoom-app-config.md.
+export const ZOOM_CAPABILITIES = [
+  'getRunningContext',
+  'getMeetingContext',
+  'getMeetingParticipants',
+  'getUserContext',
+  'onParticipantChange',
+  // Camera overlay (Layers API):
+  'runRenderingContext',
+  'drawWebView',
+  'clearWebView',
+  'closeRenderingContext',
+  // Side panel <-> camera context state bridge:
+  'postMessage',
+  'onMessage',
+];
 
 const SEED_PARTICIPANTS = [
   { id: 'p1', displayName: 'Thomas Cox' },
@@ -23,12 +48,16 @@ const SEED_PARTICIPANTS = [
   { id: 'p4', displayName: 'Dana Rivera' }, // intentionally unmatched -> default
 ];
 
-class MockZoom {
+export class MockZoom {
   constructor() {
     this.isMock = true;
     this._participants = [...SEED_PARTICIPANTS];
     this._subs = new Set();
     this._nextId = 5;
+    // Camera-overlay instrumentation: recorded SDK calls + message loopback.
+    this.calls = [];
+    this._msgSubs = new Set();
+    this._lastMsg = null;
   }
 
   async init() {
@@ -51,6 +80,28 @@ class MockZoom {
   _emit() {
     const snapshot = this.getParticipants();
     for (const cb of this._subs) cb(snapshot);
+  }
+
+  // --- Camera overlay (mock: record calls; no real compositing) -----------
+  async startCameraOverlay() {
+    this.calls.push({ method: 'runRenderingContext', view: 'camera' });
+    this.calls.push({ method: 'drawWebView' });
+  }
+
+  async stopCameraOverlay() {
+    this.calls.push({ method: 'closeRenderingContext' });
+  }
+
+  // --- State bridge (mock: loop back so the simulated overlay updates) -----
+  postMessage(payload) {
+    this._lastMsg = payload;
+    for (const cb of this._msgSubs) cb(payload);
+  }
+
+  onMessage(cb) {
+    this._msgSubs.add(cb);
+    if (this._lastMsg) cb(this._lastMsg); // replay latest for late subscribers
+    return () => this._msgSubs.delete(cb);
   }
 
   // --- Prototype-only controls (simulate Zoom join/leave events) ----------
@@ -83,19 +134,12 @@ class RealZoom {
     this._sdk = sdk;
     this._participants = [];
     this._subs = new Set();
+    this._msgSubs = new Set();
   }
 
   async init() {
     const sdk = this._sdk;
-    await sdk.config({
-      capabilities: [
-        'getRunningContext',
-        'getMeetingContext',
-        'getMeetingParticipants',
-        'getUserContext',
-        'onParticipantChange',
-      ],
-    });
+    await sdk.config({ capabilities: ZOOM_CAPABILITIES });
     const context = await sdk.getRunningContext();
     let self = null;
     try {
@@ -105,11 +149,43 @@ class RealZoom {
     }
     await this._refresh();
 
-    sdk.onParticipantChange(() => {
-      this._refresh().then(() => this._emit());
-    });
+    if (typeof sdk.onParticipantChange === 'function') {
+      sdk.onParticipantChange(() => {
+        this._refresh().then(() => this._emit());
+      });
+    }
+
+    // Camera context receives state pushed from the side panel via postMessage.
+    if (typeof sdk.onMessage === 'function') {
+      sdk.onMessage((evt) => {
+        const payload = evt?.payload ?? evt;
+        for (const cb of this._msgSubs) cb(payload);
+      });
+    }
 
     return { context, self, participants: this.getParticipants() };
+  }
+
+  // --- Camera overlay (Layers API): render this webview onto the camera ----
+  async startCameraOverlay() {
+    await this._sdk.runRenderingContext({ view: 'camera' });
+    // Cover the full frame; the overlay positions its content in a corner via
+    // CSS over a transparent background.
+    await this._sdk.drawWebView({ x: 0, y: 0, width: 1280, height: 720, zIndex: 1 });
+  }
+
+  async stopCameraOverlay() {
+    await this._sdk.closeRenderingContext();
+  }
+
+  // --- State bridge: side panel -> camera context --------------------------
+  postMessage(payload) {
+    this._sdk.postMessage(payload);
+  }
+
+  onMessage(cb) {
+    this._msgSubs.add(cb);
+    return () => this._msgSubs.delete(cb);
   }
 
   async _refresh() {

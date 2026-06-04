@@ -29,19 +29,27 @@ Granular scopes — request only what the matching + participant list needs:
 ## Zoom Apps SDK capabilities to enable
 Configure these under **Features → Zoom App SDK → Add APIs**:
 
+These match the `ZOOM_CAPABILITIES` list in `client/src/zoom/zoomAdapter.js`:
+
 - `getRunningContext`
 - `getMeetingContext`
 - `getMeetingParticipants`
-- `onParticipantChange`
-- `onMeeting`
 - `getUserContext`
-- `sendAppInvitationToAllParticipants` *(to push the shared view to everyone)*
-- `connect` / `postMessage` / `onConnect` *(collaborate / in-client messaging)*
-- `onCollaborateChange`, `getAppContext`
+- `onParticipantChange`
+- **Camera overlay (Layers API):**
+  - `runRenderingContext` — enter the camera rendering context (`view: 'camera'`)
+  - `drawWebView` — composite this webview onto the camera feed
+  - `clearWebView`
+  - `closeRenderingContext`
+- **Side panel ↔ camera context state bridge:**
+  - `postMessage` — push the live cost from the side panel to the camera context
+  - `onMessage` — the camera context receives it
 
 ## How the prototype maps to production
 - `client/src/zoom/zoomAdapter.js` has a `MockZoom` (used now) and a
   `RealZoom` implementation (wraps `@zoom/appssdk`). The app talks only to the
   adapter interface, so switching is a config flag.
 - The presenter's private rate table stays in the browser (localStorage) and is
-  never sent to the server — only resolved/sanitized shared state is broadcast.
+  never sent anywhere. The side panel pushes only sanitized aggregate numbers
+  (`buildOverlayState`) to the camera rendering context via `postMessage`; the
+  overlay composited on the presenter's video is what every participant sees.

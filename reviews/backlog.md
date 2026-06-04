@@ -3,6 +3,18 @@
 Deferred work, tracked so it isn't lost. Each item becomes its own `/frame`
 story when picked up.
 
+## Remove the unused shared-state WebSocket
+- **Deferred from:** `reviews/camera-overlay.md` (2026-06-03, non-goal #2).
+- **What:** After the camera-overlay rework the display flows presenter side panel
+  → camera context via Zoom `postMessage`/`onMessage`. The WebSocket broadcast is
+  no longer used for the display but the code remains:
+  `client/src/sync/syncClient.js`, `client/src/lib/sharedState.js`,
+  `server/src/rooms.js`, and the `/ws` proxy + server wiring.
+- **Why defer:** Kept the camera-overlay story focused on the rendering change;
+  ripping out the server path is mechanical and independent.
+- **Done looks like:** dead WS client/server code removed (or repurposed if a
+  non-display use emerges), `/ws` proxy dropped, tests/build green.
+
 ## CSP hardening — pin to exact origins
 - **Deferred from:** `reviews/zoom-owasp-headers.md` (2026-06-03, Thomas's call).
 - **What:** The Content-Security-Policy shipped for the Zoom blank-screen fix is
