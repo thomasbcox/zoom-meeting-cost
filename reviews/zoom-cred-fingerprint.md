@@ -129,5 +129,32 @@ client secret in the new unit test.
      they are public.
   2. Thomas rotated the Zoom Development client secret in the Marketplace
      (exposed secret is now dead).
-  3. Branch history rebuilt so the raw secret never appears in any branch commit;
-     force-pushed to `origin` / PR #6.
+  3. **Correction (was inaccurate):** A history rebuild was attempted, but the
+     workflow guard (`block-main-writes.sh`) blocks force-push, so the rewrite
+     could NOT be pushed. Thomas chose **forward-only** instead: the fix landed
+     as a normal commit (`43b194a`) on top of `5cf869f`. Consequently the
+     secret-bearing commit `5cf869f` is still reachable from HEAD — the raw
+     (now-rotated, dead) secret remains in branch *history*, only the tip *tree*
+     is clean. This is the residue the re-review flags below.
+
+## Codex review (2026-06-04, base 5cf869f, HEAD e8c1dba)
+
+**Summary:** The test fixture change removes the raw secret from the tip tree and
+the synthetic fixture fingerprint matches, but the prior BLOCKER is not fully
+resolved because the branch still contains the secret-bearing reviewed commit in
+its history despite the (now-corrected) note claiming history was rebuilt.
+
+### BLOCKER
+2. **Secret-bearing commit still reachable from HEAD** —
+   `reviews/zoom-cred-fingerprint.md`. `git merge-base --is-ancestor 5cf869f
+   HEAD` succeeds; `5cf869f` carried the raw Zoom secret in
+   `server/test/oauthFingerprint.test.js`, so the branch still carries the
+   leaked secret in history even though the tip tree uses a synthetic fixture.
+   *Suggestion:* Rebuild from a clean pre-secret base / squash so `5cf869f` is
+   not reachable, then force-push; verify `git merge-base --is-ancestor 5cf869f
+   HEAD` returns non-zero.
+   *Context for disposition:* the secret is already rotated (dead), and Thomas
+   chose forward-only because the guard forbids force-push. A **squash-merge** at
+   `/close` resolves this cleanly within the guard — the squashed commit on
+   `main` equals the tip tree (synthetic fixture only), so `5cf869f` never enters
+   `main`'s history and the branch ref (with `5cf869f`) is deleted on merge.
