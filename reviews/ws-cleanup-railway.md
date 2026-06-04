@@ -163,3 +163,10 @@ Tests added: `server/test/port.test.js`, `server/test/health.test.js` (resolvePo
 2. **Comment points at deleted sharedState module** — `client/src/state/usePresenterStore.js:5`. Privacy comment says "see lib/sharedState.js", which this branch deletes. *Suggestion:* reword to reference the current overlay payload path (`lib/overlayState.js`) or drop the file reference.
 
 _No BLOCKER, IMPORTANT, or QUESTION findings._
+
+## Decisions (2026-06-04)
+
+- **NIT #1 (stale WebSocket comment, server/src/app.js:43):** Thomas — **Fix**.
+- **NIT #2 (comment references deleted sharedState.js, usePresenterStore.js:5):** Thomas — **Fix**.
+
+Both applied in /close (comment-only rewords), then re-run the gate and merge.
