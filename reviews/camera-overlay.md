@@ -1,4 +1,4 @@
-Date: 2026-06-03 · Branch: claude/camera-overlay · Status: approved
+Date: 2026-06-03 · Branch: claude/camera-overlay · Status: merged
 
 > Approved by Thomas 2026-06-03: "1 yes attendee count, yes corner; 2 yes ok to
 > leave for now; 3 yes; 4 yes." Open questions resolved below.
