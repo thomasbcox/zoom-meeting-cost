@@ -2,7 +2,6 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
 
-import { roomStats } from './rooms.js';
 import { createOAuthRouter, zoomConfigured } from './zoom/oauth.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -41,7 +40,7 @@ export function securityHeaders(_req, res, next) {
 }
 
 /**
- * Build the Express app (no listening, no WebSocket — those live in index.js).
+ * Build the Express app (no listening — that lives in index.js).
  * Exported so tests can exercise routes/headers without starting a server.
  */
 export function createApp({
@@ -62,7 +61,7 @@ export function createApp({
 
   // --- Health / debug -------------------------------------------------------
   app.get('/api/health', (_req, res) => {
-    res.json({ ok: true, zoomConfigured, rooms: roomStats() });
+    res.json({ ok: true, zoomConfigured });
   });
 
   app.post('/api/log', (req, res) => {
@@ -76,11 +75,7 @@ export function createApp({
   // --- Serve the built client ----------------------------------------------
   app.use(express.static(clientDist, { etag: false }));
   app.get('*', (req, res, next) => {
-    if (
-      req.path.startsWith('/api') ||
-      req.path.startsWith('/auth') ||
-      req.path.startsWith('/ws')
-    ) {
+    if (req.path.startsWith('/api') || req.path.startsWith('/auth')) {
       return next();
     }
     res.sendFile(path.join(clientDist, 'index.html'), (err) => {
