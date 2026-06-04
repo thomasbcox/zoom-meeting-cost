@@ -1,4 +1,4 @@
-Date: 2026-06-03 · Branch: claude/zoom-owasp-headers · Status: approved
+Date: 2026-06-03 · Branch: claude/zoom-owasp-headers · Status: merged
 
 > Thomas (2026-06-03): "add error visibility, header regression test, confirm we
 > ignore dev-state.md, defer CSP hardening and track in backlog"
@@ -153,3 +153,14 @@ review.)
 - IMPORTANT: 0
 - QUESTION: 0
 - NIT: 0
+
+## Decisions (2026-06-03)
+
+Codex review returned **0 findings** — nothing to triage. No fixes were applied.
+
+## Fixes (2026-06-03)
+
+None required (clean review). No code changed after review. Thomas approved merge
+this session ("and merge please"). Marking the story merged and merging PR #2 to
+`main`. Reviewed SHA at merge: the codex-pass commit; no commits added after
+review except this story/close note.
