@@ -1,4 +1,4 @@
-Date: 2026-06-04 · Branch: claude/realmode-p1-fixes · Status: approved
+Date: 2026-06-04 · Branch: claude/realmode-p1-fixes · Status: merged
 
 > Approved by Thomas (2026-06-04): "yes use your defaults" — both open-question defaults accepted (log `req.path`; no connect retry/backoff).
 
