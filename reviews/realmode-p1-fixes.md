@@ -157,3 +157,9 @@ AC → file map:
   `{ timestamp, action }` event shape (default `'success'`), and a new test
   asserts a `'failure'` event posts nothing and keeps the payload, then a
   `'success'` flushes it.
+
+## Codex review (2026-06-04, base f7316ba, HEAD 00a11d2)
+
+**Re-review — no findings.**
+
+**Summary:** Reviewed `git diff f7316ba...HEAD`, `git log --oneline f7316ba..HEAD`, and `reviews/realmode-p1-fixes.md`. The new fix resolves the prior blocker: `onConnect` now returns unless `evt.action === 'success'`, so failure events no longer mark the bridge connected or flush `_pendingMsg`, and the added fake-SDK test covers failure followed by success. I found no new issues in the changed range. Targeted Vitest verification was attempted but blocked by the read-only sandbox (`EPERM` writing Vite temp config).
