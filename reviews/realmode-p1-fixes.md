@@ -107,3 +107,27 @@ The remaining three review findings are deferred to the backlog (see AC5).
    up yet `connect()` may reject (`10039`); the design treats that as non-fatal
    and relies on `onConnect` + latest-state replay. Acceptable for the prototype,
    or do you want explicit retry/backoff? (Default: no retry — keep minimal.)
+
+## Build note (2026-06-04)
+
+AC → file map:
+- **AC1** (OAuth log redaction): `server/src/app.js` (logger → `req.path`);
+  test `server/test/requestLog.test.js`.
+- **AC2** (capabilities): `client/src/zoom/zoomAdapter.js` (`ZOOM_CAPABILITIES`
+  += `connect`/`onConnect`); `server/zoom-app-config.md` (mirrored list);
+  test assertion in `client/src/zoom/zoomAdapter.test.js`.
+- **AC3/AC4** (connect lifecycle + safe postMessage): `client/src/zoom/zoomAdapter.js`
+  (`RealZoom` connect/onConnect, held-payload replay, `_send` rejection-swallow,
+  `RealZoom` exported); tests in `client/src/zoom/zoomAdapter.test.js`.
+- **AC5** (backlog): `reviews/backlog.md`.
+
+```
+ client/src/zoom/zoomAdapter.js      |  50 ++++++++++++++++-
+ client/src/zoom/zoomAdapter.test.js |  80 +++++++++++++++++++++++++-
+ reviews/backlog.md                  |  41 ++++++++++++++
+ reviews/realmode-p1-fixes.md        | 109 ++++++++++++++++++++++++++++++++++++
+ server/src/app.js                   |   5 +-
+ server/test/requestLog.test.js      |  44 +++++++++++++++
+ server/zoom-app-config.md           |   3 +
+ 7 files changed, 327 insertions(+), 5 deletions(-)
+```
