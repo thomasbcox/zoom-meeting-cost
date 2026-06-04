@@ -98,3 +98,40 @@ also addresses a stray local file (`dev-state.md`) that should not be tracked.
 (None outstanding — Thomas's 2026-06-03 decision resolved all four prior
 questions: error visibility IN, header test IN, dev-state.md ignore-only, CSP
 hardening deferred to backlog.)
+
+## Build note (2026-06-03)
+
+### AC → file map
+- AC1–3 (OWASP headers + CSP): `server/src/app.js` (`securityHeaders`, `CSP`,
+  `createApp`), `server/src/index.js` (slimmed to use `createApp`).
+- AC4 (renders in Zoom): manual — Thomas.
+- AC5 (ignore `dev-state.md`): `.gitignore`.
+- AC6 (global error reporter): `client/src/lib/reportError.js`,
+  `client/src/lib/postLog.js`, wired in `client/src/main.jsx`.
+- AC7 (error boundary): `client/src/components/ErrorBoundary.jsx`, wired in
+  `client/src/main.jsx`; styles in `client/src/styles.css`.
+- AC8 (header regression test): `server/test/headers.test.js`,
+  `server/package.json` (`test` script), root `package.json` (run both suites).
+- AC9 (CSP backlog): `reviews/backlog.md`.
+- Shared refactor: `client/src/zoom/zoomDiagnostics.js` now imports/re-exports
+  `postLog` from `client/src/lib/postLog.js`.
+
+### git diff --stat main...HEAD
+```
+ .gitignore                                  |   3 +
+ client/src/components/ErrorBoundary.jsx     |  42 ++++++++++++
+ client/src/components/ErrorBoundary.test.js |  37 ++++++++++
+ client/src/lib/postLog.js                   |  15 +++++
+ client/src/lib/reportError.js               |  61 +++++++++++++++++
+ client/src/lib/reportError.test.js          |  72 ++++++++++++++++++
+ client/src/main.jsx                         |  10 ++-
+ client/src/styles.css                       |  25 +++++++
+ client/src/zoom/zoomDiagnostics.js          |  17 ++---
+ package.json                                |   2 +-
+ reviews/backlog.md                          |  20 ++++++
+ reviews/zoom-owasp-headers.md               | (this file)
+ server/package.json                         |   3 +-
+ server/src/app.js                           |  92 +++++++++++++++++++++++++
+ server/src/index.js                         |  49 ++------------
+ server/test/headers.test.js                 |  63 ++++++++++++++++++
+```
