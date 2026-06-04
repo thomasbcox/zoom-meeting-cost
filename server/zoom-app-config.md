@@ -42,6 +42,9 @@ These match the `ZOOM_CAPABILITIES` list in `client/src/zoom/zoomAdapter.js`:
   - `clearWebView`
   - `closeRenderingContext`
 - **Side panel ↔ camera context state bridge:**
+  - `connect` — connect the side-panel and camera app instances (required;
+    `postMessage` fails with `10041` until instances are connected)
+  - `onConnect` — fires when the instance connection is established
   - `postMessage` — push the live cost from the side panel to the camera context
   - `onMessage` — the camera context receives it
 

@@ -55,7 +55,10 @@ export function createApp({
   app.use(express.json());
 
   app.use((req, _res, next) => {
-    console.log(`[server] ${req.method} ${req.url}`);
+    // Log the path only — never req.url. The Zoom OAuth redirect arrives as
+    // /auth/callback?code=<single-use authorization code>, and req.url would
+    // leak that code (and any other query params) into the logs.
+    console.log(`[server] ${req.method} ${req.path}`);
     next();
   });
 
