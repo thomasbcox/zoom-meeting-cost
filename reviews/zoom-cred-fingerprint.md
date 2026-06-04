@@ -49,10 +49,13 @@ the secret to logs.
 2. A value with leading/trailing whitespace is flagged (e.g. `WHITESPACE!`) and
    a clean value is not.
 3. A null/undefined credential renders as `MISSING` rather than throwing.
-4. The SHA prefix and length for the known-good Development values match the
-   reference computed independently:
-   `id len=22 sha=1c7b30d7e5c4`, `secret len=32 sha=eaf5da8397e7`,
-   `redirect len=65 sha=b08787d46f0c`.
+4. The SHA prefix and length for the (non-secret) live values match the
+   reference computed independently — `id len=22 sha=1c7b30d7e5c4`,
+   `redirect len=65 sha=b08787d46f0c` — and the secret path is covered by a
+   synthetic fixture (`len=33 sha=015ea6d692ce`), never a real secret.
+   (Revised post-review: the original AC asserted the live secret hash, but
+   committing/anchoring on the real secret was the BLOCKER below; the client_id
+   and redirect URI are public and stay as the diagnostic reference.)
 5. Startup logs print the fingerprint line once, after the existing
    `zoom oauth configured:` line.
 6. The gate (`npm test && npm run build`) passes.
@@ -76,3 +79,55 @@ the secret to logs.
 2. Should the helper live in `oauth.js` (proposed) or a small dedicated
    diagnostics module? Default proposal: `oauth.js`, since it already owns the
    credential reads.
+
+## Build note (2026-06-04)
+
+AC → file map:
+- AC1 (exported helper, no raw values): `server/src/zoom/oauth.js` —
+  `fingerprint()` + `zoomCredentialFingerprint()`.
+- AC2 (whitespace flag): `oauth.js` `fingerprint()` `value !== value.trim()`.
+- AC3 (`MISSING` for null): `oauth.js` `fingerprint()` null guard.
+- AC4 (reference fingerprints): asserted in
+  `server/test/oauthFingerprint.test.js`.
+- AC5 (single startup line after config line): `server/src/index.js`.
+- AC6 (gate): `npm test && npm run build`.
+
+`git diff --stat main...HEAD`:
+```
+ reviews/zoom-cred-fingerprint.md     | 78 ++++++++++++++++++++++++++++++++++++
+ server/src/index.js                  |  3 +-
+ server/src/zoom/oauth.js             | 21 ++++++++++
+ server/test/oauthFingerprint.test.js | 59 +++++++++++++++++++++++++++
+ 4 files changed, 160 insertions(+), 1 deletion(-)
+```
+
+## Codex review (2026-06-04, base main, HEAD 5cf869f)
+
+**Summary:** The helper and startup log match the diagnostic shape requested by
+the spec, but the branch introduces a security issue by committing the live Zoom
+client secret in the new unit test.
+
+### BLOCKER
+1. **Raw Zoom client secret committed in test fixture** —
+   `server/test/oauthFingerprint.test.js:9`. The new test hard-codes
+   `ZOOM_CLIENT_SECRET` and repeats the same raw secret on lines 20 and 32. That
+   exposes the actual Zoom Development client secret in source control while this
+   feature's purpose is to diagnose credentials without revealing raw credential
+   values; merging this would require treating the secret as compromised.
+   *Suggestion:* Remove the raw live secret from committed tests. Use synthetic
+   fixture values for deterministic helper behavior, or make the known-good
+   secret check opt-in via a private env var that skips when absent. Rotate the
+   exposed Zoom Development client secret before using it again.
+
+## Decisions (2026-06-04)
+
+- **BLOCKER 1 (live secret in test): FIX (option A).** Thomas: "No worries I
+  rotated the secret. Go with A please." Actions taken:
+  1. Rewrote `server/test/oauthFingerprint.test.js` to use a synthetic secret
+     fixture (`test-secret-not-a-real-credential`, `len=33 sha=015ea6d692ce`);
+     the real client_id and redirect URI stay as the diagnostic reference since
+     they are public.
+  2. Thomas rotated the Zoom Development client secret in the Marketplace
+     (exposed secret is now dead).
+  3. Branch history rebuilt so the raw secret never appears in any branch commit;
+     force-pushed to `origin` / PR #6.
