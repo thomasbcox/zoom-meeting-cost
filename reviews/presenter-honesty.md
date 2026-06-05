@@ -1,6 +1,6 @@
 # presenter-honesty
 
-Date: 2026-06-04 · Branch: claude/presenter-honesty · Status: approved
+Date: 2026-06-04 · Branch: claude/presenter-honesty · Status: merged
 
 > **Approved (2026-06-04, Thomas):** "default presenter name is 'Presenter'
 > unless the presenter has set their name in Zoom in which case use that."
@@ -107,3 +107,13 @@ with an explicit unavailable notice when the participant fetch fails. I found no
 spec issues in the diff.
 
 **Findings:** _none_ (empty findings array).
+
+## Decisions (2026-06-04)
+
+Codex returned a clean review (0 findings) — nothing to fix, defer, reject, or
+answer. Thomas approved closing/merging in the current session (`/close`).
+
+## Fixes (2026-06-04)
+
+None required — clean Codex review. No code changed in the close round; story
+status set to `merged` ahead of the merge.
