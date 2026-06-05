@@ -20,11 +20,12 @@ export default function Root() {
       let adapter = null;
       try {
         adapter = await getZoomAdapter();
-        const { context, participants } = await adapter.init();
+        const { context, self, participants } = await adapter.init();
         if (cancelled) return;
         setBoot({
           adapter,
           runningContext: context?.runningContext,
+          self,
           participants: participants || [],
         });
       } catch (err) {
@@ -33,7 +34,7 @@ export default function Root() {
         if (cancelled) return;
         // eslint-disable-next-line no-console
         console.warn('[meeting-cost] adapter init failed, falling back to panel:', err?.message);
-        setBoot({ adapter, runningContext: undefined, participants: [] });
+        setBoot({ adapter, runningContext: undefined, self: undefined, participants: [] });
       }
     })();
     return () => {
@@ -45,5 +46,5 @@ export default function Root() {
 
   const mode = renderModeFor(boot.runningContext);
   if (mode === 'overlay') return <OverlayApp adapter={boot.adapter} />;
-  return <App adapter={boot.adapter} initialParticipants={boot.participants} />;
+  return <App adapter={boot.adapter} self={boot.self} initialParticipants={boot.participants} />;
 }

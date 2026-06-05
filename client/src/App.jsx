@@ -9,6 +9,7 @@ import { usePresenterStore } from './state/usePresenterStore.js';
 import { resolveAll } from './lib/matching.js';
 import { computeTotals } from './lib/cost.js';
 import { buildOverlayState } from './lib/overlayState.js';
+import { seedPresenterName } from './lib/presenterName.js';
 
 // The in-meeting SIDE PANEL: the presenter privately configures rates, sees a
 // live readout, and starts/stops the camera overlay. The overlay itself renders
@@ -16,14 +17,26 @@ import { buildOverlayState } from './lib/overlayState.js';
 // pushed over the adapter's message bridge — there is no viewer webview and no
 // shared-state broadcast for the display.
 
-export default function App({ adapter, initialParticipants = [] }) {
-  const [myName, setMyName] = useState('Thomas Cox');
+export default function App({ adapter, self, initialParticipants = [] }) {
+  // Seed from the real Zoom identity (self.displayName) when available; the
+  // presenter can still edit it. Falls back to 'Presenter' outside Zoom.
+  const [myName, setMyName] = useState(() => seedPresenterName(self));
 
   // --- Participants (seeded by Root.init, kept live via adapter events) -----
   const [participants, setParticipants] = useState(initialParticipants);
+  // Whether the adapter could actually read the participant list. False means a
+  // failed getMeetingParticipants() (needs host/co-host + scope) — show a notice
+  // instead of a misleading $0 meeting.
+  const [participantsAvailable, setParticipantsAvailable] = useState(
+    () => adapter?.participantsAvailable?.() ?? true
+  );
   useEffect(() => {
     if (!adapter) return;
-    const unsub = adapter.onParticipantsChange((list) => setParticipants(list));
+    setParticipantsAvailable(adapter.participantsAvailable?.() ?? true);
+    const unsub = adapter.onParticipantsChange((list) => {
+      setParticipants(list);
+      setParticipantsAvailable(adapter.participantsAvailable?.() ?? true);
+    });
     return () => unsub && unsub();
   }, [adapter]);
 
@@ -162,7 +175,18 @@ export default function App({ adapter, initialParticipants = [] }) {
 
       <main className="layout presenter">
         <div className="screen-col">
-          {session.status === 'idle' ? (
+          {!participantsAvailable ? (
+            <div className="cost-screen empty" role="status">
+              <p>
+                <strong>Participants unavailable.</strong>
+              </p>
+              <p className="muted">
+                Meeting Cost needs host or co-host access to read the participant
+                list, so it can&rsquo;t calculate a cost right now. Ask the host to
+                make you a co-host, then reopen this panel.
+              </p>
+            </div>
+          ) : session.status === 'idle' ? (
             <div className="cost-screen empty">
               <p className="muted">
                 Configure rates, then <strong>Show cost on video</strong> to put the
