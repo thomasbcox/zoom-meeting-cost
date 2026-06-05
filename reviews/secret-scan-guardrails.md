@@ -1,6 +1,6 @@
 # secret-scan-guardrails
 
-Date: 2026-06-04 · Branch: claude/secret-scan-guardrails · Status: approved
+Date: 2026-06-04 · Branch: claude/secret-scan-guardrails · Status: merged
 
 > **Approved (2026-06-04, Thomas):** "approve - implement and then /review."
 > Accepted the three defaults: self-contained scanner, guarded postinstall,
@@ -266,3 +266,17 @@ scope — it also matches nested `*/reviews/*.codex.json` paths.
   unintended scanner bypass beyond the approved scope. _Fix:_ anchor to repo root —
   `/^reviews\/[^/]+\.codex\.json$/` — and add a negative test for
   `docs/reviews/x.codex.json`.
+
+## Decisions — re-review 2 (2026-06-05)
+
+- **IMPORTANT — ignore regex over-reaches:** **FIX** (Thomas — "fix and merge").
+  Anchored `IGNORE_RE` to repo root (`/^reviews\/[^/]+\.codex\.json$/`) + negative
+  test for `docs/reviews/x.codex.json`. No further Codex round (Thomas's call —
+  one-char security-tightening, disproportionate to re-review again). Merge authorised
+  this session.
+
+## Fixes — re-review 2 (2026-06-05)
+
+- Tightened the transcript-ignore to root-only so a nested `*/reviews/*.codex.json`
+  can't bypass the scanner. 14 detector tests green; full gate green. Status set to
+  `merged` at the actual merge.

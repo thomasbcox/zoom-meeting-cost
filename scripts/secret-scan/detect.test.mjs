@@ -109,6 +109,8 @@ test('re-review fix: generated review transcripts are exempt from scanning', () 
   assert.equal(isIgnored('reviews/secret-scan-guardrails.codex.json'), true);
   assert.equal(isIgnored('reviews/secret-scan-guardrails.md'), false); // .md uses the marker
   assert.equal(isIgnored('scripts/secret-scan/detect.mjs'), false);
+  // Anchored to root: a nested reviews/ dir must NOT be exempt (no scanner bypass).
+  assert.equal(isIgnored('docs/reviews/x.codex.json'), false);
 
   // Even with a secret in it, an ignored transcript yields no findings.
   const staged = { 'reviews/x.codex.json': `{"claim":"client_secret = \\"${randomToken}\\""}` };

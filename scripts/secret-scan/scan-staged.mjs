@@ -11,7 +11,10 @@ import { findSecrets, ALLOW_MARKER } from './detect.mjs';
 // EXAMPLES (e.g. a PEM header) and are single-line machine output that can't carry
 // an inline allowlist marker. They are never a place a real credential is authored,
 // so they are exempt. Narrow on purpose: story `.md` files still use the marker.
-const IGNORE_RE = /(^|\/)reviews\/[^/]+\.codex\.json$/;
+// Anchored to the repo root: only the actual generated transcripts at
+// `reviews/<slug>.codex.json` are exempt — NOT a nested `*/reviews/*.codex.json`,
+// which could otherwise be used to smuggle a secret past the scanner.
+const IGNORE_RE = /^reviews\/[^/]+\.codex\.json$/;
 
 export function isIgnored(file) {
   return IGNORE_RE.test(file);
