@@ -96,3 +96,14 @@ AC → file map:
  reviews/presenter-honesty.md         | 78 ++++++++++++++++++++++++++++++++++++
  7 files changed, 205 insertions(+), 10 deletions(-)
 ```
+
+## Codex review (2026-06-04, base main, HEAD 3f6ea7f)
+
+**Summary:** Reviewed `git diff main...HEAD`, `git log --oneline main..HEAD`, and
+`reviews/presenter-honesty.md`. The branch threads `self` through `Root` to `App`,
+uses the pure presenter-name helper with the approved `Presenter` fallback,
+exposes participant availability on both adapters, and gates the presenter readout
+with an explicit unavailable notice when the participant fetch fails. I found no
+spec issues in the diff.
+
+**Findings:** _none_ (empty findings array).
