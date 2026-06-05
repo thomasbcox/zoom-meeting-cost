@@ -86,3 +86,20 @@ AC → file map:
 ```
 
 Gate: `npm test && npm run build` green (doc/comment-only change).
+
+## Codex review (2026-06-04, base main, HEAD 35bd2cc)
+
+**Summary:** The intended README, Vite comment, and backlog DONE edits satisfy
+AC1–5, but the branch does not satisfy the stated scope guard/build-note evidence
+as written.
+
+### BLOCKER
+- **Scope guard diff stat is inaccurate** (`reviews/backlog-cleanup.md:80`) — The
+  build note claims `git diff --stat main...HEAD` excludes the story file and
+  shows exactly three changed files, matching AC6. The actual branch diff includes
+  `reviews/backlog-cleanup.md` as a fourth changed file, so the recorded scope
+  check is false and AC6 is not satisfied as written.
+  _Suggestion:_ Either rebase/remove the story-file change so `main...HEAD`
+  contains only `reviews/backlog.md`, `README.md`, and `client/vite.config.js`, or
+  update the spec/build note to explicitly exempt the current story file and paste
+  the accurate four-file diff stat.
