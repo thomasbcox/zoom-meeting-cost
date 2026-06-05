@@ -138,3 +138,27 @@ Since last-reviewed SHA `35bd2cc`, only this story's own artifacts changed:
 ```
 No product/doc code changed since the first (clean-on-AC1–5) review. Gate
 `npm test && npm run build` green.
+
+## Codex review — re-review (2026-06-04, base 35bd2cc, HEAD afe1108)
+
+**Summary:** The AC6 wording now correctly narrows the scope guard to the three
+substantive cleanup files plus workflow artifacts, and no product/doc cleanup
+files changed after 35bd2cc. However, the approved evidence fix is not complete:
+the recorded diff-stat evidence is still not the actual command output, and the
+story status was changed to merged while the branch is still unmerged.
+
+### BLOCKER
+- **Diff-stat evidence is still inaccurate** (`reviews/backlog-cleanup.md:85`) —
+  The build note labels the block as `git diff --stat main...HEAD` but it is not
+  the actual output: real stat is five files with exact artifact counts. The
+  re-review note likewise records approximated counts. Since AC6 is proven by this
+  evidence, the diff-stat fix remains incomplete.
+  _Suggestion:_ Paste the exact command output; put the workflow-artifact
+  explanation outside the stat block.
+
+### IMPORTANT
+- **Story status was changed to merged before merge** (`reviews/backlog-cleanup.md:3`)
+  — The diff sets status `approved` → `merged`, but the branch is still ahead of
+  `main` and HEAD is not an ancestor of `main`. The only approved fix was the
+  build-note evidence correction, so this adds an inaccurate workflow-state change.
+  _Suggestion:_ Leave the pre-merge status until the branch is actually merged.
