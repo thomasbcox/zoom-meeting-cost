@@ -188,7 +188,7 @@ real git hook path.
    because `postinstall` auto-enables it). _Fix:_ `execFileSync('git', ['show',
    `:${file}`])`; consider `git diff -z` + NUL parsing.
 2. **Encrypted PEM private keys missed** (`scripts/secret-scan/detect.mjs:51`) —
-   `PEM_RE` doesn't match `-----BEGIN ENCRYPTED PRIVATE KEY-----`. _Fix:_ broaden to
+   `PEM_RE` doesn't match `-----BEGIN ENCRYPTED PRIVATE KEY-----`. _Fix:_ broaden to <!-- pragma: allowlist secret -->
    `-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----`; add a synthetic test.
 3. **Quoted JSON secret keys missed** (`scripts/secret-scan/detect.mjs:47`) —
    `ASSIGN_RE` requires the secret name directly before `:`/`=`, so
@@ -209,3 +209,12 @@ Merge/close deliberately deferred; re-review to be decided after fixes land.
 2. Encrypted PEM missed → broaden PEM rule + test.
 3. Quoted JSON secret keys missed → allow optional quotes around the key + test.
 4. AC4 doesn't test the real hook path → add a temp-git-repo integration test.
+
+## Build note — re-review (2026-06-05, base d0da3e5)
+
+Diff-only re-review of the four hardening fixes. Substantive changes since
+last-reviewed SHA `d0da3e5`: `scripts/secret-scan/detect.mjs` (PEM + JSON-key
+rules), `scripts/secret-scan/scan-staged.mjs` (execFileSync, no shell), and
+`scripts/secret-scan/detect.test.mjs` (+4 tests incl. real temp-git-repo
+integration). Detector tests now 13/13; existing low-entropy fixtures still pass;
+full gate `npm test && npm run build` green.
