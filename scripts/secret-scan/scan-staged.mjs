@@ -4,7 +4,7 @@
 // likely secret is found, printing the file/line and the allowlist hint. The core
 // (`scanFiles`) takes an injected reader so it can be unit-tested without git.
 
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { findSecrets, ALLOW_MARKER } from './detect.mjs';
 
 // Pure-ish core: given a list of files and a reader (path -> staged content),
@@ -26,15 +26,19 @@ export function scanFiles(files, readStaged) {
 }
 
 function stagedFiles() {
-  const out = execSync('git diff --cached --name-only --diff-filter=ACM', {
-    encoding: 'utf8',
-  });
-  return out.split('\n').map((s) => s.trim()).filter(Boolean);
+  // -z => NUL-separated, so filenames with spaces/newlines/quotes are handled.
+  const out = execFileSync(
+    'git',
+    ['diff', '--cached', '--name-only', '--diff-filter=ACM', '-z'],
+    { encoding: 'utf8' }
+  );
+  return out.split('\0').filter(Boolean);
 }
 
 function readStagedBlob(file) {
+  // execFileSync (no shell) — a filename can never be interpreted as a command.
   // `:file` is the staged (index) version — exactly what is about to be committed.
-  return execSync(`git show :"${file}"`, { encoding: 'utf8' });
+  return execFileSync('git', ['show', `:${file}`], { encoding: 'utf8' });
 }
 
 export function runHook() {

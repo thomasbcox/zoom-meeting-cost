@@ -1,5 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { findSecrets, shannonEntropy, ALLOW_MARKER } from './detect.mjs';
 import { scanFiles } from './scan-staged.mjs';
@@ -19,6 +24,24 @@ test('AC2: flags a PEM private-key block', () => {
   const found = findSecrets(`const k = \`${pem}\`;`);
   assert.equal(found.length, 1);
   assert.equal(found[0].rule, 'private-key');
+});
+
+test('AC2 (fix #2): flags an ENCRYPTED PEM private-key block', () => {
+  const pem = '-----BEGIN ENCRYPTED ' + 'PRIVATE KEY' + '-----';
+  const found = findSecrets(`key = \`${pem}\`;`);
+  assert.equal(found.length, 1);
+  assert.equal(found[0].rule, 'private-key');
+});
+
+test('AC2 (fix #2): flags a bare PEM private-key header', () => {
+  const pem = '-----BEGIN ' + 'PRIVATE KEY' + '-----';
+  assert.equal(findSecrets(pem).length, 1);
+});
+
+test('AC2 (fix #3): flags a quoted JSON-style secret key', () => {
+  const found = findSecrets(`{ "client_secret": "${randomToken}" }`);
+  assert.equal(found.length, 1, 'quoted JSON key should be flagged');
+  assert.equal(found[0].rule, 'assigned-secret');
 });
 
 test('AC2: flags an AWS-style access key', () => {
@@ -86,4 +109,42 @@ test('AC4: scanFiles skips unreadable (deleted) files without throwing', () => {
     throw new Error('does not exist');
   };
   assert.deepEqual(scanFiles(['gone.js'], read), []);
+});
+
+// Fix #4: exercise the REAL hook path end-to-end — a throwaway git repo, the actual
+// `scan-staged.mjs` runner over the git index, asserting exit code + stderr message.
+test('AC4 (fix #4): real staged-git path blocks a secret and passes clean content', () => {
+  const scriptPath = fileURLToPath(new URL('./scan-staged.mjs', import.meta.url));
+  const repo = mkdtempSync(join(tmpdir(), 'secret-scan-'));
+  const git = (args) => execFileSync('git', args, { cwd: repo, encoding: 'utf8' });
+  const runScan = () => {
+    try {
+      execFileSync('node', [scriptPath], { cwd: repo, encoding: 'utf8' });
+      return { code: 0, stderr: '' };
+    } catch (e) {
+      return { code: e.status ?? 1, stderr: String(e.stderr || '') };
+    }
+  };
+  try {
+    git(['init', '-q']);
+    git(['config', 'user.email', 'test@example.com']);
+    git(['config', 'user.name', 'Test']);
+    git(['config', 'commit.gpgsign', 'false']);
+
+    // Staged synthetic secret -> blocked (non-zero), with file:line + allowlist hint.
+    writeFileSync(join(repo, 'config.js'), 'const ' + `client_secret = "${randomToken}";\n`);
+    git(['add', 'config.js']);
+    const blocked = runScan();
+    assert.notEqual(blocked.code, 0, 'a staged secret must exit non-zero');
+    assert.match(blocked.stderr, /config\.js:1/);
+    assert.ok(blocked.stderr.includes(ALLOW_MARKER), 'message includes the allowlist hint');
+
+    // Staged clean content -> passes (zero).
+    git(['reset', '-q']);
+    writeFileSync(join(repo, 'config.js'), 'export const name = "Presenter";\n');
+    git(['add', 'config.js']);
+    assert.equal(runScan().code, 0, 'clean staged content must exit zero');
+  } finally {
+    rmSync(repo, { recursive: true, force: true });
+  }
 });

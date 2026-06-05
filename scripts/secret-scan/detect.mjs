@@ -43,12 +43,16 @@ function looksRandom(value) {
 }
 
 const SECRET_NAME = '(?:client[_-]?secret|secret|api[_-]?key|apikey|access[_-]?key|token|password|passwd|pwd)';
-// identifier <assign> "value"  — captures the value (quoted or bare).
+// identifier <assign> "value" — captures the value (quoted or bare). The optional
+// quote before the separator lets it match quoted object / JSON keys too, e.g.
+// `"client_secret": "<value>"` (the closing quote precedes the colon).
 const ASSIGN_RE = new RegExp(
-  `${SECRET_NAME}\\s*[:=]\\s*['"\`]?([^\\s'"\`]{20,})['"\`]?`,
+  `${SECRET_NAME}['"\`]?\\s*[:=]\\s*['"\`]?([^\\s'"\`]{20,})['"\`]?`,
   'i'
 );
-const PEM_RE = /-----BEGIN (?:RSA |EC |DSA |OPENSSH |PGP )?PRIVATE KEY-----/;
+// Any standard PEM private-key header, including ENCRYPTED / RSA / EC / OPENSSH /
+// DSA / PGP and the bare `PRIVATE KEY`. `[A-Z0-9 ]*` covers the optional label.
+const PEM_RE = /-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----/;
 const AWS_KEY_RE = /\bAKIA[0-9A-Z]{16}\b/;
 
 export function findSecrets(text) {
