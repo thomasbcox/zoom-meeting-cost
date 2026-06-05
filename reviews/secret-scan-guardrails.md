@@ -92,8 +92,16 @@ Current GitHub state (verified): repo is **public**, `secret_scanning` enabled,
 6. The detector unit + integration tests run inside the existing gate
    (`npm test`) — i.e. the root `test` script is extended to include them — and the
    full gate stays green.
-7. `secret_scanning_non_provider_patterns` is `enabled` on the GitHub repo
-   (verified via `gh api`), with before/after recorded in the build note.
+7. `secret_scanning_non_provider_patterns` is `enabled` on the GitHub repo.
+   **Implementation deviation (2026-06-04):** the REST API accepts a PATCH (HTTP
+   200) but silently leaves the field `disabled` — confirmed feature-gated, not a
+   permissions issue (a sibling sub-field no-ops identically under a full-`repo`
+   token). Enablement therefore requires the GitHub **UI** (repo *Settings → Code
+   security → Secret scanning → "Scan for non-provider patterns"*) — a one-click
+   manual step for Thomas, consistent with this project's established pattern that
+   GitHub dashboard config is a manual step. The attempted `gh api` command + the
+   200-but-unchanged result are recorded in the build note; this AC is **pending
+   Thomas's one-click toggle** (or his decision to defer B). Part A is unaffected.
 8. `reviews/backlog.md`'s skill-defects entry is replaced by the one-line export
    pointer; no other backlog entry changes.
 
