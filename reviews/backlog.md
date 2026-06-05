@@ -60,29 +60,13 @@ story when picked up.
   if `drawWebView` errors on a missing `webviewId`, pass the correct id (and add
   a note on where it comes from).
 
-## RealZoom: participant-fetch failure looks like a valid $0 meeting
-- **Deferred from:** advisor review (2026-06-04, Thomas's call — backlogged
-  alongside `reviews/realmode-p1-fixes.md`).
-- **What:** `RealZoom._refresh()` swallows `getMeetingParticipants()` errors and
-  leaves the participant list empty. A non-host (no host/co-host + scope) then
-  sees a plausible-looking but wrong $0 meeting, with no signal that data is
-  unavailable.
-- **Why defer:** Intentional "degrade quietly" today; a real UX fix (distinct
-  "participants unavailable" state) is out of scope for the P1 pass.
-- **When to do:** When polishing the real-Zoom experience for non-host users.
-- **Done looks like:** When the participant fetch fails, the UI surfaces an
-  explicit "participants unavailable / need host access" state rather than $0.
+## ~~RealZoom: participant-fetch failure looks like a valid $0 meeting~~ — DONE
+- **Done in:** `reviews/presenter-honesty.md` (2026-06-04). A failed
+  `getMeetingParticipants()` now flips `participantsAvailable()` to `false` and
+  the presenter readout shows a "participants unavailable / need host access"
+  notice instead of a misleading $0.
 
-## Real Zoom shows prototype-only identity (`self` ignored)
-- **Deferred from:** advisor review (2026-06-04, Thomas's call — backlogged
-  alongside `reviews/realmode-p1-fixes.md`).
-- **What:** `App.jsx` hardcodes the presenter name `Thomas Cox`, and `Root.jsx`
-  destructures only `{ context, participants }` from `adapter.init()` — dropping
-  the `self` the adapter already returns. So the presenter's name never reflects
-  the real Zoom user.
-- **Why defer:** Cosmetic in the prototype; not a crash. Threading `self`
-  through `Root` → `App` is a small but real-UI change kept out of the P1 pass.
-- **When to do:** Before any real-user demo / distribution.
-- **Done looks like:** `Root` passes `self` to `App`, which seeds the presenter
-  name from `self.displayName` (falling back to the current default when `self`
-  is unavailable).
+## ~~Real Zoom shows prototype-only identity (`self` ignored)~~ — DONE
+- **Done in:** `reviews/presenter-honesty.md` (2026-06-04). `Root` threads `self`
+  to `App`, which seeds the presenter name from `self.displayName` (falling back
+  to `Presenter`).
