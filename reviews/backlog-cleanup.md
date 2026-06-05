@@ -103,3 +103,10 @@ as written.
   contains only `reviews/backlog.md`, `README.md`, and `client/vite.config.js`, or
   update the spec/build note to explicitly exempt the current story file and paste
   the accurate four-file diff stat.
+
+## Decisions (2026-06-04)
+
+- **BLOCKER — "Scope guard diff stat is inaccurate":** **FIX** (Thomas).
+  Correct the recorded evidence: reword AC6 to exempt the always-present story
+  file, and replace the build-note `git diff --stat main...HEAD` with the accurate
+  four-file stat. No product-code change — the cleanup edits (AC1–5) stand.
