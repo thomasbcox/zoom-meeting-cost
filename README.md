@@ -122,6 +122,27 @@ Railway dashboard.
 No secrets live in the repo — `server/.env.example` lists the keys with empty
 values for local use only.
 
+## Secret-scanning guardrail
+
+A local **pre-commit hook** blocks any commit whose staged changes look like they
+contain a secret (PEM private keys, cloud access keys, or high-entropy values
+assigned to secret-named identifiers). It is self-contained — no external binary.
+
+- It activates automatically: `npm install` runs a guarded `postinstall` that sets
+  `git config core.hooksPath .githooks` (a no-op outside a git work tree, so CI and
+  Railway builds are unaffected).
+- The detector lives in `scripts/secret-scan/` and runs as part of `npm test`.
+- **Allowlisting a deliberate synthetic fixture:** add the marker
+  `pragma: allowlist secret` on the same line. Use this only for fake, non-real
+  values — **never** commit a real credential (rotate it if one is exposed).
+- Generated review transcripts (`reviews/*.codex.json`) are exempt automatically —
+  they quote secret-shaped examples and are machine output that can't carry a marker.
+
+Server-side, the GitHub repo has secret-scanning **push protection** enabled. To
+also catch generic secrets (e.g. a Zoom client secret), enable **"Scan for
+non-provider patterns"** under repo *Settings → Code security → Secret scanning*
+(a one-click toggle; it is not currently settable via the REST API).
+
 ## License
 
 [MIT](LICENSE) © 2026 Thomas Cox

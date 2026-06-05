@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Secret-scan guardrail (see reviews/secret-scan-guardrails.md).
+# Blocks a commit whose staged content looks like it contains a secret.
+# Self-contained — no external binary. Allowlist a deliberate synthetic fixture
+# with an inline `pragma: allowlist secret` marker on the same line.
+set -uo pipefail
+root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
+exec node "$root/scripts/secret-scan/scan-staged.mjs"
