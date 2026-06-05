@@ -1,0 +1,127 @@
+# secret-scan-guardrails
+
+Date: 2026-06-04 · Branch: claude/secret-scan-guardrails · Status: approved
+
+> **Approved (2026-06-04, Thomas):** "approve - implement and then /review."
+> Accepted the three defaults: self-contained scanner, guarded postinstall,
+> pre-commit only.
+
+Backlog **#2** (Secret-leak guardrails), scope **A + B**. Prompted by a live Zoom
+client secret previously committed/pushed in a test fixture (Codex caught it; the
+secret was rotated). Defense-in-depth so a secret in a diff can't reach the remote.
+
+## Problem
+
+The repo has only a behavioral guard against committing secrets (memory:
+`feedback-no-real-secrets-in-repo`) — nothing mechanical. A secret in a staged diff
+can still be committed and pushed. Two backstops are missing:
+
+- **A. No local pre-commit scan.** Nothing blocks a commit whose staged diff
+  contains a secret — the strongest lever, because it catches the secret *before
+  it ever enters a commit*, on the developer's machine.
+- **B. GitHub is blind to generic secrets.** Push protection is enabled, but
+  `secret_scanning_non_provider_patterns` is **disabled**, so GitHub's server-side
+  push protection won't catch a generic secret like a Zoom client secret (only
+  recognised provider tokens). One repo-setting flip closes that gap.
+
+Current GitHub state (verified): repo is **public**, `secret_scanning` enabled,
+`secret_scanning_push_protection` enabled, `secret_scanning_non_provider_patterns`
+**disabled**. `gitleaks` is **not installed** on the machine.
+
+## In scope
+
+**A — local pre-commit secret scan (self-contained, no external binary):**
+- A tracked `.githooks/pre-commit` that scans the **staged** diff and exits
+  non-zero (blocking the commit) when a likely secret is found, printing the
+  offending file/line and how to allowlist a deliberate fixture.
+- The detection logic lives in a standalone, unit-tested Node module
+  (`scripts/secret-scan/detect.mjs`, exporting `findSecrets(text, opts)`), so it
+  runs in the test gate independently of git. Patterns cover at minimum: PEM
+  private-key blocks, AWS-style access keys, and high-entropy values assigned to
+  secret-named identifiers (e.g. `*_secret`, `client_secret`, `api_key`, `token`,
+  `password`).
+- An **allowlist convention** so intentional synthetic fixtures pass: a line
+  carrying an inline `pragma: allowlist secret` marker is skipped. Existing
+  fixtures (`test-secret-not-a-real-credential`, `SECRET123`, etc.) must continue
+  to pass — they are low-entropy/descriptive; markers added only where needed.
+- **Activation:** a guarded `postinstall` in the root `package.json` sets
+  `git config core.hooksPath .githooks` **only** inside a git work tree (skips CI /
+  Railway / tarball builds with no `.git`). Documented in `README.md`.
+
+**B — enable GitHub non-provider secret-scanning patterns:**
+- Flip `secret_scanning_non_provider_patterns` to `enabled` for the repo via
+  `gh api`, and verify it reads back `enabled`. Record before/after in the build
+  note. (Explicitly authorised by Thomas; reversible.)
+
+**Folded-in slight scope increase (per Thomas):**
+- In `reviews/backlog.md`, replace the **"Workflow skill defects — /close merge
+  gate + status lifecycle"** entry with a one-line pointer noting it was exported
+  to its own story (`~/workflow-skill-defects.story.md`) for the skills repo — it
+  doesn't belong in this project's backlog.
+
+## Non-goals
+
+- **C** (CI gitleaks Action on PRs) — deferred (backlog #2 keeps it as optional).
+- A **pre-push** hook — pre-commit is the primary lever this story delivers;
+  pre-push (scanning the push range) can be a follow-up.
+- Requiring/installing the `gitleaks` binary — using a self-contained scanner
+  avoids a system dependency and keeps the detector unit-testable in the gate.
+- Scanning git history for pre-existing secrets (this guards *new* diffs).
+- Marking backlog #2 itself DONE — that's a `/close`-time / follow-up bookkeeping
+  step, not part of this implementation diff.
+
+## Acceptance criteria
+
+1. `scripts/secret-scan/detect.mjs` exports `findSecrets(text, opts)` returning the
+   matches (with line numbers + rule) for secret-shaped content, and an empty
+   result for clean content. Unit-tested with **synthetic** inputs only.
+2. The detector flags, in tests: a PEM `BEGIN ... PRIVATE KEY` block, an
+   AWS-style `AKIA…` key, and a high-entropy value assigned to a secret-named
+   identifier — and does **not** flag clean code or the repo's existing low-entropy
+   synthetic fixtures.
+3. A line carrying `pragma: allowlist secret` is skipped by the detector
+   (allowlist convention), verified by test.
+4. `.githooks/pre-commit` runs the detector over the staged diff and exits
+   non-zero when a secret is detected, zero otherwise; it prints the offending
+   file/line and the allowlist hint. Verified by an integration test that runs the
+   hook/scan against a staged synthetic secret (blocked) and clean content (passes).
+5. Root `package.json` `postinstall` sets `core.hooksPath` to `.githooks` only when
+   run inside a git work tree (no-op when `.git` is absent), so the hook activates
+   on `npm install` without breaking CI/Railway builds. `README.md` documents the
+   guardrail + allowlist marker.
+6. The detector unit + integration tests run inside the existing gate
+   (`npm test`) — i.e. the root `test` script is extended to include them — and the
+   full gate stays green.
+7. `secret_scanning_non_provider_patterns` is `enabled` on the GitHub repo
+   (verified via `gh api`), with before/after recorded in the build note.
+8. `reviews/backlog.md`'s skill-defects entry is replaced by the one-line export
+   pointer; no other backlog entry changes.
+
+## Test notes
+
+- **AC1–3** — `scripts/secret-scan/detect.test.mjs` (node:test): synthetic
+  positives flagged with correct line numbers; clean strings, the existing-fixture
+  strings, and `pragma: allowlist secret` lines all pass. No real credentials.
+- **AC4** — integration test stages/feeds a synthetic secret to the scan entry
+  point and asserts non-zero exit + message; feeds clean content and asserts zero.
+- **AC5** — `postinstall` guarded by `git rev-parse --is-inside-work-tree`;
+  verified by reading the script (and that `npm install` in-repo wires
+  `core.hooksPath`). README diff reviewed.
+- **AC6** — root `test` script extended (e.g. append `node --test scripts/secret-scan/`)
+  so `npm test` (the gate's command, unchanged) covers the new tests.
+- **AC7** — `gh api repos/:owner/:repo` shows `non_provider: disabled` before and
+  `enabled` after; commands + outputs pasted in the build note.
+- **AC8** — read `reviews/backlog.md`; only the skill-defects entry changed.
+
+## Open questions
+
+1. **Scanner approach** — self-contained Node regex/entropy scanner (recommended:
+   no system dependency, detector is unit-testable in the gate, portable) vs.
+   requiring the `gitleaks` binary (stronger rules, but adds an install step and
+   isn't gate-testable without the binary). _Default: self-contained._
+2. **Hook activation** — guarded `postinstall` auto-sets `core.hooksPath`
+   (recommended: zero-friction, activates on `npm install`) vs. an explicit
+   `npm run setup-hooks` the developer runs once (less magic, but easy to forget).
+   _Default: guarded postinstall._
+3. **Hook scope** — pre-commit only (recommended) vs. pre-commit **and** pre-push.
+   _Default: pre-commit only; pre-push as a possible follow-up._
