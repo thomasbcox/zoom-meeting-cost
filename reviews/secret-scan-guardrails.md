@@ -172,3 +172,30 @@ $ printf '{"security_and_analysis":{"secret_scanning_non_provider_patterns":{"st
 disabled            # before: disabled; after PATCH (HTTP 200): still disabled
 ```
 Enablement is a one-click GitHub UI toggle (Thomas's manual step).
+
+## Codex review (2026-06-04, base main, HEAD d0da3e5)
+
+**Summary:** The branch adds the requested local hook, detector, docs, and
+test-gate wiring, and the new secret-scan tests pass. Four issues to fix before
+relying on it: the hook shells staged filenames, the detector misses encrypted PEM
+headers and quoted JSON-style secret keys, and the AC4 test doesn't exercise the
+real git hook path.
+
+### IMPORTANT
+1. **Hook shells staged filenames** (`scripts/secret-scan/scan-staged.mjs:37`) —
+   `readStagedBlob` interpolates a staged filename into a shell command; a filename
+   with shell metacharacters could execute commands when the hook runs (worse
+   because `postinstall` auto-enables it). _Fix:_ `execFileSync('git', ['show',
+   `:${file}`])`; consider `git diff -z` + NUL parsing.
+2. **Encrypted PEM private keys missed** (`scripts/secret-scan/detect.mjs:51`) —
+   `PEM_RE` doesn't match `-----BEGIN ENCRYPTED PRIVATE KEY-----`. _Fix:_ broaden to
+   `-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----`; add a synthetic test.
+3. **Quoted JSON secret keys missed** (`scripts/secret-scan/detect.mjs:47`) —
+   `ASSIGN_RE` requires the secret name directly before `:`/`=`, so
+   `"client_secret": "<high-entropy>"` is ignored (closing quote precedes the colon).
+   _Fix:_ allow optional quotes around the key name; add a synthetic test.
+4. **AC4 doesn't test the real hook path** (`scripts/secret-scan/detect.test.mjs:68`)
+   — the test calls `scanFiles` with an in-memory object, never validating
+   `.githooks/pre-commit`, `runHook()`, `stagedFiles()`, `readStagedBlob()`, exit
+   code, or the stderr message. _Fix:_ temp-git-repo integration test invoking the
+   hook/runner, asserting exit codes + output.
