@@ -76,3 +76,23 @@ adapter→UI path should tell the truth instead of showing prototype defaults.
 ## Open questions
 
 _None — resolved at approval: fallback name is `'Presenter'`._
+
+## Build note (2026-06-04)
+
+AC → file map:
+- **AC1** (thread `self`): `client/src/Root.jsx`
+- **AC2** (seed name from `self`): `client/src/lib/presenterName.js` (+ `.test.js`), `client/src/App.jsx`
+- **AC3** (`participantsAvailable()`): `client/src/zoom/zoomAdapter.js` (+ `.test.js`)
+- **AC4** (unavailable notice): `client/src/App.jsx`
+
+`git diff --stat main...HEAD`:
+```
+ client/src/App.jsx                   | 32 +++++++++++++--
+ client/src/Root.jsx                  |  7 ++--
+ client/src/lib/presenterName.js      | 15 +++++++
+ client/src/lib/presenterName.test.js | 30 ++++++++++++++
+ client/src/zoom/zoomAdapter.js       | 20 ++++++++-
+ client/src/zoom/zoomAdapter.test.js  | 33 ++++++++++++++-
+ reviews/presenter-honesty.md         | 78 ++++++++++++++++++++++++++++++++++++
+ 7 files changed, 205 insertions(+), 10 deletions(-)
+```
