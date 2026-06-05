@@ -68,3 +68,21 @@ A doc-hygiene pass over current-truth docs that fell out of sync with shipped wo
 ## Open questions
 
 _None — scope confirmed by Thomas (backlog strike + README + vite comment)._
+
+## Build note (2026-06-04)
+
+AC → file map:
+- **AC1–3** (strike backlog #1/#3, trim to Done-in pointer): `reviews/backlog.md`
+- **AC4** (Express-only backend description): `README.md`
+- **AC5** (vite proxy comment): `client/vite.config.js`
+- **AC6** (scope guard): only the three files above changed.
+
+`git diff --stat main...HEAD` (excludes the already-committed story file):
+```
+ README.md             |  2 +-
+ client/vite.config.js |  4 ++--
+ reviews/backlog.md    | 34 +++++++++-------------------------
+ 3 files changed, 12 insertions(+), 28 deletions(-)
+```
+
+Gate: `npm test && npm run build` green (doc/comment-only change).
