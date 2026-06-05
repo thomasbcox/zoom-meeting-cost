@@ -18,7 +18,7 @@ natively — no second app, no shared screen, no collaborate space.
 This is a **runnable browser prototype** with **Zoom-ready structure**:
 
 - `client/` — React + Vite frontend (the in-meeting UI)
-- `server/` — Node + Express + WebSocket backend (broadcasts shared state)
+- `server/` — thin Node + Express backend (Zoom OAuth scaffold, `/api/health`, serves the built client)
 - The Zoom Apps SDK, OAuth, and Marketplace config are scaffolded behind
   adapters so you can flip to a real in-Zoom app without rewriting the app.
 
