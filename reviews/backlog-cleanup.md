@@ -127,3 +127,14 @@ as written.
   replaced the misleading three-file diff stat with an accurate `main...HEAD`
   listing that distinguishes the three substantive cleanup files from the
   artifacts. Doc-only; no product code changed.
+
+## Build note — re-review (2026-06-04, base 35bd2cc)
+
+Diff-only re-review of the single approved fix (build-note evidence correction).
+Since last-reviewed SHA `35bd2cc`, only this story's own artifacts changed:
+```
+ reviews/backlog-cleanup.codex.json |  1 +
+ reviews/backlog-cleanup.md         | 63 +++++++++++++++++++++++-------
+```
+No product/doc code changed since the first (clean-on-AC1–5) review. Gate
+`npm test && npm run build` green.
