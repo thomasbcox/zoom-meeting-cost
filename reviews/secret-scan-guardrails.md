@@ -199,3 +199,13 @@ real git hook path.
    `.githooks/pre-commit`, `runHook()`, `stagedFiles()`, `readStagedBlob()`, exit
    code, or the stderr message. _Fix:_ temp-git-repo integration test invoking the
    hook/runner, asserting exit codes + output.
+
+## Decisions (2026-06-05)
+
+All four IMPORTANT findings: **FIX** (Thomas — "fix and implement (no closing yet)").
+Merge/close deliberately deferred; re-review to be decided after fixes land.
+
+1. Hook shells staged filenames → use `execFileSync` (no shell).
+2. Encrypted PEM missed → broaden PEM rule + test.
+3. Quoted JSON secret keys missed → allow optional quotes around the key + test.
+4. AC4 doesn't test the real hook path → add a temp-git-repo integration test.
