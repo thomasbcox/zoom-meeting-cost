@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { findSecrets, shannonEntropy, ALLOW_MARKER } from './detect.mjs';
-import { scanFiles } from './scan-staged.mjs';
+import { scanFiles, isIgnored } from './scan-staged.mjs';
 
 // All inputs below are SYNTHETIC — structurally secret-shaped but not real
 // credentials (memory: feedback-no-real-secrets-in-repo).
@@ -102,6 +102,17 @@ test('AC4: scanFiles blocks a staged synthetic secret and passes clean content',
 
   const clean = scanFiles(['app.js'], read);
   assert.deepEqual(clean, []);
+});
+
+test('re-review fix: generated review transcripts are exempt from scanning', () => {
+  // reviews/*.codex.json quote secret-shaped examples and are machine output.
+  assert.equal(isIgnored('reviews/secret-scan-guardrails.codex.json'), true);
+  assert.equal(isIgnored('reviews/secret-scan-guardrails.md'), false); // .md uses the marker
+  assert.equal(isIgnored('scripts/secret-scan/detect.mjs'), false);
+
+  // Even with a secret in it, an ignored transcript yields no findings.
+  const staged = { 'reviews/x.codex.json': `{"claim":"client_secret = \\"${randomToken}\\""}` };
+  assert.deepEqual(scanFiles(['reviews/x.codex.json'], (f) => staged[f]), []);
 });
 
 test('AC4: scanFiles skips unreadable (deleted) files without throwing', () => {

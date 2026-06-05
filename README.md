@@ -135,6 +135,8 @@ assigned to secret-named identifiers). It is self-contained — no external bina
 - **Allowlisting a deliberate synthetic fixture:** add the marker
   `pragma: allowlist secret` on the same line. Use this only for fake, non-real
   values — **never** commit a real credential (rotate it if one is exposed).
+- Generated review transcripts (`reviews/*.codex.json`) are exempt automatically —
+  they quote secret-shaped examples and are machine output that can't carry a marker.
 
 Server-side, the GitHub repo has secret-scanning **push protection** enabled. To
 also catch generic secrets (e.g. a Zoom client secret), enable **"Scan for
