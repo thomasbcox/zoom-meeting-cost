@@ -218,3 +218,21 @@ rules), `scripts/secret-scan/scan-staged.mjs` (execFileSync, no shell), and
 `scripts/secret-scan/detect.test.mjs` (+4 tests incl. real temp-git-repo
 integration). Detector tests now 13/13; existing low-entropy fixtures still pass;
 full gate `npm test && npm run build` green.
+
+## Codex review — re-review (2026-06-05, base d0da3e5, HEAD 1ef5706)
+
+**Summary:** The four prior fixes are confirmed correct/complete (none re-raised).
+One NEW IMPORTANT regression from the broadened PEM rule.
+
+### IMPORTANT (new)
+- **Broadened PEM rule flags the review artifact** (`reviews/secret-scan-guardrails.codex.json:1`)
+  — the generated Codex JSON quotes the encrypted-PEM example (a `BEGIN … PRIVATE
+  KEY` block) without an allowlist marker, so the now-broadened `PEM_RE` reports
+  that file as a `private-key`. Any commit staging it is blocked even though it's
+  documentation of a synthetic example, not a secret. (We already hit this twice in
+  this story: committing the build note, and committing this very artifact.)
+  _Codex suggestion:_ sanitize/split the example, or allowlist it.
+
+> **Deadlock note:** because the `.codex.json` is single-line machine output, it
+> can't take an inline allowlist marker cleanly, and the scanner blocks committing
+> it — so the review trail itself can't be recorded until this is resolved.
