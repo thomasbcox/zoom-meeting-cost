@@ -244,3 +244,10 @@ One NEW IMPORTANT regression from the broadened PEM rule.
   (`reviews/*.codex.json` only), with a test. Story `.md` files keep the inline
   allowlist marker. Resolves the deadlock so the review trail can be committed.
   Merge still held.
+
+## Build note — re-review (2026-06-05, base 1ef5706)
+
+Diff-only re-review of the single approved fix (narrow ignore for
+`reviews/*.codex.json`). Substantive change: `scripts/secret-scan/scan-staged.mjs`
+(`isIgnored` + filter in `scanFiles`), `scripts/secret-scan/detect.test.mjs`
+(+1 test), `README.md` (exemption note). 14 detector tests green; full gate green.
