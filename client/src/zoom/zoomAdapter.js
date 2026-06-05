@@ -4,6 +4,7 @@
 //
 //   adapter.init()                  -> { context, self, participants }
 //   adapter.getParticipants()       -> Participant[]
+//   adapter.participantsAvailable() -> boolean (false if the fetch failed)
 //   adapter.onParticipantsChange(cb)-> unsubscribe()
 //   adapter.startCameraOverlay()    -> render the app onto the camera feed
 //   adapter.stopCameraOverlay()     -> stop rendering onto the camera feed
@@ -77,6 +78,11 @@ export class MockZoom {
     return this._participants.map((p) => ({ ...p }));
   }
 
+  // The mock prototype always has a participant list, so it is never "unavailable".
+  participantsAvailable() {
+    return true;
+  }
+
   onParticipantsChange(cb) {
     this._subs.add(cb);
     return () => this._subs.delete(cb);
@@ -147,6 +153,10 @@ export class RealZoom {
     // we hold the latest payload and replay it once onConnect fires.
     this._connected = false;
     this._pendingMsg = null;
+    // Whether the last getMeetingParticipants() succeeded. getMeetingParticipants
+    // needs host/co-host + scope; when it fails the list is empty, which would
+    // otherwise read as a valid $0 meeting. Track it so the UI can say so.
+    this._participantsAvailable = true;
   }
 
   async init() {
@@ -245,13 +255,21 @@ export class RealZoom {
         displayName: p.screenName ?? p.displayName ?? 'Participant',
         email: p.email,
       }));
+      this._participantsAvailable = true;
     } catch {
-      // getMeetingParticipants requires host/co-host + scope; degrade quietly.
+      // getMeetingParticipants requires host/co-host + scope. Mark the list
+      // unavailable so the UI can distinguish "can't read participants" from a
+      // genuine empty/$0 meeting, rather than degrading silently to $0.
+      this._participantsAvailable = false;
     }
   }
 
   getParticipants() {
     return this._participants.map((p) => ({ ...p }));
+  }
+
+  participantsAvailable() {
+    return this._participantsAvailable;
   }
 
   onParticipantsChange(cb) {

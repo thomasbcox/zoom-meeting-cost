@@ -61,7 +61,11 @@ describe('MockZoom camera overlay', () => {
 
 // Fake @zoom/appssdk: records connect() calls, lets the test fire onConnect, and
 // captures (or rejects) postMessage payloads. Only the methods RealZoom touches.
-function makeFakeSdk({ postMessageRejects = false } = {}) {
+function makeFakeSdk({
+  postMessageRejects = false,
+  participantsReject = false,
+  participants = [],
+} = {}) {
   let connectHandler = null;
   return {
     posted: [],
@@ -74,7 +78,8 @@ function makeFakeSdk({ postMessageRejects = false } = {}) {
       return { id: 'u1', displayName: 'Real User' };
     },
     async getMeetingParticipants() {
-      return { participants: [] };
+      if (participantsReject) throw new Error('not host/co-host');
+      return { participants };
     },
     connect() {
       this.connectCalls += 1;
@@ -149,5 +154,29 @@ describe('RealZoom postMessage bridge', () => {
     // ...and must not surface as an unhandled rejection on the microtask queue.
     await Promise.resolve();
     await Promise.resolve();
+  });
+});
+
+describe('participant-list availability', () => {
+  it('MockZoom always reports available', () => {
+    expect(new MockZoom().participantsAvailable()).toBe(true);
+  });
+
+  it('RealZoom is available after a successful participant fetch', async () => {
+    const sdk = makeFakeSdk({
+      participants: [{ participantUUID: 'x1', screenName: 'Alice' }],
+    });
+    const a = new RealZoom(sdk);
+    await a.init();
+    expect(a.participantsAvailable()).toBe(true);
+    expect(a.getParticipants()).toHaveLength(1);
+  });
+
+  it('RealZoom is unavailable (not a $0 meeting) when the fetch fails', async () => {
+    const sdk = makeFakeSdk({ participantsReject: true });
+    const a = new RealZoom(sdk);
+    await a.init();
+    expect(a.participantsAvailable()).toBe(false);
+    expect(a.getParticipants()).toEqual([]);
   });
 });
