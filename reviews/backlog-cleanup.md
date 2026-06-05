@@ -1,6 +1,6 @@
 # backlog-cleanup
 
-Date: 2026-06-04 · Branch: claude/backlog-cleanup · Status: approved
+Date: 2026-06-04 · Branch: claude/backlog-cleanup · Status: merged
 
 > **Approved (2026-06-04, Thomas):** scope = backlog strike (#1, #3) + README
 > backend line + vite proxy comment. "implement and /review".
@@ -55,15 +55,18 @@ A doc-hygiene pass over current-truth docs that fell out of sync with shipped wo
    broadcast and accurately names the current Express-only backend.
 5. `client/vite.config.js`'s header comment no longer mentions WebSocket traffic
    and matches the actual `/api` + `/auth` proxy.
-6. Only `reviews/backlog.md`, `README.md`, and `client/vite.config.js` change;
-   no functional code is touched.
+6. Besides this story's own workflow artifacts (`reviews/backlog-cleanup.md` and
+   `reviews/backlog-cleanup.codex.json`, which every story carries), only
+   `reviews/backlog.md`, `README.md`, and `client/vite.config.js` change; no
+   functional code is touched.
 
 ## Test notes
 
 - Doc/comment-only; the `npm test && npm run build` gate must stay green (it is
   unaffected — `vite.config.js` only has a comment change, no config change).
-- ACs verified by reading the three edited files and a `git diff --stat`
-  confirming exactly those three files changed.
+- ACs verified by reading the three edited cleanup files and a `git diff --stat`
+  confirming no files beyond those three (plus this story's own workflow
+  artifacts) changed.
 
 ## Open questions
 
@@ -75,14 +78,19 @@ AC → file map:
 - **AC1–3** (strike backlog #1/#3, trim to Done-in pointer): `reviews/backlog.md`
 - **AC4** (Express-only backend description): `README.md`
 - **AC5** (vite proxy comment): `client/vite.config.js`
-- **AC6** (scope guard): only the three files above changed.
+- **AC6** (scope guard): the three product/doc files above are the only
+  non-artifact changes; the story file + its `.codex.json` are this story's own
+  workflow trail.
 
-`git diff --stat main...HEAD` (excludes the already-committed story file):
+`git diff --stat main...HEAD` (the story file and `.codex.json` are workflow
+artifacts every story carries; the three cleanup files are the substantive change.
+Line counts on the artifacts grow with each review commit):
 ```
- README.md             |  2 +-
- client/vite.config.js |  4 ++--
- reviews/backlog.md    | 34 +++++++++-------------------------
- 3 files changed, 12 insertions(+), 28 deletions(-)
+ README.md                          |   2 +-
+ client/vite.config.js              |   4 +-
+ reviews/backlog.md                 |  34 +++-------
+ reviews/backlog-cleanup.md         | (story file — workflow artifact)
+ reviews/backlog-cleanup.codex.json | (codex output — workflow artifact)
 ```
 
 Gate: `npm test && npm run build` green (doc/comment-only change).
@@ -110,3 +118,12 @@ as written.
   Correct the recorded evidence: reword AC6 to exempt the always-present story
   file, and replace the build-note `git diff --stat main...HEAD` with the accurate
   four-file stat. No product-code change — the cleanup edits (AC1–5) stand.
+
+## Fixes (2026-06-04)
+
+- **BLOCKER — build-note evidence inaccurate (FIX):** Reworded AC6 (and the Test
+  notes + build note) to exempt this story's own workflow artifacts
+  (`reviews/backlog-cleanup.md` + `.codex.json`), which every story carries, and
+  replaced the misleading three-file diff stat with an accurate `main...HEAD`
+  listing that distinguishes the three substantive cleanup files from the
+  artifacts. Doc-only; no product code changed.
