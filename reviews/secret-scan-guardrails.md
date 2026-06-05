@@ -236,3 +236,11 @@ One NEW IMPORTANT regression from the broadened PEM rule.
 > **Deadlock note:** because the `.codex.json` is single-line machine output, it
 > can't take an inline allowlist marker cleanly, and the scanner blocks committing
 > it — so the review trail itself can't be recorded until this is resolved.
+
+## Decisions — re-review (2026-06-05)
+
+- **IMPORTANT (new) — PEM rule flags `.codex.json` review artifact:** **FIX
+  (narrow)** (Thomas). Scanner skips its own generated review transcripts
+  (`reviews/*.codex.json` only), with a test. Story `.md` files keep the inline
+  allowlist marker. Resolves the deadlock so the review trail can be committed.
+  Merge still held.
