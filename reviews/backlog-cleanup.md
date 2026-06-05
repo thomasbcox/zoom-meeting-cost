@@ -82,16 +82,12 @@ AC → file map:
   non-artifact changes; the story file + its `.codex.json` are this story's own
   workflow trail.
 
-`git diff --stat main...HEAD` (the story file and `.codex.json` are workflow
-artifacts every story carries; the three cleanup files are the substantive change.
-Line counts on the artifacts grow with each review commit):
-```
- README.md                          |   2 +-
- client/vite.config.js              |   4 +-
- reviews/backlog.md                 |  34 +++-------
- reviews/backlog-cleanup.md         | (story file — workflow artifact)
- reviews/backlog-cleanup.codex.json | (codex output — workflow artifact)
-```
+**Scope (stated, not pasted as command output — an exact diff stat drifts with
+every review commit, since the trail lives on this same branch):** the substantive
+change is exactly three files — `README.md`, `client/vite.config.js`, and
+`reviews/backlog.md`. Everything else on the branch (`reviews/backlog-cleanup.md`
+and `reviews/backlog-cleanup.codex.json`) is this story's own workflow trail, whose
+size grows with each review/close commit. No functional code is touched.
 
 Gate: `npm test && npm run build` green (doc/comment-only change).
 
@@ -131,13 +127,9 @@ as written.
 ## Build note — re-review (2026-06-04, base 35bd2cc)
 
 Diff-only re-review of the single approved fix (build-note evidence correction).
-Since last-reviewed SHA `35bd2cc`, only this story's own artifacts changed:
-```
- reviews/backlog-cleanup.codex.json |  1 +
- reviews/backlog-cleanup.md         | 63 +++++++++++++++++++++++-------
-```
-No product/doc code changed since the first (clean-on-AC1–5) review. Gate
-`npm test && npm run build` green.
+Since last-reviewed SHA `35bd2cc`, the only changes are to this story's own
+workflow artifacts (`reviews/backlog-cleanup.md` and its `.codex.json`) — no
+product/doc cleanup file changed. Gate `npm test && npm run build` green.
 
 ## Codex review — re-review (2026-06-04, base 35bd2cc, HEAD afe1108)
 
@@ -162,3 +154,22 @@ story status was changed to merged while the branch is still unmerged.
   `main` and HEAD is not an ancestor of `main`. The only approved fix was the
   build-note evidence correction, so this adds an inaccurate workflow-state change.
   _Suggestion:_ Leave the pre-merge status until the branch is actually merged.
+
+## Decisions — re-review (2026-06-04)
+
+- **BLOCKER — "Diff-stat evidence still inaccurate":** **FIX** (Thomas). Stop
+  pasting a verbatim diff stat that drifts with every review commit; state the
+  scope in prose (three substantive files; the rest is workflow trail).
+- **IMPORTANT — "Status changed to merged before merge":** **FIX / resolved by
+  merging** (Thomas authorized merge this session — "close the current story and
+  merge"). The status is now accurate as the merge proceeds in the same pass. The
+  systemic cause (`/close` pre-setting `merged` speculatively) is logged as a
+  backlog item, "Workflow skill defects — /close merge gate + status lifecycle."
+
+## Fixes — re-review (2026-06-04)
+
+- **BLOCKER (FIX):** Replaced the `git diff --stat` blocks in both build notes
+  with prose scope statements, removing the self-defeating verbatim-output framing.
+- **IMPORTANT (FIX):** Kept `Status: merged` because Thomas explicitly authorized
+  the merge in this session and it executes in this same close pass; the broader
+  lifecycle fix is backlogged (skill-defects entry).

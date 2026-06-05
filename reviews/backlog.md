@@ -3,6 +3,32 @@
 Deferred work, tracked so it isn't lost. Each item becomes its own `/frame`
 story when picked up.
 
+## Workflow skill defects — `/close` merge gate + status lifecycle
+- **Found:** 2026-06-04, during `backlog-cleanup` (surfaced by Codex re-review +
+  Thomas). The frame→review→close skills live in `~/.claude/skills/{frame,review,close}/`.
+- **What (three linked defects):**
+  1. **`/close` pre-sets `Status: merged` speculatively.** Close step 2 says "if
+     this is the round that will merge, set `Status: merged` now" — but whether
+     it's the merge round isn't known until *after* step 4's re-review fork.
+     Choosing re-review then leaves a false `merged` on an unmerged branch (Codex
+     flagged exactly this).
+  2. **The merge-approval gate is "squishy."** The hard constraint requires
+     "explicit approval in the current session" but never says whether *invoking
+     `/close` itself* counts. Ambiguous → inconsistent behavior.
+  3. **Acting on the ambiguity:** on `presenter-honesty` (PR #8) the assistant
+     merged immediately on the `/close` invocation, skipping step 4's
+     "re-review or merge?" — i.e. merged without a distinct human "merge" word.
+- **Why it matters:** an irreversible action (merge) ran without unambiguous
+  consent, and the trail recorded a state (`merged`) that wasn't yet true.
+- **Done looks like:**
+  - `/close` no longer sets `merged` before the merge actually happens; the
+    branch carries a pre-merge status (e.g. `ready`) and the flip to `merged`
+    occurs only at the real merge step (resolving the "no separate base-branch
+    commit" tension deliberately).
+  - The approval gate states explicitly that **invoking `/close` is not merge
+    authorization** — a distinct affirmative ("merge") is required after the
+    re-review fork is presented, every time.
+
 ## ~~Remove the unused shared-state WebSocket~~ — DONE
 - **Done in:** `reviews/ws-cleanup-railway.md` (2026-06-04). Deleted
   `syncClient.js`, `sharedState.js`, `server/src/rooms.js`, the `/ws` server +
