@@ -133,3 +133,42 @@ Current GitHub state (verified): repo is **public**, `secret_scanning` enabled,
    _Default: guarded postinstall._
 3. **Hook scope** — pre-commit only (recommended) vs. pre-commit **and** pre-push.
    _Default: pre-commit only; pre-push as a possible follow-up._
+
+## Build note (2026-06-04)
+
+AC → file map:
+- **AC1–3** detector + tests: `scripts/secret-scan/detect.mjs`, `scripts/secret-scan/detect.test.mjs`
+- **AC4** hook + runner + integration test: `.githooks/pre-commit`, `scripts/secret-scan/scan-staged.mjs`, `scripts/secret-scan/detect.test.mjs`
+- **AC5** activation + docs: `package.json` (postinstall), `README.md`
+- **AC6** gate wiring: `package.json` (`test` script)
+- **AC7** GitHub non-provider (deviation — manual UI step): `README.md`, spec note
+- **AC8** backlog pointer: `reviews/backlog.md`
+
+`git diff --stat main...HEAD` (substantive files; the story file + `.codex.json` are this story's workflow trail):
+```
+ .githooks/pre-commit                  | (new) pre-commit hook
+ README.md                             | secret-scanning section + accurate B note
+ package.json                          | test-gate wiring + guarded postinstall
+ reviews/backlog.md                    | skill-defects entry → export pointer
+ scripts/secret-scan/detect.mjs        | (new) findSecrets() detector
+ scripts/secret-scan/detect.test.mjs   | (new) unit + integration tests
+ scripts/secret-scan/scan-staged.mjs   | (new) staged-diff hook runner
+```
+
+**Gate:** `npm test && npm run build` green — secret-scan tests run inside `npm test`.
+
+**Live verification of Part A:** the pre-commit hook blocked a staged synthetic
+secret (`assigned-secret`), passed clean content, and caught a PEM literal in the
+test file during a real commit (fixed by assembling the fixture at runtime). The
+implementation commit itself passed the hook.
+
+**Part B (AC7) — deviation:** `secret_scanning_non_provider_patterns` is feature-
+gated; the REST PATCH returns HTTP 200 but leaves it `disabled` (a sibling sub-field
+no-ops identically under a full-`repo` token), so it is **not** settable via API.
+Recorded attempt:
+```
+$ printf '{"security_and_analysis":{"secret_scanning_non_provider_patterns":{"status":"enabled"}}}' \
+    | gh api -X PATCH repos/thomasbcox/zoom-meeting-cost --input - --jq '.security_and_analysis.secret_scanning_non_provider_patterns.status'
+disabled            # before: disabled; after PATCH (HTTP 200): still disabled
+```
+Enablement is a one-click GitHub UI toggle (Thomas's manual step).
