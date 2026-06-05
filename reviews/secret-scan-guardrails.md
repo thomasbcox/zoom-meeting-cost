@@ -251,3 +251,18 @@ Diff-only re-review of the single approved fix (narrow ignore for
 `reviews/*.codex.json`). Substantive change: `scripts/secret-scan/scan-staged.mjs`
 (`isIgnored` + filter in `scanFiles`), `scripts/secret-scan/detect.test.mjs`
 (+1 test), `README.md` (exemption note). 14 detector tests green; full gate green.
+
+## Codex review — re-review (2026-06-05, base 1ef5706, HEAD ac115d1)
+
+**Summary:** The narrow-ignore fix mostly targets the intended generated-transcript
+case, but the ignore regex is broader than the approved `reviews/*.codex.json`
+scope — it also matches nested `*/reviews/*.codex.json` paths.
+
+### IMPORTANT
+- **Ignore regex matches nested reviews directories** (`scripts/secret-scan/scan-staged.mjs:14`)
+  — `/(^|\/)reviews\/[^/]+\.codex\.json$/` skips ANY path segment named
+  `reviews`, so e.g. `docs/reviews/leak.codex.json` would be ignored. The approved
+  fix was limited to root transcripts `reviews/*.codex.json`, so this is an
+  unintended scanner bypass beyond the approved scope. _Fix:_ anchor to repo root —
+  `/^reviews\/[^/]+\.codex\.json$/` — and add a negative test for
+  `docs/reviews/x.codex.json`.
