@@ -75,6 +75,22 @@ code {
   padding: 3px 8px;
   border-radius: 6px;
 }
+.mode-badge {
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+.mode-badge.real {
+  background: var(--green);
+  color: #042611;
+}
+.mode-badge.mock {
+  background: var(--panel-2);
+  color: var(--amber);
+  border: 1px solid var(--amber);
+}
 .rb-field {
   display: flex;
   flex-direction: column;
@@ -533,4 +549,24 @@ input.inline.num {
   font-size: 12px;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+/* --- Blocking "Real Zoom SDK not loaded" screen ------------------------- */
+.sdk-blocked {
+  max-width: 560px;
+  margin: 48px auto;
+  padding: 24px 26px;
+  background: var(--panel);
+  border: 1px solid var(--red);
+  border-radius: var(--radius);
+  color: var(--text);
+}
+.sdk-blocked h1 {
+  margin: 0 0 12px;
+  color: var(--red);
+  font-size: 20px;
+}
+.sdk-blocked p {
+  margin: 0 0 10px;
+  line-height: 1.5;
 }

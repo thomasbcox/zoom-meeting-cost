@@ -65,6 +65,8 @@ function makeFakeSdk({
   postMessageRejects = false,
   participantsReject = false,
   participants = [],
+  renderRejects = false,
+  connectRejects = false,
 } = {}) {
   let connectHandler = null;
   return {
@@ -81,8 +83,20 @@ function makeFakeSdk({
       if (participantsReject) throw new Error('not host/co-host');
       return { participants };
     },
+    async runRenderingContext() {
+      if (renderRejects) throw new Error('runRenderingContext failed');
+      return {};
+    },
+    async drawWebView() {
+      if (renderRejects) throw new Error('drawWebView failed');
+      return {};
+    },
+    async closeRenderingContext() {
+      return {};
+    },
     connect() {
       this.connectCalls += 1;
+      if (connectRejects) return Promise.reject(new Error('10039'));
       return Promise.resolve({});
     },
     onConnect(cb) {
@@ -154,6 +168,88 @@ describe('RealZoom postMessage bridge', () => {
     // ...and must not surface as an unhandled rejection on the microtask queue.
     await Promise.resolve();
     await Promise.resolve();
+  });
+});
+
+// Flush a few microtask ticks so fire-and-forget log promises (connect /
+// postMessage .then/.catch) settle before we assert on the captured entries.
+async function flush() {
+  for (let i = 0; i < 4; i += 1) await Promise.resolve();
+}
+
+describe('RealZoom /api/log instrumentation', () => {
+  function withLog(opts) {
+    const logs = [];
+    const sdk = makeFakeSdk(opts);
+    const a = new RealZoom(sdk, { log: (p) => logs.push(p) });
+    return { a, sdk, logs };
+  }
+
+  it('logs runRenderingContext and drawWebView success on startCameraOverlay', async () => {
+    const { a, logs } = withLog();
+    await a.init();
+    await a.startCameraOverlay();
+    const overlay = logs.filter((l) => l.kind === 'zoom-overlay');
+    expect(overlay).toContainEqual({ kind: 'zoom-overlay', method: 'runRenderingContext', ok: true });
+    expect(overlay).toContainEqual({ kind: 'zoom-overlay', method: 'drawWebView', ok: true });
+  });
+
+  it('logs a failure entry and still re-throws when an overlay call rejects', async () => {
+    const { a, logs } = withLog({ renderRejects: true });
+    await a.init();
+    await expect(a.startCameraOverlay()).rejects.toThrow('runRenderingContext failed');
+    expect(logs).toContainEqual({
+      kind: 'zoom-overlay',
+      method: 'runRenderingContext',
+      ok: false,
+      error: 'runRenderingContext failed',
+    });
+    // drawWebView never ran (the first call threw) — behavior unchanged.
+    expect(logs.some((l) => l.method === 'drawWebView')).toBe(false);
+  });
+
+  it('logs connect success during init', async () => {
+    const { a, logs } = withLog();
+    await a.init();
+    await flush();
+    expect(logs).toContainEqual({ kind: 'zoom-overlay', method: 'connect', ok: true });
+  });
+
+  it('logs connect failure during init without throwing', async () => {
+    const { a, logs } = withLog({ connectRejects: true });
+    await a.init(); // must not reject
+    await flush();
+    expect(logs).toContainEqual({
+      kind: 'zoom-overlay',
+      method: 'connect',
+      ok: false,
+      error: '10039',
+    });
+  });
+
+  it('logs only the FIRST postMessage send', async () => {
+    const { a, sdk, logs } = withLog();
+    await a.init();
+    sdk.fireConnect(); // bridge live
+    a.postMessage({ totalCost: 1 });
+    a.postMessage({ totalCost: 2 });
+    await flush();
+    const posts = logs.filter((l) => l.method === 'postMessage');
+    expect(posts).toEqual([{ kind: 'zoom-overlay', method: 'postMessage', ok: true }]);
+  });
+
+  it('logs a postMessage failure entry (ok=false) without throwing', async () => {
+    const { a, sdk, logs } = withLog({ postMessageRejects: true });
+    await a.init();
+    sdk.fireConnect();
+    expect(() => a.postMessage({ totalCost: 9 })).not.toThrow();
+    await flush();
+    expect(logs).toContainEqual({
+      kind: 'zoom-overlay',
+      method: 'postMessage',
+      ok: false,
+      error: '10041',
+    });
   });
 });
 

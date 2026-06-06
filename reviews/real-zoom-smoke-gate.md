@@ -112,3 +112,42 @@ _Both resolved at approval (see header):_
 1. _Zoom-env detection: `navigator.userAgent` token (`ZoomApps`/`ZoomWebKit`), a
    pure function of the UA string._
 2. _Mode badge: panel header / `RoleBar`, near the `PROTOTYPE` tag._
+
+## Build note (2026-06-05)
+
+AC → file map (AC1–4 built; AC5 manual, AC6 deferred/conditional):
+- **AC1** (never silently mock inside Zoom): `client/src/zoom/zoomEnv.js`
+  (`isZoomLikeEnvironment` UA detector + pure `decideAdapter` table) +
+  `zoomEnv.test.js`; `getZoomAdapter()` reshaped in `client/src/zoom/zoomAdapter.js`
+  to return a result object `{ adapter, mode } | { blocked, reason }`.
+- **AC2** (blocking error): `client/src/components/SdkBlockedError.jsx` +
+  `client/src/Root.jsx` (renders it when `boot.blocked`). Reason is `mock-build`
+  vs `import-fail`.
+- **AC3** (mode badge): `client/src/components/RoleBar.jsx` (badge driven by
+  `adapter.isMock`; the `PROTOTYPE` tag is now mock-only to avoid contradicting
+  `Real Zoom mode`) + `client/src/styles.css`.
+- **AC4** (`/api/log` instrumentation): `client/src/zoom/zoomAdapter.js` —
+  `RealZoom` takes an injectable `log` sink (defaults to `postLog`) and emits a
+  `kind:'zoom-overlay'` entry (`method` + `ok` + `error`) for
+  `runRenderingContext`, `drawWebView`, `connect`, and the **first** `postMessage`.
+  Outcomes are unchanged (overlay calls still re-throw; connect/postMessage still
+  swallowed). Covered by new tests in `zoomAdapter.test.js`.
+
+Small honesty add beyond the literal ACs: the `PROTOTYPE` tag is hidden in real
+mode (it would contradict the new `Real Zoom mode` badge).
+
+Gate: `npm test && npm run build` green (client 81, server+secret-scan pass,
+build OK — the `@zoom/appssdk` dynamic-import chunk confirms real-mode builds
+resolve the SDK).
+
+`git diff --stat main...HEAD` (excl. story file):
+```
+ client/src/Root.jsx                       |  17 ++++-
+ client/src/components/RoleBar.jsx         |   8 ++-
+ client/src/components/SdkBlockedError.jsx |  34 +++++++++
+ client/src/styles.css                     |  36 ++++++++++
+ client/src/zoom/zoomAdapter.js            | 116 ++++++++++++++++++++++-----
+ client/src/zoom/zoomAdapter.test.js       |  96 +++++++++++++++++++++
+ client/src/zoom/zoomEnv.js                |  48 ++++++++++++
+ client/src/zoom/zoomEnv.test.js           |  51 +++++++++++++
+```

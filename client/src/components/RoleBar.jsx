@@ -17,7 +17,13 @@ export default function RoleBar({ myName, setMyName, adapter, participants }) {
   return (
     <div className="rolebar">
       <div className="rolebar-row">
-        <span className="proto-tag">PROTOTYPE</span>
+        {/* Runtime mode indicator: tells the truth about whether the camera
+            overlay is real (attendee-facing) or simulated. Driven by the adapter
+            actually in use, not a build flag. */}
+        <span className={`mode-badge ${isMock ? 'mock' : 'real'}`}>
+          {isMock ? 'Mock prototype mode' : 'Real Zoom mode'}
+        </span>
+        {isMock && <span className="proto-tag">PROTOTYPE</span>}
 
         <label className="rb-field">
           Your name
