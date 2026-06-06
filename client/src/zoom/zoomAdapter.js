@@ -329,19 +329,16 @@ export class RealZoom {
     );
   }
 
-  // Camera instance: best-effort clear of the layers this instance drew, on
-  // unmount. The panel's stopCameraOverlay (closeRenderingContext) is the real
-  // teardown; these must never throw (clearParticipant may not be enabled).
+  // Camera instance: best-effort clear of the overlay webview layer on unmount.
+  // The panel's stopCameraOverlay (closeRenderingContext) is the real teardown —
+  // it removes ALL camera layers (including the participant base) and is what
+  // triggers this unmount — so we do NOT separately clearParticipant (that would
+  // need a third capability for a redundant call). Must never throw.
   async clearCameraOverlay() {
     try {
       await this._sdk.clearWebView?.({ webviewId: 'camera' });
     } catch {
       /* belt-and-suspenders; closeRenderingContext handles real teardown */
-    }
-    try {
-      await this._sdk.clearParticipant?.();
-    } catch {
-      /* clearParticipant capability may be absent; non-fatal */
     }
   }
 

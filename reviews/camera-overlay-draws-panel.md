@@ -225,3 +225,13 @@ issue. (Codex did not run test/build in the read-only sandbox.)
   belt-and-suspenders call, remove the non-functional `clearParticipant` line
   from `clearCameraOverlay()`. Keep `clearWebView` (already a requested
   capability, and it works). This is applied in `/close`.
+
+## Fixes (2026-06-06)
+
+- **IMPORTANT #1 (REJECT suggested fix; drop dead call) — applied.** Removed the
+  non-functional `this._sdk.clearParticipant?.()` line from
+  `clearCameraOverlay()` (`zoomAdapter.js`). It was a no-op (no `participantUUID`
+  arg, capability not requested) and `closeRenderingContext()` already removes
+  all camera layers on teardown. `clearWebView` (a requested capability that
+  works) is retained. No new Marketplace capability added. No test change needed
+  (no test asserted the removed call).
