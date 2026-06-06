@@ -235,3 +235,18 @@ issue. (Codex did not run test/build in the read-only sandbox.)
   all camera layers on teardown. `clearWebView` (a requested capability that
   works) is retained. No new Marketplace capability added. No test change needed
   (no test asserted the removed call).
+
+## Build note (2026-06-06, re-review round)
+
+Re-review base: last-reviewed SHA `1d4bdab`. Only change since:
+the reject-and-remove of the dead `clearParticipant` line in
+`clearCameraOverlay()` (Codex #1) plus the review/decision/fix story notes.
+
+`git diff --stat 1d4bdab...HEAD`:
+
+```
+ client/src/zoom/zoomAdapter.js                | 13 ++---
+ reviews/camera-overlay-draws-panel.codex.json |  1 +
+ reviews/camera-overlay-draws-panel.md         | 72 +++++++++++++++++++++++++++
+ 3 files changed, 78 insertions(+), 8 deletions(-)
+```
