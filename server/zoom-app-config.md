@@ -38,9 +38,18 @@ These match the `ZOOM_CAPABILITIES` list in `client/src/zoom/zoomAdapter.js`:
 - `onParticipantChange`
 - **Camera overlay (Layers API):**
   - `runRenderingContext` — enter the camera rendering context (`view: 'camera'`)
-  - `drawWebView` — composite this webview onto the camera feed
+  - `drawWebView` — composite the overlay webview onto the camera feed (called
+    from the **camera** instance, not the panel; `webviewId` is an arbitrary
+    string label)
+  - `drawParticipant` — composite the presenter's own video as the base layer
+    under the overlay
+  - `onMyMediaChange` — media info used by `drawParticipant`
   - `clearWebView`
   - `closeRenderingContext`
+
+> **Marketplace dashboard:** `drawParticipant` and `onMyMediaChange` must be
+> added under **Features → Zoom App SDK → Add APIs** (same as the other camera
+> APIs). Without them a live run fails with a `40316`-style capability error.
 - **Side panel ↔ camera context state bridge:**
   - `connect` — connect the side-panel and camera app instances (required;
     `postMessage` fails with `10041` until instances are connected)

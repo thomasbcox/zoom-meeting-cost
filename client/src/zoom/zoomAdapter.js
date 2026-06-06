@@ -40,6 +40,11 @@ export const ZOOM_CAPABILITIES = [
   'drawWebView',
   'clearWebView',
   'closeRenderingContext',
+  // The camera instance composites the presenter's own video as the base layer
+  // under the overlay webview. drawParticipant needs onMyMediaChange's media
+  // info; both must also be enabled in the Marketplace dashboard.
+  'drawParticipant',
+  'onMyMediaChange',
   // Side panel <-> camera context state bridge. These are "App Instances
   // Communication" APIs: postMessage fails with error 10041 ("app instances
   // aren't connected") until the instances call connect(), so connect/onConnect
@@ -49,6 +54,10 @@ export const ZOOM_CAPABILITIES = [
   'postMessage',
   'onMessage',
 ];
+
+// Defensive fallback for the camera surface dimensions when sdk.config() does
+// not report config.media.renderTarget. Matches the previous hardcode.
+const DEFAULT_RENDER_TARGET = { width: 1280, height: 720 };
 
 const SEED_PARTICIPANTS = [
   { id: 'p1', displayName: 'Thomas Cox' },
@@ -97,9 +106,19 @@ export class MockZoom {
   }
 
   // --- Camera overlay (mock: record calls; no real compositing) -----------
+  // The panel only spawns the camera rendering context; the actual compositing
+  // happens in the camera instance via drawCameraOverlay (mirrors RealZoom).
   async startCameraOverlay() {
     this.calls.push({ method: 'runRenderingContext', view: 'camera' });
-    this.calls.push({ method: 'drawWebView' });
+  }
+
+  async drawCameraOverlay() {
+    this.calls.push({ method: 'drawParticipant' });
+    this.calls.push({ method: 'drawWebView', webviewId: 'camera' });
+  }
+
+  async clearCameraOverlay() {
+    this.calls.push({ method: 'clearWebView', webviewId: 'camera' });
   }
 
   async stopCameraOverlay() {
@@ -178,11 +197,20 @@ export class RealZoom {
     // needs host/co-host + scope; when it fails the list is empty, which would
     // otherwise read as a valid $0 meeting. Track it so the UI can say so.
     this._participantsAvailable = true;
+    // Camera-overlay draw inputs, captured at init() so the camera instance can
+    // composite without re-deriving them: the surface size reported by config()
+    // and the presenter's own participantUUID (base video layer).
+    this._renderTarget = null;
+    this._selfUUID = null;
   }
 
   async init() {
     const sdk = this._sdk;
-    await sdk.config({ capabilities: ZOOM_CAPABILITIES });
+    // config() reports the camera surface size in config.media.renderTarget; keep
+    // it so the camera instance sizes drawParticipant/drawWebView to the surface
+    // instead of a hardcoded resolution.
+    const cfg = await sdk.config({ capabilities: ZOOM_CAPABILITIES });
+    this._renderTarget = cfg?.media?.renderTarget ?? null;
     const context = await sdk.getRunningContext();
     let self = null;
     try {
@@ -191,6 +219,10 @@ export class RealZoom {
       /* may be unavailable depending on context */
     }
     await this._refresh();
+    // Resolve the presenter's own participantUUID for the base video layer:
+    // prefer getUserContext()'s own UUID, else match self against the (already
+    // refreshed) participant list by name.
+    this._selfUUID = this._resolveSelfUUID(self);
 
     if (typeof sdk.onParticipantChange === 'function') {
       sdk.onParticipantChange(() => {
@@ -260,20 +292,74 @@ export class RealZoom {
     }
   }
 
-  // --- Camera overlay (Layers API): render this webview onto the camera ----
+  // --- Camera overlay (Layers API) -----------------------------------------
+  // Panel instance: ONLY spawn the camera rendering context. The compositing
+  // (drawParticipant + drawWebView) must happen in the spawned camera instance,
+  // because drawWebView composites the webview of whichever instance calls it —
+  // calling drawWebView here would draw the panel's full UI onto the camera.
   async startCameraOverlay() {
     await this._instrument('runRenderingContext', () =>
       this._sdk.runRenderingContext({ view: 'camera' })
     );
-    // Cover the full frame; the overlay positions its content in a corner via
-    // CSS over a transparent background.
+  }
+
+  // Camera instance (OverlayApp on mount): composite the presenter's own video
+  // as the base layer (zIndex 1) and this transparent overlay webview on top
+  // (zIndex 2). Both are sized to the camera surface reported by config().
+  async drawCameraOverlay() {
+    const rt = this._renderTarget || DEFAULT_RENDER_TARGET;
+    const rect = { x: 0, y: 0, width: rt.width, height: rt.height };
+    if (this._selfUUID) {
+      await this._instrument('drawParticipant', () =>
+        this._sdk.drawParticipant({ participantUUID: this._selfUUID, ...rect, zIndex: 1 })
+      );
+    } else {
+      // No UUID -> skip the base layer (the meter still composites). Record it so
+      // a live run shows why the video base is missing.
+      this._emitLog({
+        kind: 'zoom-overlay',
+        method: 'drawParticipant',
+        ok: false,
+        error: 'no self participantUUID',
+      });
+    }
+    // webviewId is an arbitrary string label that identifies this webview layer.
     await this._instrument('drawWebView', () =>
-      this._sdk.drawWebView({ x: 0, y: 0, width: 1280, height: 720, zIndex: 1 })
+      this._sdk.drawWebView({ webviewId: 'camera', ...rect, zIndex: 2 })
     );
+  }
+
+  // Camera instance: best-effort clear of the layers this instance drew, on
+  // unmount. The panel's stopCameraOverlay (closeRenderingContext) is the real
+  // teardown; these must never throw (clearParticipant may not be enabled).
+  async clearCameraOverlay() {
+    try {
+      await this._sdk.clearWebView?.({ webviewId: 'camera' });
+    } catch {
+      /* belt-and-suspenders; closeRenderingContext handles real teardown */
+    }
+    try {
+      await this._sdk.clearParticipant?.();
+    } catch {
+      /* clearParticipant capability may be absent; non-fatal */
+    }
   }
 
   async stopCameraOverlay() {
     await this._sdk.closeRenderingContext();
+  }
+
+  // Resolve the presenter's own participantUUID for drawParticipant. Prefer the
+  // UUID from getUserContext(); fall back to matching self's name against the
+  // refreshed participant list (whose id is already the participantUUID).
+  _resolveSelfUUID(self) {
+    if (self?.participantUUID) return String(self.participantUUID);
+    const name = self?.screenName ?? self?.displayName;
+    if (name) {
+      const match = this._participants.find((p) => p.displayName === name);
+      if (match) return match.id;
+    }
+    return null;
   }
 
   // --- State bridge: side panel -> camera context --------------------------
