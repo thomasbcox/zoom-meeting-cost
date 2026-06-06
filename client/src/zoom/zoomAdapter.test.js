@@ -10,6 +10,8 @@ describe('ZOOM_CAPABILITIES', () => {
       'getRunningContext',
       'runRenderingContext',
       'drawWebView',
+      'drawParticipant',
+      'onMyMediaChange',
       'clearWebView',
       'closeRenderingContext',
       'connect',
@@ -23,13 +25,19 @@ describe('ZOOM_CAPABILITIES', () => {
 });
 
 describe('MockZoom camera overlay', () => {
-  it('records the camera rendering sequence on start and close on stop', async () => {
+  it('records spawn on start, the draw pair on drawCameraOverlay, and close on stop', async () => {
     const a = new MockZoom();
 
+    // Panel only spawns the camera rendering context — no draw.
     await a.startCameraOverlay();
+    expect(a.calls).toEqual([{ method: 'runRenderingContext', view: 'camera' }]);
+
+    // The camera instance composites the base video + overlay webview.
+    await a.drawCameraOverlay();
     expect(a.calls).toEqual([
       { method: 'runRenderingContext', view: 'camera' },
-      { method: 'drawWebView' },
+      { method: 'drawParticipant' },
+      { method: 'drawWebView', webviewId: 'camera' },
     ]);
 
     await a.stopCameraOverlay();
@@ -59,6 +67,79 @@ describe('MockZoom camera overlay', () => {
   });
 });
 
+describe('RealZoom camera-overlay draw placement', () => {
+  it('startCameraOverlay only spawns the rendering context — no draw from the panel', async () => {
+    const sdk = makeFakeSdk();
+    const a = new RealZoom(sdk);
+    await a.init();
+    await a.startCameraOverlay();
+    expect(sdk.drawn).toEqual([]);
+  });
+
+  it('drawCameraOverlay draws participant (z1) then webview (z2) sized from renderTarget', async () => {
+    const sdk = makeFakeSdk({ renderTarget: { width: 640, height: 360 } });
+    const a = new RealZoom(sdk);
+    await a.init();
+    await a.drawCameraOverlay();
+    expect(sdk.drawn).toEqual([
+      { method: 'drawParticipant', participantUUID: 'self-uuid', x: 0, y: 0, width: 640, height: 360, zIndex: 1 },
+      { method: 'drawWebView', webviewId: 'camera', x: 0, y: 0, width: 640, height: 360, zIndex: 2 },
+    ]);
+  });
+
+  it('falls back to 1280x720 when config reports no renderTarget', async () => {
+    const sdk = makeFakeSdk({ renderTarget: undefined });
+    const a = new RealZoom(sdk);
+    await a.init();
+    await a.drawCameraOverlay();
+    expect(sdk.drawn[1]).toMatchObject({ method: 'drawWebView', width: 1280, height: 720 });
+  });
+
+  it('skips drawParticipant (logs ok=false) when no self participantUUID resolves', async () => {
+    const logs = [];
+    // No UUID from getUserContext and no name match in the participant list.
+    // (null, not undefined: a destructuring default would coerce undefined back.)
+    const sdk = makeFakeSdk({ selfParticipantUUID: null, participants: [] });
+    const a = new RealZoom(sdk, { log: (p) => logs.push(p) });
+    await a.init();
+    await a.drawCameraOverlay();
+    expect(sdk.drawn.some((d) => d.method === 'drawParticipant')).toBe(false);
+    expect(logs).toContainEqual({
+      kind: 'zoom-overlay',
+      method: 'drawParticipant',
+      ok: false,
+      error: 'no self participantUUID',
+    });
+    // The overlay webview still composites.
+    expect(sdk.drawn.some((d) => d.method === 'drawWebView')).toBe(true);
+  });
+
+  it('resolves self participantUUID by name match when getUserContext omits it', async () => {
+    const sdk = makeFakeSdk({
+      selfParticipantUUID: null,
+      participants: [{ participantUUID: 'matched-uuid', screenName: 'Real User' }],
+    });
+    const a = new RealZoom(sdk);
+    await a.init();
+    await a.drawCameraOverlay();
+    expect(sdk.drawn[0]).toMatchObject({ method: 'drawParticipant', participantUUID: 'matched-uuid' });
+  });
+
+  it('logs drawParticipant failure and re-throws', async () => {
+    const logs = [];
+    const sdk = makeFakeSdk({ drawRejects: true });
+    const a = new RealZoom(sdk, { log: (p) => logs.push(p) });
+    await a.init();
+    await expect(a.drawCameraOverlay()).rejects.toThrow('drawParticipant failed');
+    expect(logs).toContainEqual({
+      kind: 'zoom-overlay',
+      method: 'drawParticipant',
+      ok: false,
+      error: 'drawParticipant failed',
+    });
+  });
+});
+
 // Fake @zoom/appssdk: records connect() calls, lets the test fire onConnect, and
 // captures (or rejects) postMessage payloads. Only the methods RealZoom touches.
 function makeFakeSdk({
@@ -66,18 +147,24 @@ function makeFakeSdk({
   participantsReject = false,
   participants = [],
   renderRejects = false,
+  drawRejects = false,
   connectRejects = false,
+  renderTarget = { width: 1280, height: 720 },
+  selfParticipantUUID = 'self-uuid',
 } = {}) {
   let connectHandler = null;
   return {
     posted: [],
+    drawn: [],
     connectCalls: 0,
-    async config() {},
+    async config() {
+      return { media: { renderTarget } };
+    },
     async getRunningContext() {
       return { runningContext: 'inMeeting' };
     },
     async getUserContext() {
-      return { id: 'u1', displayName: 'Real User' };
+      return { id: 'u1', displayName: 'Real User', screenName: 'Real User', participantUUID: selfParticipantUUID };
     },
     async getMeetingParticipants() {
       if (participantsReject) throw new Error('not host/co-host');
@@ -87,8 +174,20 @@ function makeFakeSdk({
       if (renderRejects) throw new Error('runRenderingContext failed');
       return {};
     },
-    async drawWebView() {
-      if (renderRejects) throw new Error('drawWebView failed');
+    async drawParticipant(opts) {
+      if (drawRejects) throw new Error('drawParticipant failed');
+      this.drawn.push({ method: 'drawParticipant', ...opts });
+      return {};
+    },
+    async drawWebView(opts) {
+      if (renderRejects || drawRejects) throw new Error('drawWebView failed');
+      this.drawn.push({ method: 'drawWebView', ...opts });
+      return {};
+    },
+    async clearWebView() {
+      return {};
+    },
+    async clearParticipant() {
       return {};
     },
     async closeRenderingContext() {
@@ -185,16 +284,18 @@ describe('RealZoom /api/log instrumentation', () => {
     return { a, sdk, logs };
   }
 
-  it('logs runRenderingContext and drawWebView success on startCameraOverlay', async () => {
-    const { a, logs } = withLog();
+  it('logs runRenderingContext success on startCameraOverlay (panel does not draw)', async () => {
+    const { a, sdk, logs } = withLog();
     await a.init();
     await a.startCameraOverlay();
     const overlay = logs.filter((l) => l.kind === 'zoom-overlay');
     expect(overlay).toContainEqual({ kind: 'zoom-overlay', method: 'runRenderingContext', ok: true });
-    expect(overlay).toContainEqual({ kind: 'zoom-overlay', method: 'drawWebView', ok: true });
+    // The panel must NOT composite — no draw happens here.
+    expect(overlay.some((l) => l.method === 'drawWebView')).toBe(false);
+    expect(sdk.drawn).toEqual([]);
   });
 
-  it('logs a failure entry and still re-throws when an overlay call rejects', async () => {
+  it('logs a failure entry and still re-throws when runRenderingContext rejects', async () => {
     const { a, logs } = withLog({ renderRejects: true });
     await a.init();
     await expect(a.startCameraOverlay()).rejects.toThrow('runRenderingContext failed');
@@ -204,8 +305,15 @@ describe('RealZoom /api/log instrumentation', () => {
       ok: false,
       error: 'runRenderingContext failed',
     });
-    // drawWebView never ran (the first call threw) — behavior unchanged.
-    expect(logs.some((l) => l.method === 'drawWebView')).toBe(false);
+  });
+
+  it('logs drawParticipant and drawWebView success on drawCameraOverlay', async () => {
+    const { a, logs } = withLog();
+    await a.init();
+    await a.drawCameraOverlay();
+    const overlay = logs.filter((l) => l.kind === 'zoom-overlay');
+    expect(overlay).toContainEqual({ kind: 'zoom-overlay', method: 'drawParticipant', ok: true });
+    expect(overlay).toContainEqual({ kind: 'zoom-overlay', method: 'drawWebView', ok: true });
   });
 
   it('logs connect success during init', async () => {

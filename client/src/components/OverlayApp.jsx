@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import CostOverlay from './CostOverlay.jsx';
 import { extrapolateOverlay } from '../lib/overlayState.js';
+import { runCameraDraw } from '../lib/cameraDraw.js';
 
 // Runs in the camera rendering context (and, in mock dev, inside the simulated
 // camera frame). It subscribes to overlay state pushed from the side panel via
@@ -30,6 +31,12 @@ export default function OverlayApp({ adapter, transparentBody = true }) {
     root.classList.add('overlay-mode');
     return () => root.classList.remove('overlay-mode');
   }, [transparentBody]);
+
+  // Composite the camera layers from THIS (camera) instance on mount: the base
+  // video (drawParticipant) + this overlay webview (drawWebView). drawWebView
+  // composites whichever instance calls it, so it must run here, not in the
+  // panel. transparentBody marks the real camera mount; the mock preview skips.
+  useEffect(() => runCameraDraw(adapter, transparentBody), [adapter, transparentBody]);
 
   if (!state) return <CostOverlay display={null} />;
   const ex = extrapolateOverlay(state);
