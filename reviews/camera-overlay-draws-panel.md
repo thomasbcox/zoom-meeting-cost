@@ -214,3 +214,14 @@ issue. (Codex did not run test/build in the read-only sandbox.)
    it in `server/zoom-app-config.md`; in `clearCameraOverlay()`, call
    `this._sdk.clearParticipant?.({ participantUUID: this._selfUUID })` when
    `_selfUUID` is present, and update tests to assert that argument.
+
+## Decisions (2026-06-06)
+
+- **IMPORTANT #1 (clearParticipant no-op on unmount) — REJECT the suggested fix; drop the dead call.**
+  Thomas: "Reject — drop dead call." Rationale: `stopCameraOverlay()` →
+  `closeRenderingContext()` is the real teardown (it removes *all* camera layers
+  and is what triggers the unmount), so a per-layer `clearParticipant` is
+  redundant. Rather than add a third Marketplace capability for a
+  belt-and-suspenders call, remove the non-functional `clearParticipant` line
+  from `clearCameraOverlay()`. Keep `clearWebView` (already a requested
+  capability, and it works). This is applied in `/close`.
