@@ -250,3 +250,10 @@ the reject-and-remove of the dead `clearParticipant` line in
  reviews/camera-overlay-draws-panel.md         | 72 +++++++++++++++++++++++++++
  3 files changed, 78 insertions(+), 8 deletions(-)
 ```
+
+## Codex review (2026-06-06, base 1d4bdab, HEAD 467b724)
+
+**Summary:** Re-reviewed `git diff 1d4bdab...HEAD`. The only code change is the
+approved removal of the dead `clearParticipant` no-op call, with comments/story
+notes updated to reflect `closeRenderingContext()` as the real teardown.
+**No new issues found** (empty findings).
