@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 
 import App from './App.jsx';
 import OverlayApp from './components/OverlayApp.jsx';
+import SdkBlockedError from './components/SdkBlockedError.jsx';
 import { getZoomAdapter } from './zoom/zoomAdapter.js';
 import { renderModeFor } from './lib/renderMode.js';
 
@@ -17,13 +18,21 @@ export default function Root() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      let adapter = null;
+      const result = await getZoomAdapter();
+      // Inside Zoom without a working real SDK: refuse to render the (mock)
+      // presenter controls — show a blocking error instead.
+      if (result.blocked) {
+        if (cancelled) return;
+        setBoot({ blocked: true, reason: result.reason });
+        return;
+      }
+      const adapter = result.adapter;
       try {
-        adapter = await getZoomAdapter();
         const { context, self, participants } = await adapter.init();
         if (cancelled) return;
         setBoot({
           adapter,
+          mode: result.mode,
           runningContext: context?.runningContext,
           self,
           participants: participants || [],
@@ -34,7 +43,7 @@ export default function Root() {
         if (cancelled) return;
         // eslint-disable-next-line no-console
         console.warn('[meeting-cost] adapter init failed, falling back to panel:', err?.message);
-        setBoot({ adapter, runningContext: undefined, self: undefined, participants: [] });
+        setBoot({ adapter, mode: result.mode, runningContext: undefined, self: undefined, participants: [] });
       }
     })();
     return () => {
@@ -43,6 +52,8 @@ export default function Root() {
   }, []);
 
   if (!boot) return null;
+
+  if (boot.blocked) return <SdkBlockedError reason={boot.reason} />;
 
   const mode = renderModeFor(boot.runningContext);
   if (mode === 'overlay') return <OverlayApp adapter={boot.adapter} />;

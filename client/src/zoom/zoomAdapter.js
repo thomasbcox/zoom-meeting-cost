@@ -23,6 +23,9 @@
 //   - RealZoom  : wraps @zoom/appssdk. Wired but only used when running inside
 //                 the Zoom client. Left as a clearly-marked integration point.
 
+import { postLog } from '../lib/postLog.js';
+import { isZoomLikeEnvironment, decideAdapter } from './zoomEnv.js';
+
 // Capabilities requested in zoomSdk.config(). Includes the camera-rendering and
 // inter-webview messaging APIs the overlay needs. Exported so it can be asserted
 // in tests and kept in sync with server/zoom-app-config.md.
@@ -137,14 +140,32 @@ export class MockZoom {
   }
 }
 
+// Stringify an SDK rejection for a log payload without ever throwing.
+function errMsg(err) {
+  if (err instanceof Error) return err.message || String(err);
+  if (err && typeof err === 'object') {
+    try {
+      return JSON.stringify(err);
+    } catch {
+      return String(err);
+    }
+  }
+  return String(err);
+}
+
 // Real implementation — only instantiated inside the Zoom client. Kept minimal
 // and dependency-lazy so the prototype build doesn't require @zoom/appssdk.
 // Exported so the connect/postMessage bridge can be unit-tested against a fake
 // SDK (the real SDK only exists inside the Zoom client).
 export class RealZoom {
-  constructor(sdk) {
+  // `log` is the /api/log sink (injectable for tests). It instruments the
+  // camera-overlay SDK calls so a live run leaves server-side ground truth; it
+  // NEVER changes a method's outcome (no new throws; failures swallowed as before).
+  constructor(sdk, { log = postLog } = {}) {
     this.isMock = false;
     this._sdk = sdk;
+    this._log = log;
+    this._firstPostLogged = false;
     this._participants = [];
     this._subs = new Set();
     this._msgSubs = new Set();
@@ -205,18 +226,50 @@ export class RealZoom {
     if (typeof sdk.connect === 'function') {
       // The peer instance may not be up yet (error 10039); that's non-fatal —
       // onConnect will fire when it is, and the held payload is replayed then.
-      Promise.resolve(sdk.connect()).catch(() => {});
+      // Instrumented (success/failure) but still swallowed: the failure path is
+      // expected and recovered by onConnect, so it must not surface as an error.
+      Promise.resolve(sdk.connect())
+        .then(() => this._emitLog({ kind: 'zoom-overlay', method: 'connect', ok: true }))
+        .catch((err) =>
+          this._emitLog({ kind: 'zoom-overlay', method: 'connect', ok: false, error: errMsg(err) })
+        );
     }
 
     return { context, self, participants: this.getParticipants() };
   }
 
+  // Run an instrumented SDK call: emit a /api/log entry recording success or
+  // failure, then preserve the original outcome (re-throw on failure). Logging
+  // must never break the call it observes, so the sink itself is swallowed.
+  async _instrument(method, fn) {
+    try {
+      const result = await fn();
+      this._emitLog({ kind: 'zoom-overlay', method, ok: true });
+      return result;
+    } catch (err) {
+      this._emitLog({ kind: 'zoom-overlay', method, ok: false, error: errMsg(err) });
+      throw err;
+    }
+  }
+
+  _emitLog(payload) {
+    try {
+      Promise.resolve(this._log(payload)).catch(() => {});
+    } catch {
+      /* logging must never break the thing it observes */
+    }
+  }
+
   // --- Camera overlay (Layers API): render this webview onto the camera ----
   async startCameraOverlay() {
-    await this._sdk.runRenderingContext({ view: 'camera' });
+    await this._instrument('runRenderingContext', () =>
+      this._sdk.runRenderingContext({ view: 'camera' })
+    );
     // Cover the full frame; the overlay positions its content in a corner via
     // CSS over a transparent background.
-    await this._sdk.drawWebView({ x: 0, y: 0, width: 1280, height: 720, zIndex: 1 });
+    await this._instrument('drawWebView', () =>
+      this._sdk.drawWebView({ x: 0, y: 0, width: 1280, height: 720, zIndex: 1 })
+    );
   }
 
   async stopCameraOverlay() {
@@ -237,8 +290,19 @@ export class RealZoom {
 
   _send(payload) {
     // Swallow rejections so a failed push can't surface as an unhandled
-    // rejection; the next tick pushes a fresh snapshot anyway.
-    Promise.resolve(this._sdk.postMessage(payload)).catch(() => {});
+    // rejection; the next tick pushes a fresh snapshot anyway. Log only the
+    // FIRST send's outcome — that's the one that proves the bridge is live;
+    // logging every tick would flood /api/log.
+    const logFirst = !this._firstPostLogged;
+    if (logFirst) this._firstPostLogged = true;
+    Promise.resolve(this._sdk.postMessage(payload))
+      .then(() => {
+        if (logFirst) this._emitLog({ kind: 'zoom-overlay', method: 'postMessage', ok: true });
+      })
+      .catch((err) => {
+        if (logFirst)
+          this._emitLog({ kind: 'zoom-overlay', method: 'postMessage', ok: false, error: errMsg(err) });
+      });
   }
 
   onMessage(cb) {
@@ -283,29 +347,47 @@ export class RealZoom {
   }
 }
 
-let _adapter = null;
+let _result = null;
 
 /**
- * Returns the singleton adapter. Uses MockZoom unless we detect we're running
- * inside the Zoom client AND the SDK loads. To force real mode during Zoom
- * testing, set VITE_USE_ZOOM=1 and ensure @zoom/appssdk is installed.
+ * Resolve which adapter to use. Returns a RESULT object (not a bare adapter):
+ *
+ *   { adapter: RealZoom, mode: 'real' }            -- real SDK in use
+ *   { adapter: MockZoom, mode: 'mock' }            -- local prototype
+ *   { adapter: null, blocked: true, reason }       -- refuse to run; show error
+ *                                                     reason: 'mock-build' | 'import-fail'
+ *
+ * Inside the Zoom client we NEVER silently use the mock: a mock build, or a
+ * failed SDK import, becomes a blocking result so Root can show "Real Zoom SDK
+ * not loaded" instead of presenter controls that do nothing attendee-facing.
+ * To run real, set VITE_USE_ZOOM=1 and ensure @zoom/appssdk is installed.
  */
 export async function getZoomAdapter() {
-  if (_adapter) return _adapter;
+  if (_result) return _result;
 
   const wantReal = import.meta.env?.VITE_USE_ZOOM === '1';
+  const inZoom = isZoomLikeEnvironment();
+
+  let importOk = false;
+  let mod = null;
   if (wantReal) {
     try {
       // The package is optional and only present for real in-Zoom builds, so we
       // hide it from Vite's static dependency scan.
-      const mod = await import('@zoom/appssdk');
-      _adapter = new RealZoom(mod.default ?? mod);
-      return _adapter;
+      mod = await import('@zoom/appssdk');
+      importOk = true;
     } catch (err) {
-      console.warn('[meeting-cost] Zoom SDK unavailable, using mock:', err?.message);
+      console.warn('[meeting-cost] Zoom SDK import failed:', err?.message);
     }
   }
 
-  _adapter = new MockZoom();
-  return _adapter;
+  const plan = decideAdapter({ wantReal, inZoom, importOk });
+  if (plan.action === 'real') {
+    _result = { adapter: new RealZoom(mod.default ?? mod), mode: 'real' };
+  } else if (plan.action === 'mock') {
+    _result = { adapter: new MockZoom(), mode: 'mock' };
+  } else {
+    _result = { adapter: null, blocked: true, reason: plan.reason };
+  }
+  return _result;
 }
