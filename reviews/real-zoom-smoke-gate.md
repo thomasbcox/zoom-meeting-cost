@@ -151,3 +151,11 @@ resolve the SDK).
  client/src/zoom/zoomEnv.js                |  48 ++++++++++++
  client/src/zoom/zoomEnv.test.js           |  51 +++++++++++++
 ```
+
+## Codex review (2026-06-05, base main, HEAD f9ed1ec)
+
+**Summary:** Reviewed `git diff main...HEAD`, `git log --oneline main..HEAD`, and
+`reviews/real-zoom-smoke-gate.md`; the branch matches AC1–AC4 in the spec, with
+AC5 manual and AC6 deferred as specified. No issues found in the diff.
+
+**Findings:** _none_ (empty findings array).
