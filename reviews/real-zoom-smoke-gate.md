@@ -159,3 +159,8 @@ resolve the SDK).
 AC5 manual and AC6 deferred as specified. No issues found in the diff.
 
 **Findings:** _none_ (empty findings array).
+
+## Fixes (2026-06-05)
+
+None required — clean Codex review (0 findings). No code changed in the close
+round; gate re-run green (`npm test && npm run build`). Header stays `approved`.
