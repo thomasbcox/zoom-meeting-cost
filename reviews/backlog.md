@@ -52,6 +52,26 @@ story when picked up.
   a push. Behavioral guard already in place (memory:
   `feedback-no-real-secrets-in-repo`).
 
+## Session lifecycle: no way to start/resume after "End session"
+- **Found:** live in-Zoom test (2026-06-05, real mode). Thomas: "no way to resume
+  after 'end session'."
+- **What:** The session state machine has no exit from `ended`. In
+  `PresenterControls.jsx` the Pause / Resume / End buttons are all gated on
+  `running`/`paused`/`active`, so once `session.status === 'ended'` none render —
+  only the overlay show/hide button is left. And `startOverlay` only starts
+  counting from `idle` (`App.jsx`: `if (status === 'idle') sessionActions.start()`),
+  so from `ended` clicking "Show cost on video" shows the overlay but leaves
+  status `ended` and the tick loop (gated on `running`) stays frozen. There is
+  also no explicit "Start" control at all — the session is only ever started
+  implicitly by the overlay button.
+- **Why defer:** Logged during the live overlay (AC6) test; Thomas chose to log
+  it and keep focus on overlay rendering for now.
+- **When to do:** Next real-mode UX pass.
+- **Done looks like:** From `ended` (and `idle`) there is a clear way to begin a
+  fresh session — e.g. a "Start new session" button that resets elapsed + total
+  via `sessionActions.start()` — and the meter counts again. Decide whether
+  `ended` offers "start new" (reset) vs "resume" (continue) semantics.
+
 ## RealZoom: `drawWebView` may require `webviewId`
 - **Deferred from:** advisor review (2026-06-04, Thomas's call — backlogged
   alongside `reviews/realmode-p1-fixes.md`).
