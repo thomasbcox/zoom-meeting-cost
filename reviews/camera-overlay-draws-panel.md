@@ -163,3 +163,54 @@ Sources:
    proposed 1280×720 (current hardcode) purely as a defensive fallback. OK?
 4. **Method name** — `drawCameraOverlay()` proposed for the camera-instance draw.
    Prefer another name (`drawSelf`, `renderOverlay`)?
+
+## Build note (2026-06-06)
+
+AC → file map:
+
+- **AC1** (panel only spawns) — `client/src/zoom/zoomAdapter.js` (`RealZoom.startCameraOverlay`), `MockZoom.startCameraOverlay`
+- **AC2** (camera instance draws) — `client/src/zoom/zoomAdapter.js` (`RealZoom.drawCameraOverlay`), `MockZoom.drawCameraOverlay`
+- **AC3** (OverlayApp triggers draw) — `client/src/components/OverlayApp.jsx`, `client/src/lib/cameraDraw.js` (+ test)
+- **AC4** (renderTarget captured) — `client/src/zoom/zoomAdapter.js` (`RealZoom.init`, `_resolveSelfUUID`, `DEFAULT_RENDER_TARGET`)
+- **AC5** (capabilities + doc) — `client/src/zoom/zoomAdapter.js` (`ZOOM_CAPABILITIES`), `server/zoom-app-config.md`
+- **AC6** (instrumentation) — `client/src/zoom/zoomAdapter.js` (`drawCameraOverlay` via `_instrument`)
+- **AC7** (mock parity + tests) — `client/src/zoom/zoomAdapter.test.js`, `client/src/lib/cameraDraw.test.js`
+
+Deviation: AC3 test note specified jsdom; the repo has no jsdom/testing-library
+(component tests call functions directly), so the mount/unmount contract was
+extracted into `cameraDraw.js` and unit-tested in the node env instead.
+
+`git diff --stat main...HEAD`:
+
+```
+ client/src/components/OverlayApp.jsx  |   7 ++
+ client/src/lib/cameraDraw.js          |  17 ++++
+ client/src/lib/cameraDraw.test.js     |  26 ++++++
+ client/src/zoom/zoomAdapter.js        |  98 ++++++++++++++++++--
+ client/src/zoom/zoomAdapter.test.js   | 132 ++++++++++++++++++++++++---
+ reviews/camera-overlay-draws-panel.md | 165 ++++++++++++++++++++++++++++++++++
+ server/zoom-app-config.md             |  11 ++-
+ 7 files changed, 437 insertions(+), 19 deletions(-)
+```
+
+## Codex review (2026-06-06, base main, HEAD 1d4bdab)
+
+**Summary:** Reviewed `git log --oneline main..HEAD`, `git diff main...HEAD`,
+and the spec. The draw placement now matches the spec; Codex found one teardown
+issue. (Codex did not run test/build in the read-only sandbox.)
+
+### IMPORTANT
+
+1. **Participant layer is not actually cleared on unmount** — `client/src/zoom/zoomAdapter.js:342`
+   `drawCameraOverlay()` draws the base layer with `participantUUID: this._selfUUID`,
+   but `clearCameraOverlay()` calls `clearParticipant` with no options, and
+   `ZOOM_CAPABILITIES` does not request `clearParticipant`. The story requires the
+   camera instance to clear its own `drawWebView` / `drawParticipant` layers on
+   unmount; as written, the participant base layer will not be reliably cleared
+   before the panel calls `closeRenderingContext()`. Zoom's SDK documents
+   `clearParticipant` as taking the participant identifier
+   (ClearParticipantOptions).
+   **Suggestion:** Request `clearParticipant` in `ZOOM_CAPABILITIES` and document
+   it in `server/zoom-app-config.md`; in `clearCameraOverlay()`, call
+   `this._sdk.clearParticipant?.({ participantUUID: this._selfUUID })` when
+   `_selfUUID` is present, and update tests to assert that argument.
