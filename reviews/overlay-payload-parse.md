@@ -113,3 +113,13 @@ AC → file map:
 - **AC3** (self-confirming diagnostic) — `client/src/zoom/zoomAdapter.js` (`overlay-message-raw`), `client/src/components/OverlayApp.jsx` (`type` on `overlay-message`)
 - **AC4** (containment + privacy) — diff scoped to the above + story file
 - **AC5** (gate) — full suite + build
+
+## Codex review (2026-06-07, base main, HEAD da451e8)
+
+**Summary:** The change matches the spec — `normalizeIncomingMessage` handles wrapped
+object payloads, wrapped JSON strings, bare JSON strings, plain objects, invalid
+strings, null, and undefined; `RealZoom.init` dispatches normalized payloads to
+subscribers; the diff stays receive-side only (no send/draw/route changes); the new raw
+diagnostic logs type/flag shape only. **No issues found** (empty findings). (Codex
+couldn't run the gate in its read-only sandbox — Vitest temp-write blocked — but ours is
+green: 105 tests + build.)
