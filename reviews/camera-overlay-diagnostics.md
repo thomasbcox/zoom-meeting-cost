@@ -137,3 +137,14 @@ privacy and an observe-only risk. (Gate green locally: 97 tests + build.)
    local try/catch (default `{ keys:null }`/`{ received:true }`) and guarantee `setState`
    still runs. *(Claude note: currently guarded — can't throw on our plain-JSON payloads —
    but worth making airtight for a story whose whole promise is "observe-only.")*
+
+## Decisions (2026-06-07)
+
+- **BLOCKER #1 (init-error error text) — FIX by widening the allowlist.** Thomas: "keep
+  error, widen allowlist." The `init-error` log keeps `err?.message` (the failure reason
+  is the diagnostic point, and SDK/JS exception strings are not the private rate table).
+  Resolution is a **privacy-contract amendment**, not a code change: the Privacy section is
+  updated to explicitly permit sanitized SDK/JS error strings (never user/config data).
+- **IMPORTANT #2 (overlay-message shape extraction outside try/catch) — DEFER.** Thomas:
+  "defer." The extraction is already guarded (`typeof === 'object'` + optional chaining) so
+  it cannot throw on our plain-JSON payloads; revisit if a future payload shape warrants it.
