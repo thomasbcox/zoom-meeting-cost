@@ -122,3 +122,24 @@ when the meter itself could render.
    object, not the raw SDK response. Confirm that discarding the raw `getRunningContext`
    response (we don't use any other field of it) is fine, vs. preserving it under a
    different key. Proposed: return only the normalized `{ runningContext }`.
+
+## Build note (2026-06-06)
+
+AC → file map:
+
+- **AC1** (normalize running context) — `client/src/zoom/zoomAdapter.js` (`RealZoom.init`)
+- **AC2/AC3** (routing + fake real shape + tests) — `client/src/zoom/zoomAdapter.test.js`
+- **AC4** (participant base layer optional) — `client/src/zoom/zoomAdapter.js` (`RealZoom.drawCameraOverlay`)
+- **AC5** (no instrumentation/MockZoom regression) — covered by existing tests
+- **AC6** (gate + docs folded) — `docs/camera-overlay-no-draw.md`, `docs/camera-overlay-no-draw.codex.json`
+
+`git diff --stat main...HEAD`:
+
+```
+ client/src/zoom/zoomAdapter.js          |  22 ++-
+ client/src/zoom/zoomAdapter.test.js     |  54 ++++++-
+ docs/camera-overlay-no-draw.codex.json  |   1 +
+ docs/camera-overlay-no-draw.md          | 250 +++++++++++++++++++++++++++++++
+ reviews/camera-overlay-context-shape.md | 124 +++++++++++++++
+ 5 files changed, 442 insertions(+), 9 deletions(-)
+```
