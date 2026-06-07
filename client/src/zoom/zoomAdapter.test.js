@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { ZOOM_CAPABILITIES, MockZoom, RealZoom } from './zoomAdapter.js';
+import { renderModeFor } from '../lib/renderMode.js';
 
 // Instantiate MockZoom directly so the test is deterministic and independent of
 // VITE_USE_ZOOM / the singleton factory (which selects RealZoom under .env.local).
@@ -125,18 +126,58 @@ describe('RealZoom camera-overlay draw placement', () => {
     expect(sdk.drawn[0]).toMatchObject({ method: 'drawParticipant', participantUUID: 'matched-uuid' });
   });
 
-  it('logs drawParticipant failure and re-throws', async () => {
+  it('logs a drawParticipant failure (ok:false) but still draws the webview and does NOT reject', async () => {
+    // drawParticipant is Host/Co-Host only; its failure must not suppress the meter.
     const logs = [];
-    const sdk = makeFakeSdk({ drawRejects: true });
+    const sdk = makeFakeSdk({ participantDrawRejects: true });
     const a = new RealZoom(sdk, { log: (p) => logs.push(p) });
     await a.init();
-    await expect(a.drawCameraOverlay()).rejects.toThrow('drawParticipant failed');
+    await expect(a.drawCameraOverlay()).resolves.toBeUndefined();
     expect(logs).toContainEqual({
       kind: 'zoom-overlay',
       method: 'drawParticipant',
       ok: false,
       error: 'drawParticipant failed',
     });
+    // The meter webview still composited.
+    expect(sdk.drawn).toEqual([
+      { method: 'drawWebView', webviewId: 'camera', x: 0, y: 0, width: 1280, height: 720, zIndex: 2 },
+    ]);
+  });
+
+  it('still re-throws when drawWebView itself fails (the meter is not optional)', async () => {
+    const sdk = makeFakeSdk({ drawRejects: true }); // both draws reject
+    const a = new RealZoom(sdk);
+    await a.init();
+    await expect(a.drawCameraOverlay()).rejects.toThrow('drawWebView failed');
+  });
+});
+
+describe('RealZoom running-context normalization (real SDK { context } shape)', () => {
+  it('normalizes getRunningContext() { context } into a canonical context.runningContext', async () => {
+    const camera = new RealZoom(makeFakeSdk({ contextValue: 'inCamera' }));
+    const cam = await camera.init();
+    expect(cam.context.runningContext).toBe('inCamera');
+
+    const panel = new RealZoom(makeFakeSdk({ contextValue: 'inMeeting' }));
+    const pan = await panel.init();
+    expect(pan.context.runningContext).toBe('inMeeting');
+  });
+
+  it('routes a real inCamera instance to overlay mode (and inMeeting to panel)', async () => {
+    // The boundary Root crosses: renderModeFor(init().context.runningContext).
+    const cam = await new RealZoom(makeFakeSdk({ contextValue: 'inCamera' })).init();
+    expect(renderModeFor(cam.context.runningContext)).toBe('overlay');
+
+    const pan = await new RealZoom(makeFakeSdk({ contextValue: 'inMeeting' })).init();
+    expect(renderModeFor(pan.context.runningContext)).toBe('panel');
+  });
+
+  it('falls back to the config-style { runningContext } name if a client ever returns it', async () => {
+    const sdk = makeFakeSdk();
+    sdk.getRunningContext = async () => ({ runningContext: 'inCamera' });
+    const out = await new RealZoom(sdk).init();
+    expect(out.context.runningContext).toBe('inCamera');
   });
 });
 
@@ -148,9 +189,11 @@ function makeFakeSdk({
   participants = [],
   renderRejects = false,
   drawRejects = false,
+  participantDrawRejects = false,
   connectRejects = false,
   renderTarget = { width: 1280, height: 720 },
   selfParticipantUUID = 'self-uuid',
+  contextValue = 'inMeeting',
 } = {}) {
   let connectHandler = null;
   return {
@@ -160,8 +203,9 @@ function makeFakeSdk({
     async config() {
       return { media: { renderTarget } };
     },
+    // Real SDK shape: getRunningContext() resolves to RunningContextResponse = { context }.
     async getRunningContext() {
-      return { runningContext: 'inMeeting' };
+      return { context: contextValue };
     },
     async getUserContext() {
       return { id: 'u1', displayName: 'Real User', screenName: 'Real User', participantUUID: selfParticipantUUID };
@@ -175,7 +219,7 @@ function makeFakeSdk({
       return {};
     },
     async drawParticipant(opts) {
-      if (drawRejects) throw new Error('drawParticipant failed');
+      if (drawRejects || participantDrawRejects) throw new Error('drawParticipant failed');
       this.drawn.push({ method: 'drawParticipant', ...opts });
       return {};
     },
