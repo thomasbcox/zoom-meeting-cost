@@ -45,12 +45,12 @@ export const ZOOM_CAPABILITIES = [
   // info; both must also be enabled in the Marketplace dashboard.
   'drawParticipant',
   'onMyMediaChange',
-  // Side panel <-> camera context state bridge. These are "App Instances
-  // Communication" APIs: postMessage fails with error 10041 ("app instances
-  // aren't connected") until the instances call connect(), so connect/onConnect
-  // must be requested alongside postMessage/onMessage.
-  'connect',
-  'onConnect',
+  // Side panel -> camera-overlay state push. In camera (Layers) mode the panel
+  // calls postMessage directly and the inCamera instance receives via onMessage
+  // (matching Zoom's official camera-mode sample) — NO connect()/onConnect handshake.
+  // connect/onConnect is the separate meeting<->main-client mirroring feature, which
+  // this app does not use; requesting it here would only invite the inCamera connect
+  // rejection we saw live ("API can only be called when running in a meeting").
   'postMessage',
   'onMessage',
 ];
@@ -184,15 +184,9 @@ export class RealZoom {
     this.isMock = false;
     this._sdk = sdk;
     this._log = log;
-    this._firstPostLogged = false;
     this._participants = [];
     this._subs = new Set();
     this._msgSubs = new Set();
-    // App-instance connection state for the postMessage bridge. postMessage
-    // fails with 10041 until the panel and camera instances are connected, so
-    // we hold the latest payload and replay it once onConnect fires.
-    this._connected = false;
-    this._pendingMsg = null;
     // Whether the last getMeetingParticipants() succeeded. getMeetingParticipants
     // needs host/co-host + scope; when it fails the list is empty, which would
     // otherwise read as a valid $0 meeting. Track it so the UI can say so.
@@ -236,41 +230,17 @@ export class RealZoom {
       });
     }
 
-    // Camera context receives state pushed from the side panel via postMessage.
+    // The inCamera overlay instance receives state pushed from the side panel via
+    // postMessage. No connect() handshake: in camera (Layers) mode the panel posts
+    // directly and the camera receives via onMessage (per Zoom's official sample);
+    // connect()/onConnect is the meeting<->main-client mirroring feature, which the
+    // inCamera instance can't even call ("API can only be called when running in a
+    // meeting"), so it is intentionally not used here.
     if (typeof sdk.onMessage === 'function') {
       sdk.onMessage((evt) => {
         const payload = evt?.payload ?? evt;
         for (const cb of this._msgSubs) cb(payload);
       });
-    }
-
-    // Establish the app-instance connection that the postMessage bridge needs.
-    // onConnect fires when the peer instance (panel <-> camera) connection
-    // settles — but the event reports either outcome (action: 'success' |
-    // 'failure'), so only a success means the channel is live. A failure must
-    // NOT mark us connected or flush the held payload (that would post over a
-    // dead bridge and lose the snapshot); we keep waiting for a later success.
-    if (typeof sdk.onConnect === 'function') {
-      sdk.onConnect((evt) => {
-        if (evt?.action !== 'success') return;
-        this._connected = true;
-        if (this._pendingMsg != null) {
-          const payload = this._pendingMsg;
-          this._pendingMsg = null;
-          this._send(payload);
-        }
-      });
-    }
-    if (typeof sdk.connect === 'function') {
-      // The peer instance may not be up yet (error 10039); that's non-fatal —
-      // onConnect will fire when it is, and the held payload is replayed then.
-      // Instrumented (success/failure) but still swallowed: the failure path is
-      // expected and recovered by onConnect, so it must not surface as an error.
-      Promise.resolve(sdk.connect())
-        .then(() => this._emitLog({ kind: 'zoom-overlay', method: 'connect', ok: true }))
-        .catch((err) =>
-          this._emitLog({ kind: 'zoom-overlay', method: 'connect', ok: false, error: errMsg(err) })
-        );
     }
 
     return { context, self, participants: this.getParticipants() };
@@ -373,33 +343,18 @@ export class RealZoom {
     return null;
   }
 
-  // --- State bridge: side panel -> camera context --------------------------
+  // --- State bridge: side panel -> camera overlay (direct postMessage) ------
+  // No connection handshake: the panel posts the latest snapshot directly each
+  // tick and the inCamera instance receives it via onMessage (Zoom camera-mode
+  // sample pattern). Every send's outcome is logged (we're still debugging the
+  // live overlay) and rejections are swallowed so a failed push never surfaces as
+  // an unhandled rejection — the next tick posts a fresh snapshot anyway.
   postMessage(payload) {
-    // Until the instances are connected, postMessage would reject with 10041.
-    // Hold only the latest payload (overlay state is a full snapshot, so an
-    // older one is worthless) and replay it from the onConnect handler.
-    if (!this._connected) {
-      this._pendingMsg = payload;
-      return;
-    }
-    this._send(payload);
-  }
-
-  _send(payload) {
-    // Swallow rejections so a failed push can't surface as an unhandled
-    // rejection; the next tick pushes a fresh snapshot anyway. Log only the
-    // FIRST send's outcome — that's the one that proves the bridge is live;
-    // logging every tick would flood /api/log.
-    const logFirst = !this._firstPostLogged;
-    if (logFirst) this._firstPostLogged = true;
     Promise.resolve(this._sdk.postMessage(payload))
-      .then(() => {
-        if (logFirst) this._emitLog({ kind: 'zoom-overlay', method: 'postMessage', ok: true });
-      })
-      .catch((err) => {
-        if (logFirst)
-          this._emitLog({ kind: 'zoom-overlay', method: 'postMessage', ok: false, error: errMsg(err) });
-      });
+      .then(() => this._emitLog({ kind: 'zoom-overlay', method: 'postMessage', ok: true }))
+      .catch((err) =>
+        this._emitLog({ kind: 'zoom-overlay', method: 'postMessage', ok: false, error: errMsg(err) })
+      );
   }
 
   onMessage(cb) {

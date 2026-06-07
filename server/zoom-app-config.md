@@ -50,12 +50,13 @@ These match the `ZOOM_CAPABILITIES` list in `client/src/zoom/zoomAdapter.js`:
 > **Marketplace dashboard:** `drawParticipant` and `onMyMediaChange` must be
 > added under **Features → Zoom App SDK → Add APIs** (same as the other camera
 > APIs). Without them a live run fails with a `40316`-style capability error.
-- **Side panel ↔ camera context state bridge:**
-  - `connect` — connect the side-panel and camera app instances (required;
-    `postMessage` fails with `10041` until instances are connected)
-  - `onConnect` — fires when the instance connection is established
-  - `postMessage` — push the live cost from the side panel to the camera context
-  - `onMessage` — the camera context receives it
+- **Side panel → camera overlay state push (camera/Layers mode):**
+  - `postMessage` — the side panel pushes the live cost snapshot directly each tick
+  - `onMessage` — the `inCamera` overlay instance receives it
+  - No `connect`/`onConnect`: that is the separate meeting ↔ main-client app-mirroring
+    feature and is **not** used here. In camera mode the panel posts directly and the
+    `inCamera` instance receives via `onMessage` (per Zoom's official camera-mode
+    sample); the `inCamera` instance cannot call `connect` anyway.
 
 ## How the prototype maps to production
 - `client/src/zoom/zoomAdapter.js` has a `MockZoom` (used now) and a
