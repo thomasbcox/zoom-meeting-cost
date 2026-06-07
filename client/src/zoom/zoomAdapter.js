@@ -211,7 +211,13 @@ export class RealZoom {
     // instead of a hardcoded resolution.
     const cfg = await sdk.config({ capabilities: ZOOM_CAPABILITIES });
     this._renderTarget = cfg?.media?.renderTarget ?? null;
-    const context = await sdk.getRunningContext();
+    // getRunningContext() resolves to RunningContextResponse = { context }, NOT
+    // { runningContext } (that name belongs to config()'s ConfigResponse). Read the
+    // correct property and normalize to a canonical { runningContext } so Root can
+    // route the real inCamera instance to overlay mode. (raw.runningContext kept as a
+    // fallback in case a client/version ever returns the config-style name.)
+    const rawCtx = await sdk.getRunningContext();
+    const context = { runningContext: rawCtx?.context ?? rawCtx?.runningContext };
     let self = null;
     try {
       self = await sdk.getUserContext();
@@ -310,9 +316,17 @@ export class RealZoom {
     const rt = this._renderTarget || DEFAULT_RENDER_TARGET;
     const rect = { x: 0, y: 0, width: rt.width, height: rt.height };
     if (this._selfUUID) {
-      await this._instrument('drawParticipant', () =>
-        this._sdk.drawParticipant({ participantUUID: this._selfUUID, ...rect, zIndex: 1 })
-      );
+      // The participant base layer is best-effort: drawParticipant is Host/Co-Host
+      // only, while drawWebView (the meter) works for any role. A base-layer failure
+      // must NOT suppress the meter, so swallow it here — _instrument has already
+      // logged ok:false — and still draw the webview below.
+      try {
+        await this._instrument('drawParticipant', () =>
+          this._sdk.drawParticipant({ participantUUID: this._selfUUID, ...rect, zIndex: 1 })
+        );
+      } catch {
+        /* base video layer optional; meter still composites via drawWebView */
+      }
     } else {
       // No UUID -> skip the base layer (the meter still composites). Record it so
       // a live run shows why the video base is missing.
