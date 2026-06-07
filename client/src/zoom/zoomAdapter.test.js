@@ -15,13 +15,15 @@ describe('ZOOM_CAPABILITIES', () => {
       'onMyMediaChange',
       'clearWebView',
       'closeRenderingContext',
-      'connect',
-      'onConnect',
       'postMessage',
       'onMessage',
     ]) {
       expect(ZOOM_CAPABILITIES).toContain(cap);
     }
+    // connect/onConnect are the meeting<->main-client mirroring feature; the
+    // camera overlay uses direct postMessage/onMessage, so they are NOT requested.
+    expect(ZOOM_CAPABILITIES).not.toContain('connect');
+    expect(ZOOM_CAPABILITIES).not.toContain('onConnect');
   });
 });
 
@@ -181,25 +183,23 @@ describe('RealZoom running-context normalization (real SDK { context } shape)', 
   });
 });
 
-// Fake @zoom/appssdk: records connect() calls, lets the test fire onConnect, and
-// captures (or rejects) postMessage payloads. Only the methods RealZoom touches.
+// Fake @zoom/appssdk: captures (or rejects) postMessage payloads. Only the methods
+// RealZoom touches. No connect/onConnect — the camera overlay uses direct postMessage.
 function makeFakeSdk({
   postMessageRejects = false,
+  postMessageThrowsSync = false,
   participantsReject = false,
   participants = [],
   renderRejects = false,
   drawRejects = false,
   participantDrawRejects = false,
-  connectRejects = false,
   renderTarget = { width: 1280, height: 720 },
   selfParticipantUUID = 'self-uuid',
   contextValue = 'inMeeting',
 } = {}) {
-  let connectHandler = null;
   return {
     posted: [],
     drawn: [],
-    connectCalls: 0,
     async config() {
       return { media: { renderTarget } };
     },
@@ -237,19 +237,8 @@ function makeFakeSdk({
     async closeRenderingContext() {
       return {};
     },
-    connect() {
-      this.connectCalls += 1;
-      if (connectRejects) return Promise.reject(new Error('10039'));
-      return Promise.resolve({});
-    },
-    onConnect(cb) {
-      connectHandler = cb;
-    },
-    // Mirror the real OnConnectEvent shape: { timestamp, action }.
-    fireConnect(action = 'success') {
-      if (connectHandler) connectHandler({ timestamp: 0, action });
-    },
     postMessage(payload) {
+      if (postMessageThrowsSync) throw new Error('sync boom');
       if (postMessageRejects) return Promise.reject(new Error('10041'));
       this.posted.push(payload);
       return Promise.resolve({});
@@ -257,60 +246,56 @@ function makeFakeSdk({
   };
 }
 
-describe('RealZoom postMessage bridge', () => {
-  it('calls sdk.connect() during init', async () => {
+describe('RealZoom postMessage bridge (direct, no connect)', () => {
+  it('does not call sdk.connect() during init (no connect in the camera path)', async () => {
     const sdk = makeFakeSdk();
+    expect('connect' in sdk).toBe(false);
     const a = new RealZoom(sdk);
-    await a.init();
-    expect(sdk.connectCalls).toBe(1);
+    await a.init(); // must not throw despite no connect/onConnect on the SDK
   });
 
-  it('holds messages until onConnect, then replays the latest', async () => {
+  it('sends each postMessage directly and in order, with nothing held', async () => {
     const sdk = makeFakeSdk();
     const a = new RealZoom(sdk);
     await a.init();
 
-    // Before the instances connect, nothing is sent through the SDK.
     a.postMessage({ totalCost: 1 });
     a.postMessage({ totalCost: 2 });
-    expect(sdk.posted).toEqual([]);
-
-    // On connect, only the latest held snapshot is flushed.
-    sdk.fireConnect();
-    expect(sdk.posted).toEqual([{ totalCost: 2 }]);
-
-    // After connect, messages pass straight through.
     a.postMessage({ totalCost: 3 });
-    expect(sdk.posted).toEqual([{ totalCost: 2 }, { totalCost: 3 }]);
-  });
-
-  it('ignores a failed onConnect: stays disconnected and keeps the pending payload', async () => {
-    const sdk = makeFakeSdk();
-    const a = new RealZoom(sdk);
-    await a.init();
-
-    a.postMessage({ totalCost: 7 });
-
-    // A failure event must NOT mark the bridge live or flush the held snapshot.
-    sdk.fireConnect('failure');
-    expect(sdk.posted).toEqual([]);
-
-    // A later success flushes the still-pending latest snapshot.
-    sdk.fireConnect('success');
-    expect(sdk.posted).toEqual([{ totalCost: 7 }]);
+    // Sends defer one microtask (so a sync SDK throw can't escape); flush, then assert.
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(sdk.posted).toEqual([{ totalCost: 1 }, { totalCost: 2 }, { totalCost: 3 }]);
   });
 
   it('does not throw or reject when sdk.postMessage rejects', async () => {
     const sdk = makeFakeSdk({ postMessageRejects: true });
     const a = new RealZoom(sdk);
     await a.init();
-    sdk.fireConnect();
 
     // Must not raise synchronously...
     expect(() => a.postMessage({ totalCost: 9 })).not.toThrow();
     // ...and must not surface as an unhandled rejection on the microtask queue.
     await Promise.resolve();
     await Promise.resolve();
+  });
+
+  it('does not let a SYNCHRONOUS sdk.postMessage throw escape, and logs it ok:false', async () => {
+    const logs = [];
+    const sdk = makeFakeSdk({ postMessageThrowsSync: true });
+    const a = new RealZoom(sdk, { log: (p) => logs.push(p) });
+    await a.init();
+
+    // A synchronous throw from the SDK must not reach the caller (it posts from a
+    // React effect; an escaping throw would trip the ErrorBoundary).
+    expect(() => a.postMessage({ totalCost: 1 })).not.toThrow();
+    await flush();
+    expect(logs).toContainEqual({
+      kind: 'zoom-overlay',
+      method: 'postMessage',
+      ok: false,
+      error: 'sync boom',
+    });
   });
 });
 
@@ -360,40 +345,22 @@ describe('RealZoom /api/log instrumentation', () => {
     expect(overlay).toContainEqual({ kind: 'zoom-overlay', method: 'drawWebView', ok: true });
   });
 
-  it('logs connect success during init', async () => {
+  it('logs EVERY postMessage send (not just the first)', async () => {
     const { a, logs } = withLog();
     await a.init();
-    await flush();
-    expect(logs).toContainEqual({ kind: 'zoom-overlay', method: 'connect', ok: true });
-  });
-
-  it('logs connect failure during init without throwing', async () => {
-    const { a, logs } = withLog({ connectRejects: true });
-    await a.init(); // must not reject
-    await flush();
-    expect(logs).toContainEqual({
-      kind: 'zoom-overlay',
-      method: 'connect',
-      ok: false,
-      error: '10039',
-    });
-  });
-
-  it('logs only the FIRST postMessage send', async () => {
-    const { a, sdk, logs } = withLog();
-    await a.init();
-    sdk.fireConnect(); // bridge live
     a.postMessage({ totalCost: 1 });
     a.postMessage({ totalCost: 2 });
     await flush();
     const posts = logs.filter((l) => l.method === 'postMessage');
-    expect(posts).toEqual([{ kind: 'zoom-overlay', method: 'postMessage', ok: true }]);
+    expect(posts).toEqual([
+      { kind: 'zoom-overlay', method: 'postMessage', ok: true },
+      { kind: 'zoom-overlay', method: 'postMessage', ok: true },
+    ]);
   });
 
   it('logs a postMessage failure entry (ok=false) without throwing', async () => {
-    const { a, sdk, logs } = withLog({ postMessageRejects: true });
+    const { a, logs } = withLog({ postMessageRejects: true });
     await a.init();
-    sdk.fireConnect();
     expect(() => a.postMessage({ totalCost: 9 })).not.toThrow();
     await flush();
     expect(logs).toContainEqual({
