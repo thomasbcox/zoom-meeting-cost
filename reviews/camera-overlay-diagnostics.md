@@ -65,6 +65,13 @@ Diagnostic logs carry only `instanceId`, running-context strings, lifecycle even
 and (for `overlay-message`) at most the **shape**/keys or a boolean "received" — **never**
 participant names, rates, or the private config. No new private data leaves the panel.
 
+**Allowlist amendment (2026-06-07, per Codex #1):** the `init-error` log may also carry a
+**sanitized SDK/JS error string** (`err.message`) — an operational exception message from
+`adapter.init()` (e.g. "API can only be called when running in a meeting"), never user
+identities, rates, or the private rate config. The failure reason is the whole point of a
+diagnostics story, so it is explicitly in scope; it must stay an SDK/JS error string and
+never be widened to echo request payloads or config.
+
 ## Acceptance criteria
 
 1. **Stable per-load id.** A new `client/src/lib/instanceId.js` exports a single
@@ -148,3 +155,14 @@ privacy and an observe-only risk. (Gate green locally: 97 tests + build.)
 - **IMPORTANT #2 (overlay-message shape extraction outside try/catch) — DEFER.** Thomas:
   "defer." The extraction is already guarded (`typeof === 'object'` + optional chaining) so
   it cannot throw on our plain-JSON payloads; revisit if a future payload shape warrants it.
+
+## Fixes (2026-06-07)
+
+- **BLOCKER #1 — resolved by privacy-contract amendment (no code change).** Per the
+  decision, the `init-error` log keeps `err?.message` (the failure reason is the
+  diagnostic goal; SDK/JS exception strings are not the private rate table). The Privacy
+  section now explicitly allowlists sanitized SDK/JS error strings, aligning the contract
+  with the intended behaviour. `Root.jsx` is unchanged.
+- **IMPORTANT #2 — deferred** (per Decisions): the `overlay-message` shape extraction is
+  already guarded against throwing on our plain-JSON payloads; revisit if a future payload
+  shape warrants it.
