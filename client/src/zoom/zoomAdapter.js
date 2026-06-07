@@ -25,6 +25,8 @@
 
 import { postLog } from '../lib/postLog.js';
 import { isZoomLikeEnvironment, decideAdapter } from './zoomEnv.js';
+import { normalizeIncomingMessage } from '../lib/overlayMessage.js';
+import { logLifecycle } from '../lib/lifecycleLog.js';
 
 // Capabilities requested in zoomSdk.config(). Includes the camera-rendering and
 // inter-webview messaging APIs the overlay needs. Exported so it can be asserted
@@ -238,7 +240,21 @@ export class RealZoom {
     // meeting"), so it is intentionally not used here.
     if (typeof sdk.onMessage === 'function') {
       sdk.onMessage((evt) => {
-        const payload = evt?.payload ?? evt;
+        // Self-confirming boundary diagnostic: shape only, never values. Tells us what
+        // the SDK actually hands us (object vs JSON string vs null) at ~1/sec.
+        logLifecycle('overlay-message-raw', {
+          evtType: evt === null ? 'null' : typeof evt,
+          hasPayloadKey: !!(evt && typeof evt === 'object' && 'payload' in evt),
+          payloadType:
+            evt && typeof evt === 'object' && 'payload' in evt
+              ? evt.payload === null
+                ? 'null'
+                : typeof evt.payload
+              : undefined,
+        });
+        // Runtime delivers the payload as a JSON string; normalize (parse) it so the
+        // overlay receives the snapshot object.
+        const payload = normalizeIncomingMessage(evt);
         for (const cb of this._msgSubs) cb(payload);
       });
     }
