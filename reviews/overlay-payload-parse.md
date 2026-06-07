@@ -103,3 +103,13 @@ shape, still no relay).
 2. **Diagnostic permanence/volume.** `overlay-message-raw` fires ~1/sec like
    `overlay-message`. *Proposed: keep for this debugging round* (consistent with the
    diagnostics story's decision), throttle once the meter is confirmed working.
+
+## Build note (2026-06-07)
+
+AC → file map:
+
+- **AC1** (normalizeIncomingMessage) — `client/src/lib/overlayMessage.js` (+ `overlayMessage.test.js`)
+- **AC2** (RealZoom receive path parses) — `client/src/zoom/zoomAdapter.js` (`init` onMessage); fake `onMessage`/`fireMessage` + receive tests in `client/src/zoom/zoomAdapter.test.js`
+- **AC3** (self-confirming diagnostic) — `client/src/zoom/zoomAdapter.js` (`overlay-message-raw`), `client/src/components/OverlayApp.jsx` (`type` on `overlay-message`)
+- **AC4** (containment + privacy) — diff scoped to the above + story file
+- **AC5** (gate) — full suite + build
