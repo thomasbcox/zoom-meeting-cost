@@ -94,3 +94,13 @@ wanted (Option 2), rather than ripping it out.
 2. **`overlay-message` on-change key.** Log on `status` change only (proposed), or also on
    other transitions (e.g. attendee-count change)? *Proposed: status only* — it's the
    meaningful lifecycle signal; cost/elapsed change every tick by nature and would re-flood.
+
+## Build note (2026-06-07)
+
+AC → file map:
+
+- **AC1** (postMessage first-success-only) — `client/src/zoom/zoomAdapter.js` (ctor `_firstPostLogged`, `postMessage`)
+- **AC2** (overlay-message first + on status-change) — `client/src/components/OverlayApp.jsx`
+- **AC3** (overlay-message-raw anomaly-only) — `client/src/zoom/zoomAdapter.js` (`init` onMessage; routed through `this._log`)
+- **AC4** (steady state quiet) — emergent from AC1–AC3
+- **AC5** (containment + gate) — `client/src/zoom/zoomAdapter.test.js` (first-only + anomaly tests)
