@@ -167,3 +167,22 @@ is green: 92 tests + build.) 2 IMPORTANT + 1 NIT.
 3. **Stale connect-bridge comment** — `zoomAdapter.js:177` still says RealZoom is exported
    so the "connect/postMessage bridge" can be tested. *Suggestion:* reword to the direct
    `postMessage`/`onMessage` model (part of AC5 cleanup).
+
+## Decisions (2026-06-07)
+
+Thomas: "let's do option 2 — cross your fingers and make it happen." Dispositions
+chosen to be consistent with the **Option 2 (feedback-loop-first)** sequence:
+restore sight → ship → verify live → harden.
+
+- **IMPORTANT #1 (sync postMessage throw escapes) — FIX (clean, no try/catch).**
+  Use `Promise.resolve().then(() => this._sdk.postMessage(payload))` so a synchronous
+  throw becomes a rejected promise and is logged `ok:false` alongside async rejections.
+  Rationale: a sync throw currently escapes *unlogged* — a blindness gap, which is
+  exactly what Option 2's first step removes. (Test for the synchronous-send-order
+  assertion will await microtasks since the send now defers one tick.)
+- **IMPORTANT #2 (RealZoom receive path untested) — DEFER to the immediate post-verify
+  hardening pass.** Adding a fake-based receive-path test now would ratchet a model we
+  have not yet confirmed live — the trap our own critique named. Option 2 schedules
+  fake-ratchet tests *after* live verification; revisit right after the next live run.
+- **NIT #3 (stale connect-bridge comment) — FIX.** Reword to the direct
+  postMessage/onMessage model (part of AC5 cleanup).
