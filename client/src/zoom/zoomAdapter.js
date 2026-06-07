@@ -174,8 +174,8 @@ function errMsg(err) {
 
 // Real implementation — only instantiated inside the Zoom client. Kept minimal
 // and dependency-lazy so the prototype build doesn't require @zoom/appssdk.
-// Exported so the connect/postMessage bridge can be unit-tested against a fake
-// SDK (the real SDK only exists inside the Zoom client).
+// Exported so the direct postMessage/onMessage overlay bridge can be unit-tested
+// against a fake SDK (the real SDK only exists inside the Zoom client).
 export class RealZoom {
   // `log` is the /api/log sink (injectable for tests). It instruments the
   // camera-overlay SDK calls so a live run leaves server-side ground truth; it
@@ -350,7 +350,13 @@ export class RealZoom {
   // live overlay) and rejections are swallowed so a failed push never surfaces as
   // an unhandled rejection — the next tick posts a fresh snapshot anyway.
   postMessage(payload) {
-    Promise.resolve(this._sdk.postMessage(payload))
+    // Defer the SDK call by one microtask (Promise.resolve().then) so a SYNCHRONOUS
+    // throw from sdk.postMessage becomes a rejected promise too — caught and logged
+    // ok:false alongside async rejections, and never escaping to the caller. The
+    // caller posts from a React effect, where a synchronous throw would trip the
+    // ErrorBoundary and blank the panel; the overlay push must never do that.
+    Promise.resolve()
+      .then(() => this._sdk.postMessage(payload))
       .then(() => this._emitLog({ kind: 'zoom-overlay', method: 'postMessage', ok: true }))
       .catch((err) =>
         this._emitLog({ kind: 'zoom-overlay', method: 'postMessage', ok: false, error: errMsg(err) })

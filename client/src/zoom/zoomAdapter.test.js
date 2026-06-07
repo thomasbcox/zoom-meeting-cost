@@ -187,6 +187,7 @@ describe('RealZoom running-context normalization (real SDK { context } shape)', 
 // RealZoom touches. No connect/onConnect — the camera overlay uses direct postMessage.
 function makeFakeSdk({
   postMessageRejects = false,
+  postMessageThrowsSync = false,
   participantsReject = false,
   participants = [],
   renderRejects = false,
@@ -237,6 +238,7 @@ function makeFakeSdk({
       return {};
     },
     postMessage(payload) {
+      if (postMessageThrowsSync) throw new Error('sync boom');
       if (postMessageRejects) return Promise.reject(new Error('10041'));
       this.posted.push(payload);
       return Promise.resolve({});
@@ -260,6 +262,9 @@ describe('RealZoom postMessage bridge (direct, no connect)', () => {
     a.postMessage({ totalCost: 1 });
     a.postMessage({ totalCost: 2 });
     a.postMessage({ totalCost: 3 });
+    // Sends defer one microtask (so a sync SDK throw can't escape); flush, then assert.
+    await Promise.resolve();
+    await Promise.resolve();
     expect(sdk.posted).toEqual([{ totalCost: 1 }, { totalCost: 2 }, { totalCost: 3 }]);
   });
 
@@ -273,6 +278,24 @@ describe('RealZoom postMessage bridge (direct, no connect)', () => {
     // ...and must not surface as an unhandled rejection on the microtask queue.
     await Promise.resolve();
     await Promise.resolve();
+  });
+
+  it('does not let a SYNCHRONOUS sdk.postMessage throw escape, and logs it ok:false', async () => {
+    const logs = [];
+    const sdk = makeFakeSdk({ postMessageThrowsSync: true });
+    const a = new RealZoom(sdk, { log: (p) => logs.push(p) });
+    await a.init();
+
+    // A synchronous throw from the SDK must not reach the caller (it posts from a
+    // React effect; an escaping throw would trip the ErrorBoundary).
+    expect(() => a.postMessage({ totalCost: 1 })).not.toThrow();
+    await flush();
+    expect(logs).toContainEqual({
+      kind: 'zoom-overlay',
+      method: 'postMessage',
+      ok: false,
+      error: 'sync boom',
+    });
   });
 });
 

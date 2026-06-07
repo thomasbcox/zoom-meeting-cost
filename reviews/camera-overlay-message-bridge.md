@@ -186,3 +186,17 @@ restore sight → ship → verify live → harden.
   fake-ratchet tests *after* live verification; revisit right after the next live run.
 - **NIT #3 (stale connect-bridge comment) — FIX.** Reword to the direct
   postMessage/onMessage model (part of AC5 cleanup).
+
+## Fixes (2026-06-07)
+
+- **IMPORTANT #1 — applied (clean wrap, no try/catch).** `RealZoom.postMessage` now
+  defers the SDK call via `Promise.resolve().then(() => this._sdk.postMessage(payload))`,
+  so a synchronous throw becomes a rejected promise and is logged `ok:false` like any
+  async rejection — never escaping to the caller (which posts from a React effect).
+  Added a fake `postMessageThrowsSync` option + a test asserting a sync throw neither
+  escapes nor goes unlogged; updated the in-order send test to await microtasks (send
+  now defers one tick).
+- **NIT #3 — applied.** Reworded the `RealZoom` export comment from "connect/postMessage
+  bridge" to "direct postMessage/onMessage overlay bridge."
+- **IMPORTANT #2 — deferred** (per Decisions): receive-path fake test revisited after the
+  next live verification, to avoid ratcheting an unverified model.
