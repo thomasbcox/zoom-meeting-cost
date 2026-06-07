@@ -10,6 +10,7 @@ import { resolveAll } from './lib/matching.js';
 import { computeTotals } from './lib/cost.js';
 import { buildOverlayState } from './lib/overlayState.js';
 import { seedPresenterName } from './lib/presenterName.js';
+import { logLifecycle } from './lib/lifecycleLog.js';
 
 // The in-meeting SIDE PANEL: the presenter privately configures rates, sees a
 // live readout, and starts/stops the camera overlay. The overlay itself renders
@@ -102,11 +103,22 @@ export default function App({ adapter, self, initialParticipants = [] }) {
     );
   }, [adapter]);
 
+  // Diagnostic: confirm this (inMeeting panel) instance actually mounted as the sender.
+  useEffect(() => {
+    logLifecycle('panel-mounted');
+  }, []);
+
   const startOverlay = useCallback(async () => {
+    // Diagnostic checkpoints: if 'begin' logs but 'context-started' does not, the panel
+    // instance did not survive runRenderingContext (the sender died); if both log but no
+    // postMessage follows, the bug is downstream of the send call.
+    logLifecycle('start-overlay:begin', { status: liveRef.current.status });
     if (liveRef.current.status === 'idle') sessionActions.start();
     await adapter?.startCameraOverlay?.();
+    logLifecycle('start-overlay:context-started');
     setOverlayOn(true);
     postOverlay(); // push current numbers immediately
+    logLifecycle('start-overlay:posted');
   }, [adapter, sessionActions, postOverlay]);
 
   const stopOverlay = useCallback(async () => {

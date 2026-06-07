@@ -5,6 +5,7 @@ import OverlayApp from './components/OverlayApp.jsx';
 import SdkBlockedError from './components/SdkBlockedError.jsx';
 import { getZoomAdapter } from './zoom/zoomAdapter.js';
 import { renderModeFor } from './lib/renderMode.js';
+import { logLifecycle } from './lib/lifecycleLog.js';
 
 // Top-level router. Resolves the Zoom adapter once, reads the running context,
 // and mounts the right tree:
@@ -28,12 +29,22 @@ export default function Root() {
       }
       const adapter = result.adapter;
       try {
-        const { context, self, participants } = await adapter.init();
+        const { context, self, participants, rawContext } = await adapter.init();
         if (cancelled) return;
+        const runningContext = context?.runningContext;
+        // Diagnostic boot trace: which instance booted, in which running context, and
+        // how it routed. Lets us tell the inMeeting panel from the inCamera render and
+        // see whether a separate camera instance is even spawned.
+        logLifecycle('boot', {
+          mode: result.mode,
+          runningContext,
+          rawContext,
+          routedMode: renderModeFor(runningContext),
+        });
         setBoot({
           adapter,
           mode: result.mode,
-          runningContext: context?.runningContext,
+          runningContext,
           self,
           participants: participants || [],
         });
@@ -43,6 +54,7 @@ export default function Root() {
         if (cancelled) return;
         // eslint-disable-next-line no-console
         console.warn('[meeting-cost] adapter init failed, falling back to panel:', err?.message);
+        logLifecycle('init-error', { mode: result.mode, error: err?.message ?? String(err) });
         setBoot({ adapter, mode: result.mode, runningContext: undefined, self: undefined, participants: [] });
       }
     })();

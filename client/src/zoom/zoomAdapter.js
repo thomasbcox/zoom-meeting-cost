@@ -243,7 +243,9 @@ export class RealZoom {
       });
     }
 
-    return { context, self, participants: this.getParticipants() };
+    // rawContext is the unnormalized getRunningContext() result, surfaced purely so
+    // Root's diagnostic boot log can record what the SDK actually returned.
+    return { context, self, participants: this.getParticipants(), rawContext: rawCtx };
   }
 
   // Run an instrumented SDK call: emit a /api/log entry recording success or
