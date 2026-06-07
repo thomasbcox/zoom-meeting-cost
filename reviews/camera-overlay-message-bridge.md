@@ -116,3 +116,26 @@ _Both resolved at approval (see header):_
 1. **Remove `connect`/`onConnect` entirely vs. keep dormant?** → **Remove entirely.**
 2. **Send-failure logging granularity.** → **Log every send outcome** (ok/fail), not
    just the first, while we're still debugging the live overlay.
+
+## Build note (2026-06-07)
+
+AC → file map:
+
+- **AC1** (no connect in overlay path) — `client/src/zoom/zoomAdapter.js` (`ZOOM_CAPABILITIES`, `RealZoom` ctor + `init`)
+- **AC2** (direct send) — `client/src/zoom/zoomAdapter.js` (`RealZoom.postMessage`)
+- **AC3** (receive intact) — `client/src/zoom/zoomAdapter.js` (`init` onMessage; `onMessage`), `OverlayApp.jsx` unchanged
+- **AC4** (every send logged) — `client/src/zoom/zoomAdapter.js` (`RealZoom.postMessage`)
+- **AC5** (docs/comments) — `server/zoom-app-config.md`, adapter comments
+- **AC6** (tests + docs folded) — `client/src/zoom/zoomAdapter.test.js`, `docs/`
+
+`git diff --stat main...HEAD`:
+
+```
+ client/src/zoom/zoomAdapter.js           |  89 ++++---------
+ client/src/zoom/zoomAdapter.test.js      |  92 +++----------
+ docs/camera-overlay-no-update.codex.json |   1 +
+ docs/camera-overlay-no-update.md         | 217 +++++++++++++++++++++++++++++++
+ reviews/camera-overlay-message-bridge.md | 118 +++++++++++++++++
+ server/zoom-app-config.md                |  13 +-
+ 6 files changed, 383 insertions(+), 147 deletions(-)
+```
