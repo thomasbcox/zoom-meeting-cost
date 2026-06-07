@@ -189,6 +189,9 @@ export class RealZoom {
     this._participants = [];
     this._subs = new Set();
     this._msgSubs = new Set();
+    // Log only the FIRST successful postMessage (proves the bridge is live); steady-state
+    // per-tick successes are silent. Failures always log (see postMessage).
+    this._firstPostLogged = false;
     // Whether the last getMeetingParticipants() succeeded. getMeetingParticipants
     // needs host/co-host + scope; when it fails the list is empty, which would
     // otherwise read as a valid $0 meeting. Track it so the UI can say so.
@@ -240,21 +243,31 @@ export class RealZoom {
     // meeting"), so it is intentionally not used here.
     if (typeof sdk.onMessage === 'function') {
       sdk.onMessage((evt) => {
-        // Self-confirming boundary diagnostic: shape only, never values. Tells us what
-        // the SDK actually hands us (object vs JSON string vs null) at ~1/sec.
-        logLifecycle('overlay-message-raw', {
-          evtType: evt === null ? 'null' : typeof evt,
-          hasPayloadKey: !!(evt && typeof evt === 'object' && 'payload' in evt),
-          payloadType:
-            evt && typeof evt === 'object' && 'payload' in evt
-              ? evt.payload === null
-                ? 'null'
-                : typeof evt.payload
-              : undefined,
-        });
         // Runtime delivers the payload as a JSON string; normalize (parse) it so the
         // overlay receives the snapshot object.
         const payload = normalizeIncomingMessage(evt);
+        // Anomaly canary (shape only, never values): if normalization did NOT yield a
+        // usable object, the SDK shape changed and our parse no longer produces the
+        // snapshot — log it. Silent in the happy path (string→object, or object).
+        if (!payload || typeof payload !== 'object') {
+          // Route through this._log (injectable; defaults to postLog) so the anomaly
+          // canary is testable, like the other instrumented adapter logs.
+          logLifecycle(
+            'overlay-message-raw',
+            {
+              evtType: evt === null ? 'null' : typeof evt,
+              hasPayloadKey: !!(evt && typeof evt === 'object' && 'payload' in evt),
+              payloadType:
+                evt && typeof evt === 'object' && 'payload' in evt
+                  ? evt.payload === null
+                    ? 'null'
+                    : typeof evt.payload
+                  : undefined,
+              normalizedType: payload === null ? 'null' : typeof payload,
+            },
+            this._log
+          );
+        }
         for (const cb of this._msgSubs) cb(payload);
       });
     }
@@ -375,7 +388,13 @@ export class RealZoom {
     // ErrorBoundary and blank the panel; the overlay push must never do that.
     Promise.resolve()
       .then(() => this._sdk.postMessage(payload))
-      .then(() => this._emitLog({ kind: 'zoom-overlay', method: 'postMessage', ok: true }))
+      .then(() => {
+        // Log only the first success; the per-tick stream is otherwise silent.
+        if (!this._firstPostLogged) {
+          this._firstPostLogged = true;
+          this._emitLog({ kind: 'zoom-overlay', method: 'postMessage', ok: true });
+        }
+      })
       .catch((err) =>
         this._emitLog({ kind: 'zoom-overlay', method: 'postMessage', ok: false, error: errMsg(err) })
       );

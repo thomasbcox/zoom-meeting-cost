@@ -333,6 +333,27 @@ describe('RealZoom onMessage receive path (payload normalization)', () => {
     sdk.fireMessage({ timestamp: 2, payload: snap });
     expect(received).toEqual([snap]);
   });
+
+  it('does NOT emit overlay-message-raw on a normal (parseable) payload', async () => {
+    const logs = [];
+    const sdk = makeFakeSdk();
+    const a = new RealZoom(sdk, { log: (p) => logs.push(p) });
+    await a.init();
+    sdk.fireMessage({ timestamp: 1, payload: JSON.stringify({ status: 'running' }) });
+    expect(logs.some((l) => l.event === 'overlay-message-raw')).toBe(false);
+  });
+
+  it('emits overlay-message-raw (anomaly) when normalization yields a non-object', async () => {
+    const logs = [];
+    const sdk = makeFakeSdk();
+    const a = new RealZoom(sdk, { log: (p) => logs.push(p) });
+    await a.init();
+    // A non-JSON string can't be parsed -> stays a string -> anomaly.
+    sdk.fireMessage({ timestamp: 1, payload: 'not json' });
+    expect(logs).toContainEqual(
+      expect.objectContaining({ kind: 'lifecycle', event: 'overlay-message-raw' })
+    );
+  });
 });
 
 // Flush a few microtask ticks so fire-and-forget log promises (connect /
@@ -381,17 +402,15 @@ describe('RealZoom /api/log instrumentation', () => {
     expect(overlay).toContainEqual({ kind: 'zoom-overlay', method: 'drawWebView', ok: true });
   });
 
-  it('logs EVERY postMessage send (not just the first)', async () => {
+  it('logs only the FIRST successful postMessage (steady state is silent)', async () => {
     const { a, logs } = withLog();
     await a.init();
     a.postMessage({ totalCost: 1 });
     a.postMessage({ totalCost: 2 });
+    a.postMessage({ totalCost: 3 });
     await flush();
     const posts = logs.filter((l) => l.method === 'postMessage');
-    expect(posts).toEqual([
-      { kind: 'zoom-overlay', method: 'postMessage', ok: true },
-      { kind: 'zoom-overlay', method: 'postMessage', ok: true },
-    ]);
+    expect(posts).toEqual([{ kind: 'zoom-overlay', method: 'postMessage', ok: true }]);
   });
 
   it('logs a postMessage failure entry (ok=false) without throwing', async () => {
