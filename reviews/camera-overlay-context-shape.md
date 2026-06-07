@@ -143,3 +143,13 @@ AC → file map:
  reviews/camera-overlay-context-shape.md | 124 +++++++++++++++
  5 files changed, 442 insertions(+), 9 deletions(-)
 ```
+
+## Codex review (2026-06-06, base main, HEAD f061357)
+
+**Summary:** Reviewed `git diff main...HEAD`, the spec, the background doc, and the
+SDK type ground truth. The branch implements the requested running-context
+normalization, updates the fake to the SDK `{ context }` shape with routing coverage,
+and makes `drawParticipant` best-effort while preserving `drawWebView` failure
+behavior. **No spec or diff-grounded issues found** (empty findings). (Codex could not
+run the gate in its read-only sandbox — Vitest temp-file EPERM — but our gate is green:
+95 tests + build.)
