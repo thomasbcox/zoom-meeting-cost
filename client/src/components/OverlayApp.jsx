@@ -23,6 +23,7 @@ export default function OverlayApp({ adapter, transparentBody = true }) {
   useEffect(() => {
     const unsub = adapter?.onMessage?.((payload) => {
       logLifecycle('overlay-message', {
+        type: payload === null ? 'null' : typeof payload,
         keys: payload && typeof payload === 'object' ? Object.keys(payload) : null,
         status: payload?.status ?? null,
       });

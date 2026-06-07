@@ -243,6 +243,13 @@ function makeFakeSdk({
       this.posted.push(payload);
       return Promise.resolve({});
     },
+    // Receive side: RealZoom.init registers this; the test drives delivery via fireMessage.
+    onMessage(cb) {
+      this._msgHandler = cb;
+    },
+    fireMessage(evt) {
+      if (this._msgHandler) this._msgHandler(evt);
+    },
   };
 }
 
@@ -296,6 +303,35 @@ describe('RealZoom postMessage bridge (direct, no connect)', () => {
       ok: false,
       error: 'sync boom',
     });
+  });
+});
+
+describe('RealZoom onMessage receive path (payload normalization)', () => {
+  it('parses a JSON-string payload and delivers the object to subscribers', async () => {
+    const sdk = makeFakeSdk();
+    const a = new RealZoom(sdk);
+    await a.init(); // registers sdk.onMessage
+
+    const received = [];
+    a.onMessage((p) => received.push(p));
+
+    const snap = { status: 'running', totalCost: 2.5, attendees: 1 };
+    // Runtime shape: the SDK hands us { payload: '<json string>' }.
+    sdk.fireMessage({ timestamp: 1, payload: JSON.stringify(snap) });
+
+    expect(received).toEqual([snap]); // object, not the raw string
+  });
+
+  it('delivers an object payload through unchanged', async () => {
+    const sdk = makeFakeSdk();
+    const a = new RealZoom(sdk);
+    await a.init();
+    const received = [];
+    a.onMessage((p) => received.push(p));
+
+    const snap = { status: 'paused', totalCost: 9 };
+    sdk.fireMessage({ timestamp: 2, payload: snap });
+    expect(received).toEqual([snap]);
   });
 });
 
