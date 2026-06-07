@@ -139,3 +139,31 @@ AC → file map:
  server/zoom-app-config.md                |  13 +-
  6 files changed, 383 insertions(+), 147 deletions(-)
 ```
+
+## Codex review (2026-06-07, base main, HEAD 4b2e4dc)
+
+**Summary:** The branch implements the Zoom sample pattern — `connect`/`onConnect`
+removed from capabilities and `init()`, `_connected`/`_pendingMsg` gone, direct sends
+in place, docs mostly match. (Codex couldn't run the gate in its read-only sandbox; ours
+is green: 92 tests + build.) 2 IMPORTANT + 1 NIT.
+
+### IMPORTANT
+
+1. **Synchronous postMessage throws still escape** — `zoomAdapter.js:353`. AC4 requires
+   `postMessage` never throws synchronously, but `Promise.resolve(this._sdk.postMessage(payload))`
+   calls the SDK before the promise chain exists; a *synchronous* throw escapes with no
+   `ok:false` log. (The real SDK returns a Promise, so this is defensive, but AC4 says so.)
+   *Suggestion:* wrap the SDK call in try/catch, emit `postMessage ok:false` on a caught
+   throw, then chain on the result. Add a fake-SDK case where `postMessage` throws sync.
+2. **RealZoom receive path is untested** — `zoomAdapter.test.js:186`. AC3 depends on
+   `init()` registering `sdk.onMessage` and dispatching to `onMessage()` subscribers, but
+   `makeFakeSdk` has no `onMessage` hook, so that path is never exercised — a regression
+   breaking the inCamera receive path would still pass. *Suggestion:* add `onMessage(cb)` +
+   a `fireMessage(payload)` helper to the fake and test that subscribers receive both
+   `{ payload }` events and raw payloads.
+
+### NIT
+
+3. **Stale connect-bridge comment** — `zoomAdapter.js:177` still says RealZoom is exported
+   so the "connect/postMessage bridge" can be tested. *Suggestion:* reword to the direct
+   `postMessage`/`onMessage` model (part of AC5 cleanup).
