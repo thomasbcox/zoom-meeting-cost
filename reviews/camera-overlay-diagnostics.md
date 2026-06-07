@@ -100,3 +100,14 @@ participant names, rates, or the private config. No new private data leaves the 
 2. **Permanence.** Keep these `lifecycle` logs as the start of permanent boundary
    observability (Option 2), or treat them as throwaway to strip after diagnosis?
    *Proposed: keep — they're the first slice of the observability we said we want.*
+
+## Build note (2026-06-07)
+
+AC → file map:
+
+- **AC1** (instanceId + logLifecycle) — `client/src/lib/instanceId.js`, `client/src/lib/lifecycleLog.js` (+ `lifecycleLog.test.js`)
+- **AC2** (boot/init-error trace) — `client/src/Root.jsx`; raw context surfaced from `client/src/zoom/zoomAdapter.js` (`RealZoom.init` return)
+- **AC3** (panel-mounted + startOverlay checkpoints) — `client/src/App.jsx`
+- **AC4** (overlay-mounted + overlay-message) — `client/src/components/OverlayApp.jsx`
+- **AC5** (observe-only) — no behaviour change across the above
+- **AC6** (gate) — `client/src/lib/lifecycleLog.test.js` + build
