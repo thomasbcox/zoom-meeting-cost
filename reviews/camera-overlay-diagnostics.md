@@ -111,3 +111,29 @@ AC → file map:
 - **AC4** (overlay-mounted + overlay-message) — `client/src/components/OverlayApp.jsx`
 - **AC5** (observe-only) — no behaviour change across the above
 - **AC6** (gate) — `client/src/lib/lifecycleLog.test.js` + build
+
+## Codex review (2026-06-07, base main, HEAD 50eec0b)
+
+**Summary:** Instrumentation is mostly on the right lifecycle points; Codex flagged a
+privacy and an observe-only risk. (Gate green locally: 97 tests + build.)
+
+### BLOCKER
+
+1. **init-error log sends non-allowlisted error text** — `Root.jsx` (`init-error` log).
+   The privacy contract limits new logs to ids, context strings, event names, payload
+   shape/status; this sends `err?.message ?? String(err)` — arbitrary SDK/init error
+   text, outside the allowlist. *Suggestion:* sanitize to e.g. `{ mode, status:'failed' }`,
+   or include only a deliberately allowlisted SDK error code.
+   *(Claude note: the value is an SDK/JS exception string, not the private rate table —
+   low real-PII risk — but it does breach our self-imposed allowlist.)*
+
+### IMPORTANT
+
+2. **overlay-message logging can throw before `setState`** — `OverlayApp.jsx`. The payload
+   shape (`Object.keys(payload)`/`payload?.status`) is computed in the argument to
+   `logLifecycle`, i.e. *before* the helper's internal try/catch. If it threw, the
+   `onMessage` handler would never reach `setState(payload)` — diagnostics changing
+   receive-side behaviour instead of observing it. *Suggestion:* extract shape behind a
+   local try/catch (default `{ keys:null }`/`{ received:true }`) and guarantee `setState`
+   still runs. *(Claude note: currently guarded — can't throw on our plain-JSON payloads —
+   but worth making airtight for a story whose whole promise is "observe-only.")*
