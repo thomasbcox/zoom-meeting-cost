@@ -104,3 +104,20 @@ AC → file map:
 - **AC3** (overlay-message-raw anomaly-only) — `client/src/zoom/zoomAdapter.js` (`init` onMessage; routed through `this._log`)
 - **AC4** (steady state quiet) — emergent from AC1–AC3
 - **AC5** (containment + gate) — `client/src/zoom/zoomAdapter.test.js` (first-only + anomaly tests)
+
+## Codex review (2026-06-07, base main, HEAD 7e04c37)
+
+**Summary:** Diff is contained to the spec'd files; AC1/AC2 aligned. One IMPORTANT: the
+AC3 anomaly guard has a false-negative path for object-shaped breakages. (Codex couldn't
+run the gate in its read-only sandbox; ours is green: 107 tests + build.)
+
+### IMPORTANT
+
+1. **Object-shaped payload breakages bypass the raw anomaly canary** — `zoomAdapter.js`.
+   The guard logs only when the normalized payload is falsy or `typeof !== 'object'`, so
+   a JSON array (`[]`) or a wrong envelope (`{ timestamp, data }`) — not a usable overlay
+   snapshot — would **not** emit `overlay-message-raw`. False negatives on real
+   object-shaped shape-breaks, defeating the canary's purpose.
+   *Suggestion:* use a stricter snapshot predicate (non-null, non-array, plain object with
+   the expected `status` key); add tests for a JSON array and a `payload`-less/keyless
+   object while keeping normal JSON-string and snapshot-object payloads silent.
