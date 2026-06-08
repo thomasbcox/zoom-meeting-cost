@@ -85,3 +85,10 @@ separable.
    **info** (only `client-error` goes to stderr). If you'd rather a failed init also
    show as `[err]`, say so and I'll route `event: 'init-error'` (or add it to the
    error set) to `console.error`.
+
+## Build note (2026-06-08)
+
+AC → file map:
+- **AC1–2** (`/api/log` level-by-kind + compact): `server/src/app.js` (+ `server/test/clientLog.test.js`)
+- **AC3** (request-logger skip-list `isRoutineRequest`): `server/src/app.js` (+ `server/test/requestLog.test.js`)
+- **AC4** (containment): only `server/src/app.js` + `server/test/*` + this story file.
