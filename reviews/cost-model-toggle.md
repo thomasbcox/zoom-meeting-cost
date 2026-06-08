@@ -135,3 +135,22 @@ AC → file map:
 - **AC4** (App drives meter from selected model): `client/src/App.jsx`
 - **AC5** (toggle in both modes + simple panel replaces editors): `client/src/components/PresenterControls.jsx`
 - **AC6** (containment): only the above + this story file; `buildOverlayState` untouched.
+
+## Codex review (2026-06-08, base main, HEAD 684daa5)
+
+**Summary:** The branch mostly matches the spec and keeps the overlay payload
+contained, but two simple-mode attendee-count fallback issues should be fixed.
+
+### IMPORTANT
+1. **Live attendee tracking can be accidentally pinned** (`client/src/components/PresenterControls.jsx`)
+   — the N field shows `simpleUserCount ?? liveCount`, but `NumberInput` commits on
+   every blur. Focusing then blurring the prefilled field commits the live count as
+   an explicit `simpleUserCount`, so it stops tracking participant changes until
+   cleared — violating "null = use the live attendee count". _Fix:_ keep
+   `simpleUserCount` null unless the user actually changes N (e.g. commit null when
+   the value equals the current live count).
+2. **Blank `simpleUserCount` doesn't fall back in the selector** (`client/src/lib/cost.js`)
+   — `selectActiveTotals` uses `simpleUserCount ?? liveCount`, so `''` is treated as
+   an explicit value and clamps to 0 attendees instead of falling back to
+   `liveCount`. _Fix:_ normalize `'' || null → liveCount` in the selector; add a unit
+   test for `simpleUserCount: ''`.
