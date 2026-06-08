@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { formatMoney, simpleCountCommit } from '../lib/cost.js';
 import { SourceBadge } from './SharedCostScreen.jsx';
 
@@ -328,6 +328,18 @@ function NumberInput({ value, onCommit, step = '1', prefix, suffix }) {
   // Local draft so typing isn't fought by clamping; re-synced from `value` on
   // focus and committed on blur/Enter.
   const [draft, setDraft] = useState(String(value ?? ''));
+  // The value shown at focus time. Commit ONLY when the draft actually changed,
+  // so an untouched focus/blur never writes — otherwise, for the attendee-count
+  // field, a stray blur (or `value` moving while focused, e.g. the live count)
+  // would pin "track the live count" to a fixed number. (Codex review 2026-06-08.)
+  const focusedValueRef = useRef(null);
+
+  const commitIfChanged = () => {
+    if (focusedValueRef.current == null) return; // not focused / already committed
+    const original = focusedValueRef.current;
+    focusedValueRef.current = null;
+    if (draft !== original) onCommit(draft);
+  };
 
   return (
     <span className="num-input">
@@ -337,11 +349,15 @@ function NumberInput({ value, onCommit, step = '1', prefix, suffix }) {
         step={step}
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
-        onFocus={() => setDraft(String(value ?? ''))}
-        onBlur={() => onCommit(draft)}
+        onFocus={() => {
+          const s = String(value ?? '');
+          setDraft(s);
+          focusedValueRef.current = s;
+        }}
+        onBlur={commitIfChanged}
         onKeyDown={(e) => {
           if (e.key === 'Enter') {
-            onCommit(draft);
+            commitIfChanged();
             e.currentTarget.blur();
           }
         }}
