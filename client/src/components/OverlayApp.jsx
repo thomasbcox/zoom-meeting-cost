@@ -1,8 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import CostOverlay from './CostOverlay.jsx';
 import { extrapolateOverlay } from '../lib/overlayState.js';
 import { runCameraDraw } from '../lib/cameraDraw.js';
 import { logLifecycle } from '../lib/lifecycleLog.js';
+
+// Sentinel for "no snapshot received yet", so the very first message always logs.
+const NO_STATUS = Symbol('no-status');
 
 // Runs in the camera rendering context (and, in mock dev, inside the simulated
 // camera frame). It subscribes to overlay state pushed from the side panel via
@@ -13,20 +16,25 @@ export default function OverlayApp({ adapter, transparentBody = true }) {
   const [state, setState] = useState(null);
   const [, force] = useState(0);
 
-  // Diagnostic: confirm the overlay (inCamera) instance mounted, and record EVERY
-  // message it receives — the receive-side signal we have never observed. We log only
-  // the payload's shape + non-sensitive status, never the aggregate values.
+  // Confirm the overlay (inCamera) instance mounted.
   useEffect(() => {
     logLifecycle('overlay-mounted', { transparentBody });
   }, [transparentBody]);
 
+  // Log the first received snapshot and thereafter only on a status change (e.g.
+  // running→paused) — not every tick. Shape/status only, never the aggregate values.
+  const lastStatusRef = useRef(NO_STATUS);
   useEffect(() => {
     const unsub = adapter?.onMessage?.((payload) => {
-      logLifecycle('overlay-message', {
-        type: payload === null ? 'null' : typeof payload,
-        keys: payload && typeof payload === 'object' ? Object.keys(payload) : null,
-        status: payload?.status ?? null,
-      });
+      const status = payload?.status ?? null;
+      if (lastStatusRef.current !== status) {
+        lastStatusRef.current = status;
+        logLifecycle('overlay-message', {
+          type: payload === null ? 'null' : typeof payload,
+          keys: payload && typeof payload === 'object' ? Object.keys(payload) : null,
+          status,
+        });
+      }
       setState(payload);
     });
     return () => unsub && unsub();
