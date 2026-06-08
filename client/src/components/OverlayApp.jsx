@@ -7,6 +7,30 @@ import { logLifecycle } from '../lib/lifecycleLog.js';
 // Sentinel for "no snapshot received yet", so the very first message always logs.
 const NO_STATUS = Symbol('no-status');
 
+// Trace THIS camera-overlay instance's teardown so its disappearance leaves a
+// timestamped log instead of silence. Zoom closes the camera rendering context on
+// some media/lifecycle changes, destroying this webview with no other signal — the
+// `pagehide` on the way out is our last chance to record it. Only the REAL camera
+// mount registers (shouldLog === transparentBody): the panel never mounts OverlayApp
+// and the mock preview mounts it with transparentBody=false. Returns a cleanup that
+// removes the listener; the log call can never break teardown. Extracted as a plain
+// function so it is unit-testable without jsdom (mirrors runCameraDraw).
+export function registerOverlayTeardownLog(
+  shouldLog,
+  { target = typeof window !== 'undefined' ? window : null, log = logLifecycle } = {}
+) {
+  if (!shouldLog || typeof target?.addEventListener !== 'function') return () => {};
+  const onPageHide = () => {
+    try {
+      log('overlay-teardown');
+    } catch {
+      /* logging must never break teardown */
+    }
+  };
+  target.addEventListener('pagehide', onPageHide);
+  return () => target.removeEventListener('pagehide', onPageHide);
+}
+
 // Runs in the camera rendering context (and, in mock dev, inside the simulated
 // camera frame). It subscribes to overlay state pushed from the side panel via
 // the adapter's message bridge and extrapolates between updates so the meter
@@ -20,6 +44,10 @@ export default function OverlayApp({ adapter, transparentBody = true }) {
   useEffect(() => {
     logLifecycle('overlay-mounted', { transparentBody });
   }, [transparentBody]);
+
+  // Trace this instance's teardown (real camera mount only) so a silent overlay
+  // disappearance — Zoom closing the rendering context — shows up in the log.
+  useEffect(() => registerOverlayTeardownLog(transparentBody), [transparentBody]);
 
   // Log the first received snapshot and thereafter only on a status change (e.g.
   // running→paused) — not every tick. Shape/status only, never the aggregate values.

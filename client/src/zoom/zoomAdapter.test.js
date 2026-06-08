@@ -250,6 +250,14 @@ function makeFakeSdk({
     fireMessage(evt) {
       if (this._msgHandler) this._msgHandler(evt);
     },
+    // Media-change diagnostics: RealZoom.init subscribes here; tests drive events
+    // via fireMediaChange.
+    onMyMediaChange(cb) {
+      this._mediaHandler = cb;
+    },
+    fireMediaChange(evt) {
+      if (this._mediaHandler) this._mediaHandler(evt);
+    },
   };
 }
 
@@ -440,6 +448,61 @@ describe('RealZoom /api/log instrumentation', () => {
       ok: false,
       error: '10041',
     });
+  });
+});
+
+describe('RealZoom onMyMediaChange diagnostics', () => {
+  it('subscribes during init and logs a shape-only media-change per event', async () => {
+    const logs = [];
+    const sdk = makeFakeSdk();
+    const a = new RealZoom(sdk, { log: (p) => logs.push(p) });
+    await a.init();
+
+    sdk.fireMediaChange({ media: { video: { state: true }, audio: { state: false } } });
+
+    const mc = logs.filter((l) => l.event === 'media-change');
+    expect(mc).toHaveLength(1);
+    expect(mc[0]).toMatchObject({
+      kind: 'lifecycle',
+      event: 'media-change',
+      keys: ['media'],
+      video: true,
+      audio: false,
+    });
+    // Shape only: never the underlying media objects/content (no `state`, no values).
+    expect(JSON.stringify(mc[0])).not.toContain('state');
+  });
+
+  it('records top-level keys so the real event shape is visible even if sub-keys differ', async () => {
+    const logs = [];
+    const sdk = makeFakeSdk();
+    const a = new RealZoom(sdk, { log: (p) => logs.push(p) });
+    await a.init();
+
+    sdk.fireMediaChange({ foo: 1, bar: 2 });
+    const mc = logs.find((l) => l.event === 'media-change');
+    expect(mc.keys).toEqual(['foo', 'bar']);
+  });
+
+  it('does not let a throwing log sink escape the media-change handler (AC3)', async () => {
+    const boom = () => {
+      throw new Error('sink down');
+    };
+    const sdk = makeFakeSdk();
+    const a = new RealZoom(sdk, { log: boom });
+    await a.init();
+    expect(() => sdk.fireMediaChange({ media: { video: { state: true } } })).not.toThrow();
+  });
+
+  it('init does not throw when the SDK exposes no onMyMediaChange', async () => {
+    const sdk = makeFakeSdk();
+    delete sdk.onMyMediaChange;
+    const a = new RealZoom(sdk);
+    await expect(a.init()).resolves.toBeDefined();
+  });
+
+  it('MockZoom exposes no onMyMediaChange source', () => {
+    expect(new MockZoom().onMyMediaChange).toBeUndefined();
   });
 });
 
