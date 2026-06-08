@@ -42,3 +42,40 @@ test('request logger does not log OAuth code (path only, no query string)', asyn
   );
   assert.ok(!logged.includes('code='), 'query string must not be logged');
 });
+
+test('request logger skips routine traffic (health, assets) but logs navigations', async () => {
+  const server = await startApp();
+  const { port } = server.address();
+
+  const lines = [];
+  const original = console.log;
+  console.log = (...args) => lines.push(args.join(' '));
+
+  try {
+    await fetch(`http://127.0.0.1:${port}/api/health`);
+    await fetch(`http://127.0.0.1:${port}/assets/index-abc.js`);
+    await fetch(`http://127.0.0.1:${port}/favicon.ico`);
+    await fetch(`http://127.0.0.1:${port}/`);
+  } finally {
+    console.log = original;
+    server.close();
+  }
+
+  const reqLines = lines.filter((l) => l.startsWith('[server] '));
+  assert.ok(
+    !reqLines.some((l) => l.includes('/api/health')),
+    'health check must not be logged'
+  );
+  assert.ok(
+    !reqLines.some((l) => l.includes('/assets/')),
+    'static assets must not be logged'
+  );
+  assert.ok(
+    !reqLines.some((l) => l.includes('/favicon.ico')),
+    'favicon must not be logged'
+  );
+  assert.ok(
+    reqLines.some((l) => l.includes('GET /')),
+    'navigations (/) should still be logged'
+  );
+});
