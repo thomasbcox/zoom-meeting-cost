@@ -506,6 +506,57 @@ describe('RealZoom onMyMediaChange diagnostics', () => {
   });
 });
 
+describe('adapter.onMediaChange fan-out (overlay auto-recovery signal)', () => {
+  it('RealZoom delivers each onMyMediaChange event to onMediaChange subscribers', async () => {
+    const sdk = makeFakeSdk();
+    const a = new RealZoom(sdk);
+    await a.init();
+
+    const received = [];
+    const unsub = a.onMediaChange((evt) => received.push(evt));
+
+    const off = { media: { video: { state: false } }, timestamp: 1 };
+    const on = { media: { video: { state: true } }, timestamp: 2 };
+    sdk.fireMediaChange(off);
+    sdk.fireMediaChange(on);
+    expect(received).toEqual([off, on]);
+
+    unsub();
+    sdk.fireMediaChange(on);
+    expect(received).toHaveLength(2); // no delivery after unsubscribe
+  });
+
+  it('RealZoom still emits the media-change diagnostic log alongside the fan-out', async () => {
+    const logs = [];
+    const sdk = makeFakeSdk();
+    const a = new RealZoom(sdk, { log: (p) => logs.push(p) });
+    await a.init();
+    const received = [];
+    a.onMediaChange((evt) => received.push(evt));
+
+    sdk.fireMediaChange({ media: { video: { state: true } } });
+    expect(received).toHaveLength(1); // subscriber fired
+    expect(logs.some((l) => l.event === 'media-change')).toBe(true); // log still emitted
+  });
+
+  it('MockZoom.simulateCameraToggle fans a video on/off event to subscribers', () => {
+    const a = new MockZoom();
+    const received = [];
+    const unsub = a.onMediaChange((evt) => received.push(evt));
+
+    a.simulateCameraToggle(false);
+    a.simulateCameraToggle(true);
+    expect(received).toEqual([
+      { media: { video: { state: false } }, timestamp: 0 },
+      { media: { video: { state: true } }, timestamp: 0 },
+    ]);
+
+    unsub();
+    a.simulateCameraToggle(true);
+    expect(received).toHaveLength(2);
+  });
+});
+
 describe('participant-list availability', () => {
   it('MockZoom always reports available', () => {
     expect(new MockZoom().participantsAvailable()).toBe(true);

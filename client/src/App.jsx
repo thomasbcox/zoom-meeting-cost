@@ -11,6 +11,7 @@ import { selectActiveTotals } from './lib/cost.js';
 import { buildOverlayState } from './lib/overlayState.js';
 import { seedPresenterName } from './lib/presenterName.js';
 import { logLifecycle } from './lib/lifecycleLog.js';
+import { reduceOverlayRecovery } from './lib/overlayRecover.js';
 
 // The in-meeting SIDE PANEL: the presenter privately configures rates, sees a
 // live readout, and starts/stops the camera overlay. The overlay itself renders
@@ -167,6 +168,35 @@ export default function App({ adapter, self, initialParticipants = [] }) {
   useEffect(() => {
     if (overlayOn) postOverlay();
   }, [overlayOn, session.status, postOverlay]);
+
+  // Auto-recover the camera overlay across a camera off/on. Turning the camera off
+  // tears down Zoom's camera rendering context (destroying the overlay webview);
+  // turning it back on does NOT re-run our context, so the meter stays gone until
+  // re-armed. reduceOverlayRecovery tracks the off→on transition; on a confirmed
+  // re-arm we re-run startCameraOverlay() (what the presenter otherwise does by hand)
+  // and push a fresh snapshot. overlayOn lives in a ref so this effect arms once.
+  const needsRearmRef = useRef(false);
+  useEffect(() => {
+    if (!adapter?.onMediaChange) return undefined;
+    const unsub = adapter.onMediaChange((evt) => {
+      const { needsRearm, rearm } = reduceOverlayRecovery(evt, {
+        overlayOn: overlayOnRef.current,
+        needsRearm: needsRearmRef.current,
+      });
+      needsRearmRef.current = needsRearm;
+      if (!rearm) return;
+      logLifecycle('overlay-rearm:begin');
+      Promise.resolve(adapter.startCameraOverlay?.())
+        .then(() => {
+          postOverlay();
+          logLifecycle('overlay-rearm:done');
+        })
+        .catch(() => {
+          /* a failed re-arm must not surface; the next toggle can retry */
+        });
+    });
+    return () => unsub && unsub();
+  }, [adapter, postOverlay]);
 
   // --- Presenter's own live readout (private; full detail) ------------------
   const readoutState = useMemo(
