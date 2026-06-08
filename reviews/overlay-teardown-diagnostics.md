@@ -1,111 +1,150 @@
 Date: 2026-06-08 · Branch: claude/overlay-teardown-diagnostics · Status: approved
 
-> Approved by Thomas 2026-06-08: "Diagnostics only" — add teardown +
-> onMyMediaChange logging, no behavior change / no auto-recover (deferred to a
-> follow-up once the live run reveals the trigger).
+> Approved by Thomas 2026-06-08 (phase 1, built): "Diagnostics only" — add
+> teardown + onMyMediaChange logging, no behavior change.
+>
+> Re-scoped 2026-06-08 (phase 2, approved): Thomas confirmed the trigger live —
+> **the overlay dies when the presenter turns their camera off and on again** —
+> and chose to fold the auto-recover fix into this branch, re-arming **only on a
+> confirmed off→on transition**. The diagnostics' `onMyMediaChange` wiring is
+> exactly the signal the fix consumes.
 
 ## Problem
 
-In a live in-Zoom run the camera-overlay cost display "switches off" by itself,
-and we don't know why. The Railway log from 2026-06-08 shows the failure mode but
-not the cause:
+In a live in-Zoom run the camera-overlay cost display "switches off" by itself.
+The Railway log from 2026-06-08 showed the failure mode but not the cause:
 
 - 20:01:44 — side **panel** boots (`i_9acfp9`, `inMeeting`, `panel`) and mounts.
 - 20:02:14 — `start-overlay:begin status:idle` → the **camera** overlay instance
-  boots (`i_3w8ia6`, `inCamera`, `overlay`), draws (`drawWebView`/`drawParticipant`
-  ok), and receives a snapshot (`overlay-message status:running`). Display is on.
+  boots (`i_3w8ia6`, `inCamera`, `overlay`), draws, receives a snapshot
+  (`overlay-message status:running`). Display is on.
 - ~53 min gap with no overlay logs.
-- 20:55:31 — `start-overlay:begin` fires **again**, this time `status:"running"`
-  (i.e. a *manual* re-click of "Show cost on video"), and a **new** camera instance
-  boots (`i_0hpbot`) replacing `i_3w8ia6`.
+- 20:55:31 — `start-overlay:begin` fires **again**, `status:"running"` (a *manual*
+  re-click of "Show cost on video"), and a **new** camera instance boots
+  (`i_0hpbot`) replacing `i_3w8ia6`.
 
-So: the panel instance survived the whole session, but the camera-overlay instance
-silently disappeared sometime between 20:02 and 20:55 and had to be manually
-restarted. **No log records the teardown**, so the trigger is unknown.
+So the panel survived the whole session, but the camera-overlay instance silently
+disappeared and had to be manually restarted, with no log of the teardown.
 
-Code-level prime suspect: the adapter requests the `onMyMediaChange` capability
-(`client/src/zoom/zoomAdapter.js`) but **never subscribes to it**, and nothing logs
-when the camera instance unloads. Zoom is known to close the camera *rendering
-context* on media/lifecycle changes (camera off/on, stop-video, screen share,
-virtual-background swap). Any of those would kill the overlay webview with no trace
-in our logs.
+**Confirmed cause (Thomas, live 2026-06-08):** it happens when the presenter turns
+their camera **off and back on**. Turning the camera off tears down Zoom's camera
+*rendering context*, destroying our `inCamera` overlay webview. Turning it back on
+rebuilds the camera feed but does **not** re-run *our* rendering context, so the
+meter stays gone. The panel is unaware — it still holds `overlayOn === true` and
+keeps posting state into a context that no longer exists — which is why a manual
+re-click of "Show cost on video" (which re-runs `runRenderingContext`) brought it
+back at 20:55.
 
-This story is **diagnostics-only**: add the instrumentation that will reveal *when*
-the overlay dies and *what Zoom event coincides with it*, so the actual fix
-(auto-recover / re-arm the rendering context) can be framed as a follow-up against
-a confirmed cause rather than a guess. No behavioral change to the overlay.
+The fix is to do that re-click automatically: detect the camera coming back on and
+re-establish the overlay. The signal is `onMyMediaChange` — the very event wired in
+phase 1 for diagnostics. The real event shape (from `@zoom/appssdk` types) is:
+`{ media: { video: { state: false } }, timestamp }` on camera off and
+`{ media: { video: { state: true } } }` on camera on (resolution changes arrive as
+`{ video: { width, height } }` with no `state`; audio as `{ audio: { state } }`).
 
 ## In scope
 
-- Log the camera-overlay instance **teardown** (its webview unloading) so the
-  disappearance leaves a timestamped trace instead of silence.
-- Subscribe to Zoom's `onMyMediaChange` (capability is already requested) and log
-  each media event (shape/kind only, no media content) so a teardown can be
-  correlated with a video/camera state change.
-- Keep all new logging on the existing `/api/log` lifecycle channel
-  (`logLifecycle`), privacy-preserving (no names/rates/values), and never able to
-  throw — matching the existing instrumentation contract.
+Phase 1 — diagnostics (built):
+- Log the camera-overlay instance **teardown** (`pagehide`) so the disappearance
+  leaves a timestamped trace.
+- Subscribe to `onMyMediaChange` and log each event (shape only) so a teardown can
+  be correlated with a camera state change.
+
+Phase 2 — auto-recover (this re-scope):
+- Expose presenter media-change events to the app via the adapter
+  (`adapter.onMediaChange(cb)`), fanning out the same `onMyMediaChange` events the
+  diagnostics already observe.
+- When the presenter's camera goes **off then back on** while the overlay is meant
+  to be on, automatically re-run `startCameraOverlay()` and push a fresh snapshot —
+  restoring the meter without a manual re-click.
+- Keep all logging on the `/api/log` lifecycle channel, privacy-preserving, never
+  able to throw.
 
 ## Non-goals
 
-- **No fix / no auto-recovery.** Re-arming `runRenderingContext`, auto-restarting
-  the overlay, or any change to when the overlay starts/stops is explicitly out of
-  scope — it depends on the cause this story is meant to capture. (Follow-up story.)
-- No change to the panel/session state machine, cost math, or message bridge.
-- No new Zoom capabilities beyond those already in `ZOOM_CAPABILITIES`.
-- The existing "no resume after End session" backlog item is separate and untouched.
+- No change to the session state machine (idle/running/paused/ended), cost math, or
+  the message-bridge format. Re-arm reuses the existing `startCameraOverlay()` path.
+- No new Zoom capabilities beyond those already in `ZOOM_CAPABILITIES`
+  (`onMyMediaChange` is already requested).
+- No recovery for teardown triggers we have **not** confirmed (e.g. screen share,
+  virtual-background swap). If the diagnostics later show another trigger, that's a
+  separate story; the `media-change` log keeps watching for it.
+- No mock-dev UI button for simulating the toggle (tests drive it directly); add
+  one later only if useful.
+- The "no resume after End session" backlog item is separate and untouched.
 
 ## Acceptance criteria
 
-1. When the camera-overlay instance's page is being torn down (the `pagehide`
-   event on the `inCamera`/overlay mount), it emits a lifecycle log
-   (e.g. `event:"overlay-teardown"`) carrying its `instanceId`, before it goes away.
-   The panel mount and the mock preview mount do NOT emit this event.
-2. In real mode, the adapter subscribes to `sdk.onMyMediaChange` during `init()`
-   and emits a lifecycle log per event (e.g. `event:"media-change"`) recording only
-   non-sensitive shape (e.g. which media keys changed / on-off booleans), never
-   media content. Mock mode is unaffected (no such event source).
-3. All new logging goes through `logLifecycle` (the `/api/log` lifecycle channel),
-   contains no participant names, rates, or cost values, and cannot throw even if
-   the sink fails (same swallow-and-continue contract as existing logs).
-4. No behavioral change: with logging aside, the overlay starts, draws, streams,
-   and stops exactly as before. Existing tests still pass and the build succeeds.
-5. Scope containment: the diff touches only the files needed for the above
-   (expected: `OverlayApp.jsx`, `zoomAdapter.js`, and their test files, plus this
-   story file). No unrelated files.
+Phase 1 (built):
+
+1. When the camera-overlay instance's page is torn down (`pagehide` on the
+   `inCamera`/overlay mount), it emits a lifecycle log (`event:"overlay-teardown"`)
+   carrying its `instanceId`. The panel and mock-preview mounts do NOT emit it.
+2. In real mode the adapter subscribes to `sdk.onMyMediaChange` during `init()` and
+   emits a shape-only `media-change` lifecycle log per event (top-level keys + on/off
+   booleans), never media content. Mock mode is unaffected.
+3. All new logging goes through `logLifecycle`, contains no participant names,
+   rates, or cost values, and cannot throw even if the sink fails.
+
+Phase 2 (to build):
+
+4. The adapter exposes `onMediaChange(cb)` returning an unsubscribe; in real mode it
+   fans out each `onMyMediaChange` event to subscribers **in addition to** the phase-2
+   diagnostic log. `MockZoom` exposes `onMediaChange(cb)` plus a way to simulate a
+   camera toggle so the path is testable and exercisable in mock dev.
+5. The panel auto-recovers the overlay: after the presenter's camera goes **off**
+   (`video.state === false`) while `overlayOn` is true, the next camera **on**
+   (`video.state === true`) re-runs `startCameraOverlay()` and pushes a fresh
+   snapshot, logged as `overlay-rearm:begin` / `overlay-rearm:done`. The meter
+   returns without a manual re-click.
+6. Re-arm is correctly gated — it fires **only** on a real off→on transition while
+   the overlay is on. It does NOT fire: on audio events, on video resolution-change
+   events (no `state`), when `overlayOn` is false, or repeatedly without an
+   intervening camera-off. The re-arm decision lives in a pure, table-tested helper
+   (no jsdom), mirroring `runCameraDraw`/`reduceX` style.
+
+Both:
+
+7. No regressions: manual start/stop overlay and the draw/stream path are unchanged;
+   `npm test && npm run build` (the gate) is green.
+8. Scope containment: the diff touches only the files needed for the above. Run
+   `git diff --name-only main...HEAD` and verify no files appear beyond:
+   `client/src/components/OverlayApp.jsx`, `client/src/zoom/zoomAdapter.js`,
+   `client/src/App.jsx`, the new recovery helper + its test, the touched test files,
+   and `reviews/overlay-teardown-diagnostics.md`.
 
 ## Test notes
 
-- AC1: unit-test the teardown hook in `OverlayApp` — assert a `pagehide` listener is
-  registered only when `transparentBody` is true (the real camera mount) and that
-  firing it calls the logger with the teardown event + instanceId; assert no
-  listener when `transparentBody` is false (mock preview). Manually: in the next
-  live run the Railway log shows `overlay-teardown` at the moment the display dies.
+- AC1: unit-test the teardown hook — `pagehide` listener registered only when
+  `transparentBody` is true; firing it logs `overlay-teardown`; no listener for the
+  mock preview. (Built.)
 - AC2: unit-test `RealZoom.init()` with a fake SDK exposing `onMyMediaChange` —
-  assert it subscribes and that invoking the callback emits a `media-change`
-  lifecycle log via the injected sink with only shape fields. Assert `MockZoom` has
-  no such subscription. Manually: live log shows `media-change` events, letting us
-  correlate one with the `overlay-teardown`.
-- AC3: assert log payloads contain only the allowed keys (instanceId, event name,
-  shape booleans) and that a throwing sink does not propagate.
-- AC4: run `npm test && npm run build` (the gate); all green. Overlay draw/stream
-  path unchanged.
-- AC5: run `git diff --name-only main...HEAD` and verify no files appear beyond
-  `client/src/components/OverlayApp.jsx`, `client/src/zoom/zoomAdapter.js`, their
-  associated test files, and `reviews/overlay-teardown-diagnostics.md`.
+  subscribes and logs shape-only `media-change`; `MockZoom` has no such source.
+  (Built.)
+- AC3: assert payloads carry only allowed keys and a throwing sink does not
+  propagate. (Built.)
+- AC4: unit-test `adapter.onMediaChange` — a subscriber receives a fired/simulated
+  event and unsubscribe stops delivery; `RealZoom` still emits the `media-change`
+  log alongside the fan-out.
+- AC5: unit-test (via `MockZoom.simulateCameraToggle` or a fired fake event) that an
+  off→on sequence while `overlayOn` re-invokes `startCameraOverlay()` once and posts
+  a fresh snapshot. Manually: in the next live run, toggling the camera off/on shows
+  `overlay-rearm:*` and the meter returns on its own.
+- AC6: table-test the pure recovery reducer — off→on while on ⇒ rearm; on-without-
+  prior-off ⇒ no rearm; off/on while overlay off ⇒ no rearm; audio and
+  resolution-only events ⇒ no rearm/no state change.
+- AC7: run `npm test && npm run build`; all green. Confirm the existing
+  start/stop/draw tests are untouched in behavior.
+- AC8: `git diff --name-only main...HEAD` shows no files beyond those enumerated in
+  AC8.
 
 ## Open questions
 
-1. **Diagnostics-only vs. also attempt the fix now.** I've scoped this as
-   instrument-first so the real cause is captured before we change behavior. Do you
-   want to keep it strictly diagnostics (recommended — one live run then we frame
-   the fix against the confirmed trigger), or should I also add a first-cut
-   auto-recover (re-run `runRenderingContext` when the overlay tears down while the
-   session is still `running`) in the same story?
-2. **`onMyMediaChange` payload shape.** I'll log only on/off-style booleans and
-   changed-key names. If you know the exact event fields Zoom delivers and want a
-   specific field captured, say so; otherwise I'll keep it to safe shape-only.
-3. Is there any *other* Zoom event you suspect (screen-share start/stop, gallery↔
-   speaker switch)? If the SDK exposes a dedicated rendering-context-close event we
-   could log that too — but I won't add capabilities beyond those already requested
-   without your go-ahead.
+1. **Re-arm trigger semantics** — I've gated re-arm to a *confirmed* off→on
+   transition (camera-off arms it, the next camera-on consumes it) so a stray
+   `state:true` can't double-spawn a rendering context. Good, or would you rather
+   re-arm on *any* camera-on while the overlay is on (simpler, slightly riskier)?
+2. **Other teardown triggers** — phase 2 fixes only the camera off/on case you
+   confirmed. Screen-share / virtual-background teardown (if real) would be a
+   follow-up; the `media-change` + `overlay-teardown` logs stay in to catch them.
+   OK to leave those out for now?
