@@ -171,3 +171,19 @@ AC → file map (fixes only): the two approved Codex fixes touch
 `client/src/lib/cost.js` (blank-N selector fallback + new `simpleCountCommit` helper),
 `client/src/lib/cost.test.js` (+4 tests), and `client/src/components/PresenterControls.jsx`
 (N field commits via `simpleCountCommit`).
+
+## Codex review — re-review (2026-06-08, base 684daa5, HEAD 07bdfa1)
+
+**Summary:** The selector fallback fix (#2) is correct. The N-field fix (#1) is
+still incomplete in one live-tracking path.
+
+### IMPORTANT
+- **Live tracking can still pin if liveCount changes during focus**
+  (`client/src/components/PresenterControls.jsx`) — `simpleCountCommit` only compares
+  the draft to the *current* `liveCount`. When `simpleUserCount` is null, focusing the
+  N field snapshots the old live count in `NumberInput`'s draft; if participants
+  join/leave before blur, the unchanged draft no longer equals the new `liveCount`,
+  so it commits as an explicit override and tracking stops — the original stray
+  focus/blur bug for the dynamic-count case. _Fix:_ distinguish an unchanged draft
+  from an intentional edit (e.g. `NumberInput` commits only when the value actually
+  changed), so an untouched field never pins regardless of `liveCount` movement.
