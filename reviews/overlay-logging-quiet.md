@@ -139,3 +139,10 @@ run the gate in its read-only sandbox; ours is green: 107 tests + build.)
   normalized payload passes it — so null / string / array / wrong-envelope all trip the
   canary while real snapshots stay silent. Added receive-path tests: full snapshot object →
   silent; non-JSON string, JSON array, and keyless object → anomaly fires.
+
+## Build note (2026-06-07, re-review round)
+
+Re-review base: last-reviewed SHA `7e04c37`. Only change since: the Codex #1 fix —
+`isOverlaySnapshot` predicate tightening the `overlay-message-raw` anomaly guard
+(`zoomAdapter.js`) + object-shaped-break tests (`zoomAdapter.test.js`), plus the
+review/decision/fix story notes.
