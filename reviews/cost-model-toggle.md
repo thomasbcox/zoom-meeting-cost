@@ -154,3 +154,13 @@ contained, but two simple-mode attendee-count fallback issues should be fixed.
    an explicit value and clamps to 0 attendees instead of falling back to
    `liveCount`. _Fix:_ normalize `'' || null → liveCount` in the selector; add a unit
    test for `simpleUserCount: ''`.
+
+## Decisions (2026-06-08)
+
+Both IMPORTANT findings: **FIX** (Thomas — "fix both then review").
+
+1. N field pins live tracking on stray focus/blur → commit "track live" (null) when
+   the entered value is blank or equals the current live count. Extract a pure
+   `simpleCountCommit(value, liveCount)` helper so it's unit-tested.
+2. `selectActiveTotals` blank fallback → normalize `'' || null → liveCount`; add a
+   `simpleUserCount: ''` unit test.
