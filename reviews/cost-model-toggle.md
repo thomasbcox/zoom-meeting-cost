@@ -126,3 +126,12 @@ _All resolved by Thomas's 2026-06-07 direction:_ simple panel = per-hour + N + m
 one panel; simple mode **replaces** the per-participant panel; toggle on both; **separate**
 `simpleAverageRate` / `simpleMultiplier` (change independently of the per-participant
 settings); N prefilled from the live attendee count.
+
+## Build note (2026-06-08)
+
+AC → file map:
+- **AC1–2** (`computeSimpleTotals`, `selectActiveTotals`): `client/src/lib/cost.js` (+ `client/src/lib/cost.test.js`)
+- **AC3** (store settings + setters): `client/src/state/usePresenterStore.js`
+- **AC4** (App drives meter from selected model): `client/src/App.jsx`
+- **AC5** (toggle in both modes + simple panel replaces editors): `client/src/components/PresenterControls.jsx`
+- **AC6** (containment): only the above + this story file; `buildOverlayState` untouched.
