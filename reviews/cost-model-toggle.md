@@ -202,3 +202,13 @@ still incomplete in one live-tracking path.
 AC → file map (fix only): the focus-window-pin fix touches
 `client/src/components/PresenterControls.jsx` (`NumberInput` commits only when the
 value changed since focus). No other files changed since the prior re-review.
+
+## Codex review — re-review 2 (2026-06-08, base 684daa5, HEAD d289047)
+
+**Summary:** The focus-window-pin fix is correct. `NumberInput` records the
+focus-time string and only calls `onCommit` when the draft differs, so an untouched
+attendee-count field no longer pins live tracking if `liveCount` changes during
+focus. No regression in the shared `NumberInput` behavior for the rate / multiplier
+fields.
+
+**Findings:** _none_ (clean).
