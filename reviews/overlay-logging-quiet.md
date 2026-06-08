@@ -146,3 +146,11 @@ Re-review base: last-reviewed SHA `7e04c37`. Only change since: the Codex #1 fix
 `isOverlaySnapshot` predicate tightening the `overlay-message-raw` anomaly guard
 (`zoomAdapter.js`) + object-shaped-break tests (`zoomAdapter.test.js`), plus the
 review/decision/fix story notes.
+
+## Codex review (2026-06-07, re-review, base 7e04c37, HEAD 7e24fcd)
+
+**Summary:** Re-reviewed `git diff 7e04c37...HEAD`. The tightened guard is wired after
+normalization and before subscriber delivery, accepts real `status`-bearing snapshots,
+and rejects the required anomaly shapes (null/undefined, strings, arrays, objects without
+`status`); the receive-path tests cover the normal cases plus string/array/keyless-object
+anomalies. **No issues found** (empty findings). (Gate green locally: 108 tests + build.)
