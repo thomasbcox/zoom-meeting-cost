@@ -92,3 +92,14 @@ AC → file map:
 - **AC1–2** (`/api/log` level-by-kind + compact): `server/src/app.js` (+ `server/test/clientLog.test.js`)
 - **AC3** (request-logger skip-list `isRoutineRequest`): `server/src/app.js` (+ `server/test/requestLog.test.js`)
 - **AC4** (containment): only `server/src/app.js` + `server/test/*` + this story file.
+
+## Codex review (2026-06-08, base main, HEAD c329acf)
+
+**Summary:** No branch-change issues. `/api/log` routes `client-error` to stderr and
+other kinds to stdout with compact output; `isRoutineRequest` skips the specified
+routine paths while preserving path-only `/auth` and navigation logging; containment
+matches the build note. (Codex could not run the gate itself — its read-only sandbox
+blocks Vitest/Vite temp writes + local listen; the gate was verified green locally
+before this review.)
+
+**Findings:** _none_ (clean).
