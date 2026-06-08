@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { formatMoney } from '../lib/cost.js';
+import { formatMoney, simpleCountCommit } from '../lib/cost.js';
 import { SourceBadge } from './SharedCostScreen.jsx';
 
 // Presenter-only panel. Everything here is private to the presenter; only the
@@ -152,7 +152,7 @@ function SimpleCostPanel({ config, actions, liveCount }) {
           Number of attendees
           <NumberInput
             value={config.simpleUserCount ?? liveCount}
-            onCommit={(v) => actions.setSimpleUserCount(v)}
+            onCommit={(v) => actions.setSimpleUserCount(simpleCountCommit(v, liveCount))}
           />
         </label>
         <label>

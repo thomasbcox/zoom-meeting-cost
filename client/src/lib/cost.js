@@ -46,13 +46,30 @@ export function selectActiveTotals({
   liveCount,
 } = {}) {
   if (costModel === 'simple') {
+    // Blank ('') or null N means "track the live attendee count" — normalize both
+    // here so the helper is correct even if called directly (not just via the store).
+    const blankN = simpleUserCount === '' || simpleUserCount == null;
     return computeSimpleTotals({
-      userCount: simpleUserCount ?? liveCount,
+      userCount: blankN ? liveCount : simpleUserCount,
       averageRate: simpleAverageRate,
       multiplier: simpleMultiplier,
     });
   }
   return computeTotals(resolved);
+}
+
+/**
+ * Decide what to persist for the simple attendee override when the N field commits.
+ * Returns '' (→ store null = "track the live count") when the committed value is
+ * blank, non-numeric, or equals the current live count — so a stray focus/blur, or
+ * entering the same number as the live count, keeps tracking instead of pinning.
+ * Otherwise returns the value to store as an explicit override.
+ */
+export function simpleCountCommit(rawValue, liveCount) {
+  if (rawValue === '' || rawValue == null) return '';
+  const n = Number(rawValue);
+  if (!Number.isFinite(n)) return '';
+  return n === Number(liveCount) ? '' : rawValue;
 }
 
 function clampNonNeg(v) {

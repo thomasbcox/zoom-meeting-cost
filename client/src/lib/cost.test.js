@@ -3,6 +3,7 @@ import {
   computeTotals,
   computeSimpleTotals,
   selectActiveTotals,
+  simpleCountCommit,
   formatMoney,
   formatDuration,
 } from './cost.js';
@@ -110,6 +111,36 @@ describe('cost calculations and formatting', () => {
       });
       expect(t.attendeeCount).toBe(0);
       expect(t.combinedHourly).toBe(0);
+    });
+
+    it("treats a blank ('') simpleUserCount as the live count (Codex #2)", () => {
+      const t = selectActiveTotals({
+        costModel: 'simple',
+        resolved,
+        simpleAverageRate: 100,
+        simpleMultiplier: 1,
+        simpleUserCount: '',
+        liveCount: 4,
+      });
+      expect(t.attendeeCount).toBe(4);
+      expect(t.combinedHourly).toBe(400);
+    });
+  });
+
+  describe('simpleCountCommit (Codex #1: stray blur must not pin live tracking)', () => {
+    it("returns '' (track live) for blank / non-numeric input", () => {
+      expect(simpleCountCommit('', 3)).toBe('');
+      expect(simpleCountCommit(null, 3)).toBe('');
+      expect(simpleCountCommit('abc', 3)).toBe('');
+    });
+
+    it("returns '' (track live) when the value equals the live count", () => {
+      expect(simpleCountCommit('3', 3)).toBe('');
+      expect(simpleCountCommit(3, 3)).toBe('');
+    });
+
+    it('returns the value as an explicit override when it differs from live', () => {
+      expect(simpleCountCommit('8', 3)).toBe('8');
     });
   });
 
