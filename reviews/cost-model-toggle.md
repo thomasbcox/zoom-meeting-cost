@@ -164,3 +164,10 @@ Both IMPORTANT findings: **FIX** (Thomas — "fix both then review").
    `simpleCountCommit(value, liveCount)` helper so it's unit-tested.
 2. `selectActiveTotals` blank fallback → normalize `'' || null → liveCount`; add a
    `simpleUserCount: ''` unit test.
+
+## Build note — re-review (2026-06-08, base 684daa5)
+
+AC → file map (fixes only): the two approved Codex fixes touch
+`client/src/lib/cost.js` (blank-N selector fallback + new `simpleCountCommit` helper),
+`client/src/lib/cost.test.js` (+4 tests), and `client/src/components/PresenterControls.jsx`
+(N field commits via `simpleCountCommit`).
