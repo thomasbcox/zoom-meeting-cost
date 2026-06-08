@@ -196,3 +196,9 @@ still incomplete in one live-tracking path.
   regardless of `liveCount` movement. Verified by reading + running (no jsdom
   harness in this repo); the testable decision (`simpleCountCommit`) already has
   unit coverage.
+
+## Build note — re-review 2 (2026-06-08, base 684daa5)
+
+AC → file map (fix only): the focus-window-pin fix touches
+`client/src/components/PresenterControls.jsx` (`NumberInput` commits only when the
+value changed since focus). No other files changed since the prior re-review.
