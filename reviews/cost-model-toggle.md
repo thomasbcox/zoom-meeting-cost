@@ -187,3 +187,12 @@ still incomplete in one live-tracking path.
   focus/blur bug for the dynamic-count case. _Fix:_ distinguish an unchanged draft
   from an intentional edit (e.g. `NumberInput` commits only when the value actually
   changed), so an untouched field never pins regardless of `liveCount` movement.
+
+## Decisions — re-review 2 (2026-06-08)
+
+- **IMPORTANT — focus-window pin:** **FIX** (Thomas — "fix the focus window pin
+  issue"). Root-cause it in `NumberInput`: commit only when the field's value
+  actually changed since focus, so an untouched field never pins live tracking
+  regardless of `liveCount` movement. Verified by reading + running (no jsdom
+  harness in this repo); the testable decision (`simpleCountCommit`) already has
+  unit coverage.
