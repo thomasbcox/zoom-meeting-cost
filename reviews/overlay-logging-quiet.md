@@ -130,3 +130,12 @@ run the gate in its read-only sandbox; ours is green: 107 tests + build.)
   so arrays / wrong envelopes / strings / null all trip the canary while the happy path
   stays silent. Add receive-path tests for a JSON array and a keyless object (both →
   anomaly) plus normal JSON-string and snapshot-object (both → silent).
+
+## Fixes (2026-06-07)
+
+- **IMPORTANT #1 (anomaly canary missed object-shaped breaks) — applied.** Added a
+  module-level `isOverlaySnapshot(p)` predicate (non-null, plain non-array object with a
+  `status` key) in `zoomAdapter.js`; the `overlay-message-raw` guard now fires unless the
+  normalized payload passes it — so null / string / array / wrong-envelope all trip the
+  canary while real snapshots stay silent. Added receive-path tests: full snapshot object →
+  silent; non-JSON string, JSON array, and keyless object → anomaly fires.

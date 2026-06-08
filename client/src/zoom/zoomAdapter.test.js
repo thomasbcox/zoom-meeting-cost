@@ -343,16 +343,32 @@ describe('RealZoom onMessage receive path (payload normalization)', () => {
     expect(logs.some((l) => l.event === 'overlay-message-raw')).toBe(false);
   });
 
-  it('emits overlay-message-raw (anomaly) when normalization yields a non-object', async () => {
+  it('stays silent for a full snapshot object (has status)', async () => {
     const logs = [];
     const sdk = makeFakeSdk();
     const a = new RealZoom(sdk, { log: (p) => logs.push(p) });
     await a.init();
-    // A non-JSON string can't be parsed -> stays a string -> anomaly.
-    sdk.fireMessage({ timestamp: 1, payload: 'not json' });
-    expect(logs).toContainEqual(
-      expect.objectContaining({ kind: 'lifecycle', event: 'overlay-message-raw' })
-    );
+    sdk.fireMessage({ timestamp: 1, payload: { status: 'paused', totalCost: 1 } });
+    expect(logs.some((l) => l.event === 'overlay-message-raw')).toBe(false);
+  });
+
+  it('emits overlay-message-raw (anomaly) for non-object, array, and keyless-object breaks', async () => {
+    const cases = [
+      { label: 'non-JSON string', payload: 'not json' },
+      { label: 'JSON array', payload: JSON.stringify([]) },
+      { label: 'object without status (wrong envelope)', payload: { timestamp: 1, data: {} } },
+    ];
+    for (const { label, payload } of cases) {
+      const logs = [];
+      const sdk = makeFakeSdk();
+      const a = new RealZoom(sdk, { log: (p) => logs.push(p) });
+      await a.init();
+      sdk.fireMessage({ timestamp: 1, payload });
+      expect(
+        logs.some((l) => l.event === 'overlay-message-raw'),
+        `expected anomaly for ${label}`
+      ).toBe(true);
+    }
   });
 });
 

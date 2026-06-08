@@ -161,6 +161,13 @@ export class MockZoom {
   }
 }
 
+// Is a normalized inbound message a usable overlay snapshot? buildOverlayState always
+// emits a plain object carrying `status`, so anything else — null, a string, an array,
+// or a wrong/keyless envelope — is a shape anomaly worth the canary log.
+function isOverlaySnapshot(p) {
+  return !!p && typeof p === 'object' && !Array.isArray(p) && 'status' in p;
+}
+
 // Stringify an SDK rejection for a log payload without ever throwing.
 function errMsg(err) {
   if (err instanceof Error) return err.message || String(err);
@@ -247,9 +254,10 @@ export class RealZoom {
         // overlay receives the snapshot object.
         const payload = normalizeIncomingMessage(evt);
         // Anomaly canary (shape only, never values): if normalization did NOT yield a
-        // usable object, the SDK shape changed and our parse no longer produces the
-        // snapshot — log it. Silent in the happy path (string→object, or object).
-        if (!payload || typeof payload !== 'object') {
+        // usable overlay snapshot (plain object with a `status` key), the SDK shape
+        // changed and our parse no longer produces the snapshot — log it. Silent in the
+        // happy path; fires on null/string/array/wrong-envelope.
+        if (!isOverlaySnapshot(payload)) {
           // Route through this._log (injectable; defaults to postLog) so the anomaly
           // canary is testable, like the other instrumented adapter logs.
           logLifecycle(
