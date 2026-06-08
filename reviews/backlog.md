@@ -3,6 +3,39 @@
 Deferred work, tracked so it isn't lost. Each item becomes its own `/frame`
 story when picked up.
 
+## Rate-table memory across meetings + harvest attendee names into it
+- **Requested:** 2026-06-08 (Thomas).
+- **What:** Make the per-participant rate table grow from the people you actually
+  meet with, and persist so previously-seen attendees auto-match next time:
+  1. **Harvest attendee names** — a one-click (or opt-in auto) "add current
+     attendees to the rate table" that pulls the live participant display names
+     into rate-table rows so the presenter can assign each a rate.
+  2. **Memory across meetings** — those rows persist so the same person auto-matches
+     (and keeps their rate) in a later meeting.
+- **Current state (verify before building):** the rate table, aliases, defaultRate
+  and multiplier ALREADY persist to `localStorage` per browser
+  (`usePresenterStore.js`, key `meeting-cost:presenter:v1`) — so single-browser
+  memory across meetings largely exists today. Per-meeting `overrides` are
+  intentionally NOT persisted. The missing piece is the *harvest* flow and
+  dedupe/matching, plus a decision on durability beyond one browser.
+- **Design notes / open questions:**
+  - **Dedupe** harvested names against existing rate rules + aliases using the
+    existing `lib/normalize.js` / `lib/matching.js` so you don't add duplicates;
+    only add genuinely new names.
+  - **Auto vs. manual** — a button ("Add these attendees") vs. silently
+    auto-adding everyone who joins (proposed: manual/opt-in to avoid clutter).
+  - **Privacy invariant (important):** keeping harvested names in the
+    browser-only rate table preserves "rates/names never leave the browser." A
+    *cross-device / shared* memory would need server-side storage, which
+    **conflicts with that invariant** — out of scope unless the privacy model is
+    deliberately revisited (separate decision).
+  - Interaction with the new **simple cost model** (names are irrelevant in simple
+    mode; harvest only matters for the per-participant model).
+- **Done looks like:** the presenter can pull the current meeting's attendees into
+  the rate table (deduped via existing name normalization/aliases), assign rates,
+  and those names auto-match the same people in a future meeting — all still
+  browser-only.
+
 ## Workflow skill defects — moved out of this repo
 - Not a `zoom-meeting-cost` item. Exported as a standalone story
   (`~/workflow-skill-defects.story.md`) for the repo that owns the
