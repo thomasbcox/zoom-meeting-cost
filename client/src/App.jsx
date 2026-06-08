@@ -7,7 +7,7 @@ import PresenterControls from './components/PresenterControls.jsx';
 
 import { usePresenterStore } from './state/usePresenterStore.js';
 import { resolveAll } from './lib/matching.js';
-import { computeTotals } from './lib/cost.js';
+import { selectActiveTotals } from './lib/cost.js';
 import { buildOverlayState } from './lib/overlayState.js';
 import { seedPresenterName } from './lib/presenterName.js';
 import { logLifecycle } from './lib/lifecycleLog.js';
@@ -78,7 +78,25 @@ export default function App({ adapter, self, initialParticipants = [] }) {
     () => resolveAll(participants, { ...config, overrides }),
     [participants, config, overrides]
   );
-  const totals = useMemo(() => computeTotals(resolved), [resolved]);
+  const totals = useMemo(
+    () =>
+      selectActiveTotals({
+        costModel: config.costModel,
+        resolved,
+        simpleAverageRate: config.simpleAverageRate,
+        simpleMultiplier: config.simpleMultiplier,
+        simpleUserCount: config.simpleUserCount,
+        liveCount: participants.length,
+      }),
+    [
+      config.costModel,
+      config.simpleAverageRate,
+      config.simpleMultiplier,
+      config.simpleUserCount,
+      resolved,
+      participants.length,
+    ]
+  );
 
   // --- Camera overlay control ----------------------------------------------
   const [overlayOn, setOverlayOn] = useState(false);

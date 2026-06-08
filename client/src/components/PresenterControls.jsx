@@ -61,42 +61,115 @@ export default function PresenterControls({
         </p>
       </section>
 
-      {/* --- Global rate settings ----------------------------------------- */}
+      {/* --- Cost model toggle (shown in BOTH modes) ---------------------- */}
       <section className="panel">
-        <h3>Rate settings</h3>
-        <div className="field-row">
-          <label>
-            Default hourly rate
-            <NumberInput
-              value={config.defaultRate}
-              onCommit={(v) => actions.setDefaultRate(v)}
-              prefix="$"
-            />
-          </label>
-          <label>
-            Loaded-cost multiplier
-            <NumberInput
-              value={config.multiplier}
-              step="0.05"
-              onCommit={(v) => actions.setMultiplier(v)}
-              suffix="×"
-            />
-          </label>
+        <h3>Cost model</h3>
+        <div className="btn-row">
+          <button
+            className={`btn ${config.costModel !== 'simple' ? 'primary' : ''}`}
+            onClick={() => actions.setCostModel('perParticipant')}
+          >
+            Per-participant
+          </button>
+          <button
+            className={`btn ${config.costModel === 'simple' ? 'primary' : ''}`}
+            onClick={() => actions.setCostModel('simple')}
+          >
+            Simple (N × rate)
+          </button>
         </div>
         <p className="muted small">
-          Multiplier applies to every rate (e.g. 1.25 for benefits/overhead).
+          {config.costModel === 'simple'
+            ? 'Flat estimate: attendees × average rate × multiplier.'
+            : 'Per-person rates from your private table.'}
         </p>
       </section>
 
-      {/* --- Private rate table ------------------------------------------- */}
-      <RateTableEditor config={config} actions={actions} />
+      {config.costModel === 'simple' ? (
+        /* --- Simple cost model (replaces the per-participant editors) ----- */
+        <SimpleCostPanel config={config} actions={actions} liveCount={resolved.length} />
+      ) : (
+        <>
+          {/* --- Global rate settings ------------------------------------- */}
+          <section className="panel">
+            <h3>Rate settings</h3>
+            <div className="field-row">
+              <label>
+                Default hourly rate
+                <NumberInput
+                  value={config.defaultRate}
+                  onCommit={(v) => actions.setDefaultRate(v)}
+                  prefix="$"
+                />
+              </label>
+              <label>
+                Loaded-cost multiplier
+                <NumberInput
+                  value={config.multiplier}
+                  step="0.05"
+                  onCommit={(v) => actions.setMultiplier(v)}
+                  suffix="×"
+                />
+              </label>
+            </div>
+            <p className="muted small">
+              Multiplier applies to every rate (e.g. 1.25 for benefits/overhead).
+            </p>
+          </section>
 
-      {/* --- Aliases ------------------------------------------------------ */}
-      <AliasEditor config={config} actions={actions} />
+          {/* --- Private rate table ------------------------------------- */}
+          <RateTableEditor config={config} actions={actions} />
 
-      {/* --- Current-meeting overrides ------------------------------------ */}
-      <OverridesEditor resolved={resolved} overrides={overrides} actions={actions} />
+          {/* --- Aliases ------------------------------------------------ */}
+          <AliasEditor config={config} actions={actions} />
+
+          {/* --- Current-meeting overrides ------------------------------ */}
+          <OverridesEditor resolved={resolved} overrides={overrides} actions={actions} />
+        </>
+      )}
     </div>
+  );
+}
+
+function SimpleCostPanel({ config, actions, liveCount }) {
+  return (
+    <section className="panel">
+      <h3>Simple cost estimate</h3>
+      <p className="muted small">
+        Drives the meter from a flat estimate instead of the per-person table.
+        These values are independent of your per-participant settings.
+      </p>
+      <div className="field-row">
+        <label>
+          Average hourly rate
+          <NumberInput
+            value={config.simpleAverageRate}
+            onCommit={(v) => actions.setSimpleAverageRate(v)}
+            prefix="$"
+          />
+        </label>
+        <label>
+          Number of attendees
+          <NumberInput
+            value={config.simpleUserCount ?? liveCount}
+            onCommit={(v) => actions.setSimpleUserCount(v)}
+          />
+        </label>
+        <label>
+          Multiplier
+          <NumberInput
+            value={config.simpleMultiplier}
+            step="0.05"
+            onCommit={(v) => actions.setSimpleMultiplier(v)}
+            suffix="×"
+          />
+        </label>
+      </div>
+      <p className="muted small">
+        Attendees is prefilled from the live count ({liveCount}); edit to override,
+        clear to track the meeting.
+      </p>
+    </section>
   );
 }
 

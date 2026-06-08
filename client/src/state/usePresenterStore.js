@@ -20,6 +20,14 @@ const DEFAULT_CONFIG = {
   aliases: [{ id: 'a1', alias: 'Tom Cox', canonical: 'Thomas Cox' }],
   defaultRate: 75,
   multiplier: 1.0,
+  // Cost model: which source drives the live meter. 'simple' uses a flat
+  // N × simpleAverageRate × simpleMultiplier estimate, independent of the
+  // per-participant defaultRate / multiplier above. simpleUserCount === null
+  // means "track the live attendee count".
+  costModel: 'perParticipant',
+  simpleAverageRate: 75,
+  simpleMultiplier: 1.0,
+  simpleUserCount: null,
 };
 
 function loadPersisted() {
@@ -55,6 +63,27 @@ export function usePresenterStore() {
 
   const setMultiplier = useCallback((mult) => {
     setPersisted((c) => ({ ...c, multiplier: clampNum(mult, 0) }));
+  }, []);
+
+  // --- Simple cost model (independent of the per-participant settings) ------
+  const setCostModel = useCallback((model) => {
+    setPersisted((c) => ({ ...c, costModel: model === 'simple' ? 'simple' : 'perParticipant' }));
+  }, []);
+
+  const setSimpleAverageRate = useCallback((rate) => {
+    setPersisted((c) => ({ ...c, simpleAverageRate: clampNum(rate, 0) }));
+  }, []);
+
+  const setSimpleMultiplier = useCallback((mult) => {
+    setPersisted((c) => ({ ...c, simpleMultiplier: clampNum(mult, 0) }));
+  }, []);
+
+  const setSimpleUserCount = useCallback((count) => {
+    // Blank clears the override back to null (= track the live attendee count).
+    setPersisted((c) => ({
+      ...c,
+      simpleUserCount: count === '' || count == null ? null : clampNum(count, 0),
+    }));
   }, []);
 
   const addRule = useCallback((name, rate) => {
@@ -115,6 +144,10 @@ export function usePresenterStore() {
     actions: {
       setDefaultRate,
       setMultiplier,
+      setCostModel,
+      setSimpleAverageRate,
+      setSimpleMultiplier,
+      setSimpleUserCount,
       addRule,
       updateRule,
       deleteRule,
