@@ -121,3 +121,12 @@ run the gate in its read-only sandbox; ours is green: 107 tests + build.)
    *Suggestion:* use a stricter snapshot predicate (non-null, non-array, plain object with
    the expected `status` key); add tests for a JSON array and a `payload`-less/keyless
    object while keeping normal JSON-string and snapshot-object payloads silent.
+
+## Decisions (2026-06-07)
+
+- **IMPORTANT #1 (anomaly canary misses object-shaped breaks) — FIX.** Thomas: "Fix."
+  Tighten the `overlay-message-raw` guard to fire unless the normalized payload is a plain,
+  non-array object containing a `status` key (every `buildOverlayState` snapshot has one),
+  so arrays / wrong envelopes / strings / null all trip the canary while the happy path
+  stays silent. Add receive-path tests for a JSON array and a keyless object (both →
+  anomaly) plus normal JSON-string and snapshot-object (both → silent).
