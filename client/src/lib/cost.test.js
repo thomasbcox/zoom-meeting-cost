@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { computeTotals, formatMoney, formatDuration } from './cost.js';
+import {
+  computeTotals,
+  computeSimpleTotals,
+  selectActiveTotals,
+  simpleCountCommit,
+  formatMoney,
+  formatDuration,
+} from './cost.js';
 
 describe('cost calculations and formatting', () => {
   describe('computeTotals', () => {
@@ -36,6 +43,104 @@ describe('cost calculations and formatting', () => {
       const result = computeTotals(resolved);
       expect(result.attendeeCount).toBe(4);
       expect(result.combinedHourly).toBe(100);
+    });
+  });
+
+  describe('computeSimpleTotals', () => {
+    it('computes N × rate × multiplier in the computeTotals shape', () => {
+      const result = computeSimpleTotals({ userCount: 5, averageRate: 100, multiplier: 1.2 });
+      expect(result).toEqual({
+        attendeeCount: 5,
+        combinedHourly: 600,
+        costPerMinute: 600 / 60,
+        costPerSecond: 600 / 3600,
+      });
+    });
+
+    it('clamps negative / non-numeric inputs to 0', () => {
+      expect(computeSimpleTotals({ userCount: -3, averageRate: 100, multiplier: 1 }).combinedHourly).toBe(0);
+      expect(computeSimpleTotals({ userCount: 4, averageRate: 'x', multiplier: 1 }).combinedHourly).toBe(0);
+      expect(computeSimpleTotals({ userCount: 4, averageRate: 100, multiplier: -1 }).combinedHourly).toBe(0);
+      expect(computeSimpleTotals({}).combinedHourly).toBe(0);
+    });
+  });
+
+  describe('selectActiveTotals', () => {
+    const resolved = [{ rate: 100 }, { rate: 50 }];
+
+    it("uses computeTotals(resolved) for 'perParticipant' (and unknown) models", () => {
+      expect(selectActiveTotals({ costModel: 'perParticipant', resolved }).combinedHourly).toBe(150);
+      expect(selectActiveTotals({ costModel: 'whatever', resolved }).combinedHourly).toBe(150);
+      expect(selectActiveTotals({ resolved }).combinedHourly).toBe(150);
+    });
+
+    it("uses simple totals for 'simple' with simpleUserCount when set", () => {
+      const t = selectActiveTotals({
+        costModel: 'simple',
+        resolved,
+        simpleAverageRate: 100,
+        simpleMultiplier: 1,
+        simpleUserCount: 8,
+        liveCount: 3,
+      });
+      expect(t.attendeeCount).toBe(8);
+      expect(t.combinedHourly).toBe(800);
+    });
+
+    it("falls back to liveCount when simpleUserCount is null/blank", () => {
+      const t = selectActiveTotals({
+        costModel: 'simple',
+        resolved,
+        simpleAverageRate: 100,
+        simpleMultiplier: 1,
+        simpleUserCount: null,
+        liveCount: 3,
+      });
+      expect(t.attendeeCount).toBe(3);
+      expect(t.combinedHourly).toBe(300);
+    });
+
+    it("treats an explicit simpleUserCount of 0 as 0 (not the live count)", () => {
+      const t = selectActiveTotals({
+        costModel: 'simple',
+        resolved,
+        simpleAverageRate: 100,
+        simpleMultiplier: 1,
+        simpleUserCount: 0,
+        liveCount: 3,
+      });
+      expect(t.attendeeCount).toBe(0);
+      expect(t.combinedHourly).toBe(0);
+    });
+
+    it("treats a blank ('') simpleUserCount as the live count (Codex #2)", () => {
+      const t = selectActiveTotals({
+        costModel: 'simple',
+        resolved,
+        simpleAverageRate: 100,
+        simpleMultiplier: 1,
+        simpleUserCount: '',
+        liveCount: 4,
+      });
+      expect(t.attendeeCount).toBe(4);
+      expect(t.combinedHourly).toBe(400);
+    });
+  });
+
+  describe('simpleCountCommit (Codex #1: stray blur must not pin live tracking)', () => {
+    it("returns '' (track live) for blank / non-numeric input", () => {
+      expect(simpleCountCommit('', 3)).toBe('');
+      expect(simpleCountCommit(null, 3)).toBe('');
+      expect(simpleCountCommit('abc', 3)).toBe('');
+    });
+
+    it("returns '' (track live) when the value equals the live count", () => {
+      expect(simpleCountCommit('3', 3)).toBe('');
+      expect(simpleCountCommit(3, 3)).toBe('');
+    });
+
+    it('returns the value as an explicit override when it differs from live', () => {
+      expect(simpleCountCommit('8', 3)).toBe('8');
     });
   });
 
