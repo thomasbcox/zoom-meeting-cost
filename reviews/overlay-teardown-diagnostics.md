@@ -160,3 +160,17 @@ AC → file map:
 - **AC5** (panel auto-recovers overlay on off→on; `overlay-rearm:*` logs) → `client/src/App.jsx` (media-change effect).
 - **AC6** (pure, table-tested re-arm reducer) → `client/src/lib/overlayRecover.js`; test `client/src/lib/overlayRecover.test.js`.
 - **AC7/AC8** (gate green; scope containment) → no product files; verified via the gate + `git diff --name-only main...HEAD`.
+
+## Codex review (2026-06-08, base main, HEAD 5f0fcd0)
+
+**Summary:** Reviewed `git diff main...HEAD`, `git log --oneline main..HEAD`, and the spec. The off→on recovery path is implemented; Codex found one gating edge case and one spec-required test gap. It could not run `npm test` (read-only sandbox blocked Vitest's temp Vite-config write, EPERM), so it did not verify the gate — the gate is green locally.
+
+### IMPORTANT
+
+1. **Stale rearm flag can survive while overlay is hidden** — `client/src/lib/overlayRecover.js:37`.
+   When `needsRearm` is already true and a `video.state === true` event arrives while `overlayOn` is false, the reducer preserves `needsRearm`. Since `App.stopOverlay()` only sets `overlayOn` false and does not clear `needsRearmRef`, a user can hide the overlay after camera-off, then later show it again with a stale pending rearm; a later stray `state:true` would re-run `startCameraOverlay()` without a fresh off→on while the overlay was on — violating AC6's gating.
+   *Suggestion:* clear the pending rearm whenever the overlay is off (on camera-on with `overlayOn === false`, and in `stopOverlay()`); add a regression test for off-while-on → hide → camera-on → show → stray camera-on does not rearm.
+
+2. **AC5 panel recovery behavior is not unit-tested** — `client/src/App.jsx:179`.
+   Reducer and adapter fan-out are tested, but no test exercises the panel effect that subscribes to `adapter.onMediaChange`, calls `startCameraOverlay()`, and posts the fresh snapshot. AC5's test note explicitly requires this, so the behavior can regress while current tests pass.
+   *Suggestion:* add a test with a fake adapter / `MockZoom`: start the overlay, simulate camera off then on, assert one additional `startCameraOverlay()` call + a new `postMessage` snapshot, and no duplicate rearm without another camera-off.
