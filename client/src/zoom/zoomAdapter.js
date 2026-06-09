@@ -10,6 +10,7 @@
 //   adapter.stopCameraOverlay()     -> stop rendering onto the camera feed
 //   adapter.postMessage(payload)    -> side panel -> camera context state push
 //   adapter.onMessage(cb)           -> camera context receives state; unsubscribe()
+//   adapter.onMediaChange(cb)       -> presenter camera off/on events; unsubscribe()
 //   adapter.isMock                  -> boolean
 //
 // where Participant = { id, displayName, email? }
@@ -78,6 +79,8 @@ export class MockZoom {
     this.calls = [];
     this._msgSubs = new Set();
     this._lastMsg = null;
+    // Presenter media-change subscribers (camera off/on), for overlay auto-recovery.
+    this._mediaSubs = new Set();
   }
 
   async init() {
@@ -139,6 +142,20 @@ export class MockZoom {
     return () => this._msgSubs.delete(cb);
   }
 
+  // --- Presenter media changes (mock: simulate camera off/on) -------------
+  onMediaChange(cb) {
+    this._mediaSubs.add(cb);
+    return () => this._mediaSubs.delete(cb);
+  }
+
+  // Prototype-only: simulate the presenter toggling their camera so the overlay
+  // auto-recovery path can be exercised in mock dev and tests. Mirrors the real
+  // onMyMediaChange shape ({ media: { video: { state } } }).
+  simulateCameraToggle(on) {
+    const evt = { media: { video: { state: !!on } }, timestamp: 0 };
+    for (const cb of this._mediaSubs) cb(evt);
+  }
+
   // --- Prototype-only controls (simulate Zoom join/leave events) ----------
   addParticipant(displayName) {
     const name = (displayName || '').trim();
@@ -166,6 +183,25 @@ export class MockZoom {
 // or a wrong/keyless envelope — is a shape anomaly worth the canary log.
 function isOverlaySnapshot(p) {
   return !!p && typeof p === 'object' && !Array.isArray(p) && 'status' in p;
+}
+
+// Shape-only summary of an onMyMediaChange event for the lifecycle log. Records the
+// event's top-level keys plus, for known media sub-keys, a boolean derived from a
+// `.state` flag where present — NEVER media content. Just enough to correlate a media
+// toggle (e.g. video off->on) with an overlay-teardown log. The `keys` field also
+// reveals the event's real shape on the next live run, so a wrong guess here about
+// sub-keys is self-correcting rather than blinding.
+function summarizeMediaEvent(evt) {
+  if (!evt || typeof evt !== 'object') {
+    return { type: evt === null ? 'null' : typeof evt };
+  }
+  const out = { keys: Object.keys(evt) };
+  const media = evt.media && typeof evt.media === 'object' ? evt.media : evt;
+  for (const k of ['video', 'audio', 'screenshare', 'screen']) {
+    const v = media[k];
+    if (v && typeof v === 'object' && 'state' in v) out[k] = !!v.state;
+  }
+  return out;
 }
 
 // Stringify an SDK rejection for a log payload without ever throwing.
@@ -196,6 +232,8 @@ export class RealZoom {
     this._participants = [];
     this._subs = new Set();
     this._msgSubs = new Set();
+    // Presenter media-change subscribers (camera off/on), for overlay auto-recovery.
+    this._mediaSubs = new Set();
     // Log only the FIRST successful postMessage (proves the bridge is live); steady-state
     // per-tick successes are silent. Failures always log (see postMessage).
     this._firstPostLogged = false;
@@ -277,6 +315,19 @@ export class RealZoom {
           );
         }
         for (const cb of this._msgSubs) cb(payload);
+      });
+    }
+
+    // Correlation diagnostics for the silent overlay teardown: Zoom closes the camera
+    // rendering context on some media changes (camera off/on, screen share, virtual-
+    // background swap), killing the overlay webview. Log each media event (shape only,
+    // never content) via the lifecycle channel so a live run can line a media toggle up
+    // against the overlay-teardown log. No behavior change — purely an observer.
+    if (typeof sdk.onMyMediaChange === 'function') {
+      sdk.onMyMediaChange((evt) => {
+        logLifecycle('media-change', summarizeMediaEvent(evt), this._log);
+        // Fan out to app subscribers (overlay auto-recovery re-arms on camera off→on).
+        for (const cb of this._mediaSubs) cb(evt);
       });
     }
 
@@ -411,6 +462,13 @@ export class RealZoom {
   onMessage(cb) {
     this._msgSubs.add(cb);
     return () => this._msgSubs.delete(cb);
+  }
+
+  // Subscribe to presenter media changes (camera off/on). Wired to onMyMediaChange
+  // in init(); the camera-overlay auto-recovery uses this to re-arm after a toggle.
+  onMediaChange(cb) {
+    this._mediaSubs.add(cb);
+    return () => this._mediaSubs.delete(cb);
   }
 
   async _refresh() {

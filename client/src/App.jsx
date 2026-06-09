@@ -11,6 +11,7 @@ import { selectActiveTotals } from './lib/cost.js';
 import { buildOverlayState } from './lib/overlayState.js';
 import { seedPresenterName } from './lib/presenterName.js';
 import { logLifecycle } from './lib/lifecycleLog.js';
+import { createMediaRecoveryHandler } from './lib/overlayRecover.js';
 
 // The in-meeting SIDE PANEL: the presenter privately configures rates, sees a
 // live readout, and starts/stops the camera overlay. The overlay itself renders
@@ -102,6 +103,9 @@ export default function App({ adapter, self, initialParticipants = [] }) {
   const [overlayOn, setOverlayOn] = useState(false);
   const overlayOnRef = useRef(false);
   overlayOnRef.current = overlayOn;
+  // Pending overlay re-arm (set when the camera goes off while the overlay is on).
+  // Manual start/stop resets it so a stale pending can't re-arm across a hide/show.
+  const needsRearmRef = useRef(false);
 
   // Latest values for the interval/poster without re-arming effects.
   const liveRef = useRef({});
@@ -132,6 +136,8 @@ export default function App({ adapter, self, initialParticipants = [] }) {
     // postMessage follows, the bug is downstream of the send call.
     logLifecycle('start-overlay:begin', { status: liveRef.current.status });
     if (liveRef.current.status === 'idle') sessionActions.start();
+    // Manual (re)start: no teardown is pending, so clear any stale re-arm flag.
+    needsRearmRef.current = false;
     await adapter?.startCameraOverlay?.();
     logLifecycle('start-overlay:context-started');
     setOverlayOn(true);
@@ -141,6 +147,9 @@ export default function App({ adapter, self, initialParticipants = [] }) {
 
   const stopOverlay = useCallback(async () => {
     await adapter?.stopCameraOverlay?.();
+    // Overlay hidden by the presenter: drop any pending re-arm so a later camera-on
+    // can't restore it without a fresh off→on while the overlay is on.
+    needsRearmRef.current = false;
     setOverlayOn(false);
   }, [adapter]);
 
@@ -167,6 +176,29 @@ export default function App({ adapter, self, initialParticipants = [] }) {
   useEffect(() => {
     if (overlayOn) postOverlay();
   }, [overlayOn, session.status, postOverlay]);
+
+  // Auto-recover the camera overlay across a camera off/on. Turning the camera off
+  // tears down Zoom's camera rendering context (destroying the overlay webview);
+  // turning it back on does NOT re-run our context, so the meter stays gone until
+  // re-armed. The handler tracks the off→on transition and, on a confirmed re-arm,
+  // re-runs startCameraOverlay() (what the presenter otherwise does by hand) and
+  // pushes a fresh snapshot. overlayOn/needsRearm live in refs so this effect arms
+  // once and the recovery decision is unit-tested in overlayRecover.test.js.
+  useEffect(() => {
+    if (!adapter?.onMediaChange) return undefined;
+    const handle = createMediaRecoveryHandler({
+      getOverlayOn: () => overlayOnRef.current,
+      getNeedsRearm: () => needsRearmRef.current,
+      setNeedsRearm: (v) => {
+        needsRearmRef.current = v;
+      },
+      startCameraOverlay: () => adapter.startCameraOverlay?.(),
+      postOverlay,
+      log: logLifecycle,
+    });
+    const unsub = adapter.onMediaChange(handle);
+    return () => unsub && unsub();
+  }, [adapter, postOverlay]);
 
   // --- Presenter's own live readout (private; full detail) ------------------
   const readoutState = useMemo(
