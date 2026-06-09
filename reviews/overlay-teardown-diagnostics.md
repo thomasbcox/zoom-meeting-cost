@@ -192,3 +192,13 @@ Files: `client/src/lib/overlayRecover.js`, `client/src/App.jsx`, `client/src/lib
 Fix delta reviewed this round (base 5f0fcd0 → HEAD): the two approved IMPORTANT fixes (see `## Fixes (2026-06-08)`):
 - **Finding 1** → `client/src/lib/overlayRecover.js` (reducer consumes `needsRearm` on camera-on) + `client/src/App.jsx` (`needsRearmRef` cleared on manual start/stop).
 - **Finding 2** → `client/src/lib/overlayRecover.js` (`createMediaRecoveryHandler`) + `client/src/App.jsx` (wires handler) + `client/src/lib/overlayRecover.test.js` (AC5 + regression tests).
+
+## Codex review (2026-06-08, base 5f0fcd0, HEAD 9d0dceb)
+
+**Summary (re-review):** Reviewed `git diff 5f0fcd0...HEAD`. The two approved IMPORTANT fixes (stale-rearm gating; AC5 panel-recovery test coverage) are **correctly resolved** in product code and tests. One new finding, on a review-process artifact. (Codex again couldn't run Vitest — read-only sandbox EPERM on Vite's temp config; gate is green locally.)
+
+### IMPORTANT
+
+1. **Out-of-scope Codex review artifact committed** — `reviews/overlay-teardown-diagnostics.codex.json:1`.
+   The delta adds the generated `.codex.json` review output; AC8's scope list names the story `.md` but not the sibling Codex JSON, so the branch carries a file outside the enumerated scope.
+   *Suggestion:* remove it from the branch, or update the story's scope list if the artifact should be tracked.
