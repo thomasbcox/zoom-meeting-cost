@@ -174,3 +174,8 @@ AC → file map:
 2. **AC5 panel recovery behavior is not unit-tested** — `client/src/App.jsx:179`.
    Reducer and adapter fan-out are tested, but no test exercises the panel effect that subscribes to `adapter.onMediaChange`, calls `startCameraOverlay()`, and posts the fresh snapshot. AC5's test note explicitly requires this, so the behavior can regress while current tests pass.
    *Suggestion:* add a test with a fake adapter / `MockZoom`: start the overlay, simulate camera off then on, assert one additional `startCameraOverlay()` call + a new `postMessage` snapshot, and no duplicate rearm without another camera-off.
+
+## Decisions (2026-06-08)
+
+- **Finding 1 (IMPORTANT — stale rearm flag survives while overlay hidden):** **FIX.** Thomas: "Fix." Clear `needsRearmRef` on manual start/stop and have `reduceOverlayRecovery` consume `needsRearm` on every camera-on; add the hide→show→stray-on regression test.
+- **Finding 2 (IMPORTANT — AC5 panel recovery not unit-tested):** **FIX.** Thomas: "Fix." Extract the media-change handler into a plain injectable function and unit-test the off→on recovery (one `startCameraOverlay()` + fresh snapshot, no duplicate without another off).
