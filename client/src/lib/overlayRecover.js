@@ -30,9 +30,51 @@ export function reduceOverlayRecovery(evt, { overlayOn, needsRearm }) {
     // overlay was supposed to be showing (else there is nothing to restore).
     return { needsRearm: overlayOn, rearm: false };
   }
-  // Camera on: restore only after a confirmed teardown while the overlay was on.
-  if (overlayOn && needsRearm) {
-    return { needsRearm: false, rearm: true };
-  }
-  return { needsRearm, rearm: false };
+  // Camera on: consume any pending re-arm. Restore the overlay only if it is still
+  // meant to be on AND a teardown was armed; either way drop the pending flag so a
+  // stale one (e.g. armed, then the overlay hidden) can't fire later without a fresh
+  // off→on while the overlay is on.
+  return { needsRearm: false, rearm: overlayOn && needsRearm };
+}
+
+// Build the onMediaChange handler that drives overlay auto-recovery, decoupled from
+// React so it is unit-testable without jsdom (mirrors the runCameraDraw extraction).
+// It reads/writes the pending-rearm flag through getters/setter (refs in App), runs
+// the reducer, and on a confirmed re-arm re-runs startCameraOverlay() then posts a
+// fresh snapshot. Returns a promise so callers can await it in tests; a failed
+// re-arm is swallowed (the next toggle retries) and never surfaces to the caller.
+//
+// @param {object} deps
+// @param {() => boolean} deps.getOverlayOn      is the overlay currently meant to be on
+// @param {() => boolean} deps.getNeedsRearm     current pending-rearm flag
+// @param {(v:boolean) => void} deps.setNeedsRearm  store the next pending-rearm flag
+// @param {() => any} deps.startCameraOverlay    re-establish the camera rendering context
+// @param {() => void} deps.postOverlay          push a fresh snapshot after re-arm
+// @param {(event:string) => void} [deps.log]    lifecycle logger (begin/done)
+// @returns {(evt:object) => Promise<void>}
+export function createMediaRecoveryHandler({
+  getOverlayOn,
+  getNeedsRearm,
+  setNeedsRearm,
+  startCameraOverlay,
+  postOverlay,
+  log = () => {},
+}) {
+  return (evt) => {
+    const { needsRearm, rearm } = reduceOverlayRecovery(evt, {
+      overlayOn: getOverlayOn(),
+      needsRearm: getNeedsRearm(),
+    });
+    setNeedsRearm(needsRearm);
+    if (!rearm) return Promise.resolve();
+    log('overlay-rearm:begin');
+    return Promise.resolve(startCameraOverlay?.())
+      .then(() => {
+        postOverlay();
+        log('overlay-rearm:done');
+      })
+      .catch(() => {
+        /* a failed re-arm must not surface; the next toggle can retry */
+      });
+  };
 }

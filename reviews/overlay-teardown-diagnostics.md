@@ -179,3 +179,10 @@ AC → file map:
 
 - **Finding 1 (IMPORTANT — stale rearm flag survives while overlay hidden):** **FIX.** Thomas: "Fix." Clear `needsRearmRef` on manual start/stop and have `reduceOverlayRecovery` consume `needsRearm` on every camera-on; add the hide→show→stray-on regression test.
 - **Finding 2 (IMPORTANT — AC5 panel recovery not unit-tested):** **FIX.** Thomas: "Fix." Extract the media-change handler into a plain injectable function and unit-test the off→on recovery (one `startCameraOverlay()` + fresh snapshot, no duplicate without another off).
+
+## Fixes (2026-06-08)
+
+- **Finding 1 (stale rearm flag survives while overlay hidden):** Closed the gating leak at two layers. (a) `reduceOverlayRecovery` now **consumes** `needsRearm` on every camera-on — restoring only when `overlayOn && needsRearm`, otherwise dropping the stale pending. (b) `App` clears `needsRearmRef` on both manual `startOverlay` and `stopOverlay`, so a hide→show can't carry a pending re-arm. Reducer test updated (camera-on while overlay off now clears, not preserves) + a handler-level hide→show→stray-on regression test.
+- **Finding 2 (AC5 panel recovery not unit-tested):** Extracted the panel's media-change wiring into a pure `createMediaRecoveryHandler({ getOverlayOn, getNeedsRearm, setNeedsRearm, startCameraOverlay, postOverlay, log })` in `overlayRecover.js`; `App` now builds the handler from refs. Added AC5 tests: off→on re-arms once (one `startCameraOverlay()` + one `postOverlay()` + begin/done logs), no duplicate without another off, audio/resolution-only ignored, and a failing re-arm is swallowed while still clearing the pending.
+
+Files: `client/src/lib/overlayRecover.js`, `client/src/App.jsx`, `client/src/lib/overlayRecover.test.js`. Gate green (144 client tests).

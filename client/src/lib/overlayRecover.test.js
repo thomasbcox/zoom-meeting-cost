@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { reduceOverlayRecovery } from './overlayRecover.js';
+import { describe, it, expect, vi } from 'vitest';
+import { reduceOverlayRecovery, createMediaRecoveryHandler } from './overlayRecover.js';
 
 // Pure reducer — table-tested, no jsdom. Event shapes mirror @zoom/appssdk's
 // OnMyMediaChangeEvent: camera toggle = { media: { video: { state } } }; resolution
@@ -55,9 +55,11 @@ describe('reduceOverlayRecovery', () => {
     });
   });
 
-  it('does not re-arm a camera-on while the overlay is OFF, even if armed', () => {
+  it('does not re-arm a camera-on while the overlay is OFF, and clears the stale pending', () => {
+    // A pending re-arm that survives into "overlay hidden" must be dropped on the next
+    // camera-on, so re-showing the overlay can't fire a re-arm without a fresh off→on.
     expect(reduceOverlayRecovery(cameraOn, { overlayOn: false, needsRearm: true })).toEqual({
-      needsRearm: true, // preserved; nothing consumed it
+      needsRearm: false, // consumed/cleared, not preserved
       rearm: false,
     });
   });
@@ -77,5 +79,96 @@ describe('reduceOverlayRecovery', () => {
     for (const evt of [null, undefined, {}, { media: null }, { media: {} }]) {
       expect(reduceOverlayRecovery(evt, prev)).toEqual({ needsRearm: false, rearm: false });
     }
+  });
+});
+
+// AC5 — the panel recovery wiring, extracted so it is testable without jsdom. A fake
+// "App" holds overlayOn/needsRearm as mutable vars (the refs) and counts the SDK calls.
+function makeRecoveryHarness({ overlayOn = false } = {}) {
+  const state = { overlayOn, needsRearm: false };
+  const calls = { start: 0, post: 0, logs: [] };
+  const handle = createMediaRecoveryHandler({
+    getOverlayOn: () => state.overlayOn,
+    getNeedsRearm: () => state.needsRearm,
+    setNeedsRearm: (v) => {
+      state.needsRearm = v;
+    },
+    startCameraOverlay: () => {
+      calls.start += 1;
+    },
+    postOverlay: () => {
+      calls.post += 1;
+    },
+    log: (e) => calls.logs.push(e),
+  });
+  // Mirror App's manual start/stop, which reset the pending re-arm flag.
+  const show = () => {
+    state.overlayOn = true;
+    state.needsRearm = false;
+  };
+  const hide = () => {
+    state.overlayOn = false;
+    state.needsRearm = false;
+  };
+  return { state, calls, handle, show, hide };
+}
+
+describe('createMediaRecoveryHandler (AC5 panel recovery)', () => {
+  it('re-arms once on an off→on while the overlay is on, posting a fresh snapshot', async () => {
+    const h = makeRecoveryHarness({ overlayOn: true });
+
+    await h.handle(cameraOff); // arms
+    expect(h.calls.start).toBe(0); // off does not re-arm
+
+    await h.handle(cameraOn); // confirmed off→on -> re-arm
+    expect(h.calls.start).toBe(1);
+    expect(h.calls.post).toBe(1);
+    expect(h.calls.logs).toEqual(['overlay-rearm:begin', 'overlay-rearm:done']);
+
+    // A second camera-on with no intervening off must NOT re-arm again.
+    await h.handle(cameraOn);
+    expect(h.calls.start).toBe(1);
+    expect(h.calls.post).toBe(1);
+  });
+
+  it('does not re-arm on a camera-on with no prior off', async () => {
+    const h = makeRecoveryHarness({ overlayOn: true });
+    await h.handle(cameraOn);
+    expect(h.calls.start).toBe(0);
+  });
+
+  it('does not re-arm for audio or resolution-only events', async () => {
+    const h = makeRecoveryHarness({ overlayOn: true });
+    await h.handle(cameraOff);
+    await h.handle(audioMute);
+    await h.handle(resolution);
+    expect(h.calls.start).toBe(0); // still armed, but neither event is a camera-on
+  });
+
+  // Finding 1 regression: armed, then the presenter HIDES the overlay, re-shows it,
+  // and a stray camera-on arrives — must NOT re-arm without a fresh off→on while on.
+  it('does not re-arm across a hide→show after a stale arm', async () => {
+    const h = makeRecoveryHarness({ overlayOn: true });
+    await h.handle(cameraOff); // arms while on
+    h.hide(); // presenter hides overlay (clears pending, overlay off)
+    h.show(); // presenter shows overlay again (still no pending)
+    await h.handle(cameraOn); // stray camera-on
+    expect(h.calls.start).toBe(0);
+  });
+
+  it('swallows a failing re-arm (does not reject) and still clears the pending', async () => {
+    const state = { overlayOn: true, needsRearm: true };
+    const handle = createMediaRecoveryHandler({
+      getOverlayOn: () => state.overlayOn,
+      getNeedsRearm: () => state.needsRearm,
+      setNeedsRearm: (v) => {
+        state.needsRearm = v;
+      },
+      startCameraOverlay: () => Promise.reject(new Error('runRenderingContext failed')),
+      postOverlay: vi.fn(),
+      log: () => {},
+    });
+    await expect(handle(cameraOn)).resolves.toBeUndefined();
+    expect(state.needsRearm).toBe(false); // consumed even though the re-arm failed
   });
 });
