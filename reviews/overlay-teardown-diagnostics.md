@@ -111,7 +111,10 @@ Both:
    `git diff --name-only main...HEAD` and verify no files appear beyond:
    `client/src/components/OverlayApp.jsx`, `client/src/zoom/zoomAdapter.js`,
    `client/src/App.jsx`, the new recovery helper + its test, the touched test files,
-   and `reviews/overlay-teardown-diagnostics.md`.
+   and `reviews/overlay-teardown-diagnostics.md`. The review process's own artifacts
+   — the story `.md` and its sibling `reviews/overlay-teardown-diagnostics.codex.json`
+   (the recorded Codex output) — are in scope as workflow bookkeeping, not product
+   changes.
 
 ## Test notes
 
@@ -202,3 +205,8 @@ Fix delta reviewed this round (base 5f0fcd0 → HEAD): the two approved IMPORTAN
 1. **Out-of-scope Codex review artifact committed** — `reviews/overlay-teardown-diagnostics.codex.json:1`.
    The delta adds the generated `.codex.json` review output; AC8's scope list names the story `.md` but not the sibling Codex JSON, so the branch carries a file outside the enumerated scope.
    *Suggestion:* remove it from the branch, or update the story's scope list if the artifact should be tracked.
+
+## Decisions (2026-06-08, re-review round)
+
+- Prior findings 1 & 2 (IMPORTANT): **confirmed resolved** by Codex in this re-review.
+- **Re-review finding (IMPORTANT — `.codex.json` out-of-scope):** **REJECT.** Thomas: "Reject + clarify AC8." The `.codex.json` is the `/review` contract's own mandated, committed output (audit trail), not a product change; AC8 clarified above to list the review artifacts so it isn't re-raised. No code change.
