@@ -186,3 +186,9 @@ AC → file map:
 - **Finding 2 (AC5 panel recovery not unit-tested):** Extracted the panel's media-change wiring into a pure `createMediaRecoveryHandler({ getOverlayOn, getNeedsRearm, setNeedsRearm, startCameraOverlay, postOverlay, log })` in `overlayRecover.js`; `App` now builds the handler from refs. Added AC5 tests: off→on re-arms once (one `startCameraOverlay()` + one `postOverlay()` + begin/done logs), no duplicate without another off, audio/resolution-only ignored, and a failing re-arm is swallowed while still clearing the pending.
 
 Files: `client/src/lib/overlayRecover.js`, `client/src/App.jsx`, `client/src/lib/overlayRecover.test.js`. Gate green (144 client tests).
+
+## Build note (2026-06-08, re-review round)
+
+Fix delta reviewed this round (base 5f0fcd0 → HEAD): the two approved IMPORTANT fixes (see `## Fixes (2026-06-08)`):
+- **Finding 1** → `client/src/lib/overlayRecover.js` (reducer consumes `needsRearm` on camera-on) + `client/src/App.jsx` (`needsRearmRef` cleared on manual start/stop).
+- **Finding 2** → `client/src/lib/overlayRecover.js` (`createMediaRecoveryHandler`) + `client/src/App.jsx` (wires handler) + `client/src/lib/overlayRecover.test.js` (AC5 + regression tests).
