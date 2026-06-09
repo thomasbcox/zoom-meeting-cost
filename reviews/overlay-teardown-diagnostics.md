@@ -148,3 +148,15 @@ Both:
    confirmed. Screen-share / virtual-background teardown (if real) would be a
    follow-up; the `media-change` + `overlay-teardown` logs stay in to catch them.
    OK to leave those out for now?
+
+## Build note (2026-06-08)
+
+AC → file map:
+
+- **AC1** (overlay-teardown `pagehide` log, camera mount only) → `client/src/components/OverlayApp.jsx` (`registerOverlayTeardownLog` + effect); test `client/src/components/OverlayApp.test.js`.
+- **AC2** (real-mode `onMyMediaChange` shape-only `media-change` log) → `client/src/zoom/zoomAdapter.js` (`summarizeMediaEvent` + init subscription); test `client/src/zoom/zoomAdapter.test.js`.
+- **AC3** (logging via `logLifecycle`, no values, never throws) → `OverlayApp.jsx`, `zoomAdapter.js`; covered in both test files.
+- **AC4** (`adapter.onMediaChange(cb)` fan-out; `MockZoom.simulateCameraToggle`) → `client/src/zoom/zoomAdapter.js`; test `client/src/zoom/zoomAdapter.test.js`.
+- **AC5** (panel auto-recovers overlay on off→on; `overlay-rearm:*` logs) → `client/src/App.jsx` (media-change effect).
+- **AC6** (pure, table-tested re-arm reducer) → `client/src/lib/overlayRecover.js`; test `client/src/lib/overlayRecover.test.js`.
+- **AC7/AC8** (gate green; scope containment) → no product files; verified via the gate + `git diff --name-only main...HEAD`.
