@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { formatMoney, simpleCountCommit } from '../lib/cost.js';
+import { sessionControls } from '../lib/sessionControls.js';
 import { SourceBadge } from './SharedCostScreen.jsx';
 
 // Presenter-only panel. Everything here is private to the presenter; only the
@@ -16,9 +17,11 @@ export default function PresenterControls({
   stopOverlay,
   resolved,
 }) {
-  const running = session.status === 'running';
-  const paused = session.status === 'paused';
-  const active = running || paused;
+  // Which session controls to show for the current status. `ended` now offers a
+  // way out (start new / resume) instead of being a dead-end. Overlay Show/Hide is
+  // independent of session status and always available.
+  const c = sessionControls(session.status);
+  const ended = session.status === 'ended';
 
   return (
     <div className="controls">
@@ -35,17 +38,27 @@ export default function PresenterControls({
               Hide from video
             </button>
           )}
-          {running && (
+          {c.start && (
+            <button className="btn primary" onClick={sessionActions.start}>
+              Start session
+            </button>
+          )}
+          {c.startNew && (
+            <button className="btn primary" onClick={sessionActions.start}>
+              Start new session
+            </button>
+          )}
+          {c.pause && (
             <button className="btn" onClick={sessionActions.pause}>
               Pause counting
             </button>
           )}
-          {paused && (
+          {c.resume && (
             <button className="btn" onClick={sessionActions.resume}>
-              Resume counting
+              {ended ? 'Resume' : 'Resume counting'}
             </button>
           )}
-          {active && (
+          {c.end && (
             <button className="btn" onClick={sessionActions.end}>
               End session
             </button>
