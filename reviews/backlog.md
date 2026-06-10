@@ -84,17 +84,19 @@ story when picked up.
   endpoint; `frame-ancestors` narrowed to the exact Zoom client origins Zoom
   documents; CSP verified to still render in the Zoom client.
 
-## Secret-leak guardrails — gitleaks + GitHub non-provider scan
-- **STATUS (2026-06-09):** **Part A DONE** — the local pre-commit secret scanner
-  shipped and merged (`reviews/secret-scan-guardrails.md`): a self-contained
-  detector (`scripts/secret-scan/`), a tracked `.githooks/pre-commit`, gate wiring,
-  and a guarded `postinstall` activating `core.hooksPath`. **Part B PENDING a manual
-  step** — `secret_scanning_non_provider_patterns` is feature-gated; the REST API
-  returns 200 but silently leaves it disabled, so it requires a one-click **GitHub
-  UI toggle by Thomas** (repo *Settings → Code security → Secret scanning → "Scan
-  for non-provider patterns"*). **Part C (CI Action) + a pre-push hook: NOT
-  pursued** (2026-06-09, Thomas — bookkeeping only). So the only open work is
-  Thomas's one UI click for B.
+## ~~Secret-leak guardrails — gitleaks + GitHub non-provider scan~~ — DONE
+- **CLOSED 2026-06-10** (Thomas: "the secret guardrails are in place already").
+  **Part A — the substantive guardrail — is shipped and live**
+  (`reviews/secret-scan-guardrails.md`): a self-contained detector
+  (`scripts/secret-scan/`), a tracked `.githooks/pre-commit`, gate wiring, and a
+  guarded `postinstall` activating `core.hooksPath`. **Part B** (`secret_scanning_non_provider_patterns`)
+  is feature-gated (REST API no-ops; one-click GitHub UI toggle only). As of
+  2026-06-10 it is still **`disabled`** — left as an *optional* server-side backstop
+  Thomas can flip anytime (*Settings → Code security → Secret scanning → "Scan for
+  non-provider patterns"*); **not tracked further**. **Part C (CI Action) + pre-push
+  hook: not pursued.** Item closed on the strength of Part A.
+- **STATUS (2026-06-09, historical):** Part A DONE; Part B pending the manual toggle;
+  Part C / pre-push not pursued.
 - **Deferred from:** `reviews/zoom-cred-fingerprint.md` post-mortem (2026-06-04,
   Thomas's call). Prompted by a live Zoom client secret getting committed/pushed
   in a test fixture (Codex caught it; secret rotated).
@@ -116,7 +118,13 @@ story when picked up.
   a push. Behavioral guard already in place (memory:
   `feedback-no-real-secrets-in-repo`).
 
-## Session lifecycle: no way to start/resume after "End session"
+## ~~Session lifecycle: no way to start/resume after "End session"~~ — DONE
+- **Done in:** `reviews/session-restart-controls.md` (shipped 2026-06-10, merge
+  `91a16ed`). A pure `sessionControls(status)` helper drives the buttons: an explicit
+  **Start session** at `idle`, and from `ended` **both** "Start new session" (reset to
+  $0 via `start()`) and "Resume" (continue the frozen total via `resume()`). The
+  `ended` dead-end is gone. Live-verified in mock dev (idle→running→ended→Resume
+  continued 11→21s).
 - **Found:** live in-Zoom test (2026-06-05, real mode). Thomas: "no way to resume
   after 'end session'."
 - **What:** The session state machine has no exit from `ended`. In
