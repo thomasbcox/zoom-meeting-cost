@@ -47,6 +47,12 @@ meter back. This needs recording so it isn't assumed solved.
   `sessionActions.start()`) **and** "Resume" (continue the frozen total via
   `sessionActions.resume()`). Pause / Resume-counting / End for
   running/paused are preserved unchanged.
+- **Documented overlay-button behavior (decision, no behavior change):** "Show cost
+  on video" implicitly starts a session ONLY from `idle` (the original primary start
+  path). From `ended` it deliberately does NOT restart — it shows the frozen final
+  total on the camera; the explicit Start new / Resume controls own restarting (the
+  overlay button is visibility, the session controls are lifecycle). Recorded as a
+  comment at the source (`App.jsx` `startOverlay`); this is the only `App.jsx` change.
 
 **B — Bookkeeping (docs only):**
 - Update `reviews/backlog.md` #3 to reflect reality: Part A shipped, Part B
@@ -63,6 +69,14 @@ meter back. This needs recording so it isn't assumed solved.
   backlog correction.
 - **No fix for the overlay auto-recover** — this story only *records* it; the
   diagnostic/fix is a separate story.
+- **No confirm on "Start new session"** — it silently discards the ended session's
+  total. The presenter ended deliberately, so for this prototype a confirm dialog is
+  out of scope; noted here as a conscious decision, not an oversight.
+- **No styling change** for the two `primary` buttons that can co-occur at `idle`
+  ("Show cost on video" + "Start session"); both render fine, cosmetic only.
+- **No extraction of App's session engine into a testable reducer** — the
+  reset-vs-continue semantics are existing `sessionActions` behavior, covered by the
+  live verification below rather than a new unit test (avoids an invasive refactor).
 - No change to the session transition semantics themselves (`start` already resets
   elapsed+total; `resume` already continues them; `end` already freezes) — only
   which controls are *exposed*, and when.
@@ -94,8 +108,9 @@ meter back. This needs recording so it isn't assumed solved.
 6. Scope containment: run `git diff --name-only main...HEAD` and verify no files
    appear beyond `client/src/lib/sessionControls.js`,
    `client/src/lib/sessionControls.test.js`,
-   `client/src/components/PresenterControls.jsx`, `reviews/backlog.md`, and this
-   story file (`reviews/session-restart-controls.md`).
+   `client/src/components/PresenterControls.jsx`, `client/src/App.jsx`
+   (comment-only — documents the overlay-button behavior), `reviews/backlog.md`, and
+   this story file (`reviews/session-restart-controls.md`).
 
 ## Test notes
 
@@ -107,8 +122,8 @@ meter back. This needs recording so it isn't assumed solved.
   `sessionActions.start`, `resume` to `sessionActions.resume`. The reset-vs-continue
   semantics are the existing, unchanged `sessionActions` (start zeroes
   elapsed/total refs; resume re-arms the tick from the frozen refs), so exposing the
-  buttons is sufficient. Manual: from `ended`, "Start new session" shows $0 climbing;
-  "Resume" continues from the ended total.
+  buttons is sufficient — and confirmed live (see **Live verification** below), since
+  there is no jsdom for a render test.
 - **AC3:** `npm test && npm run build` green; existing `PresenterControls`-adjacent
   and cost/overlay tests unchanged.
 - **AC4/AC5:** read `reviews/backlog.md` — #3 reflects A/B/C reality; a new
@@ -125,3 +140,25 @@ meter back. This needs recording so it isn't assumed solved.
 2. **Resume-from-ended label.** I'll label the ended-state continue button
    "Resume" (vs "Resume counting" used for paused). Fine, or prefer one consistent
    label?
+
+_Both resolved at approval (2026-06-09): keep the explicit `idle` Start and the
+"Resume" label._
+
+## Live verification (2026-06-09, mock dev server, port 5173)
+
+AC2/AC3 verified end-to-end by driving the running app (accessibility-tree
+snapshots), since there is no jsdom for a render test:
+
+- **idle** → the new **Start session** button renders; status `idle`, overlay hidden.
+- click **Start session** → status `running`, meter counting (`00:00:03`), Pause
+  counting + End session appear (the explicit-start path works — previously a session
+  could only start implicitly via the overlay button).
+- click **End session** → status `ended` with the "Session ended" badge, and the
+  formerly-dead state now shows **Start new session** + **Resume** (plus Show cost on
+  video). This is the fixed dead-end.
+- click **Resume** → status `running` again, elapsed **continued 00:00:11 → 00:00:21**
+  (not reset) — confirming Resume = continue and that the ended gap is not counted.
+- No browser console errors across the whole flow.
+
+(Start new session = `sessionActions.start`, which zeroes elapsed+total — the same
+reset the `idle` Start showed at `00:00:00`.)
