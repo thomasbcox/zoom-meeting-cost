@@ -144,26 +144,40 @@ story when picked up.
   via `sessionActions.start()` — and the meter counts again. Decide whether
   `ended` offers "start new" (reset) vs "resume" (continue) semantics.
 
-## Overlay auto-recover does not fire on camera off/on (live)
-- **Found:** live in-Zoom use (2026-06-09, Thomas). The auto-recover shipped in
-  `reviews/overlay-teardown-diagnostics.md` was meant to restore the camera overlay
-  automatically after the presenter toggles their camera off then on. **It does not
-  fire in practice** — the meter stays gone and the presenter still has to manually
-  toggle the cost-display button (Hide → Show) to bring it back.
-- **Repro:** start the overlay, turn the camera off, turn it back on → overlay does
-  not return; click "Hide from video" then "Show cost on video" to restore it.
-- **Suspects (for a diagnostic story):** the panel's `onMyMediaChange` subscription
-  may not be receiving events in the real client; or the off→on gating
-  (`reduceOverlayRecovery`) doesn't match the real event sequence; or re-running
-  `runRenderingContext` while the context is torn down is rejected. The shipped
-  `overlay-teardown` / `media-change` / `overlay-rearm:*` logs should be read from a
-  fresh live run to see which.
-- **When to do:** Next overlay diagnostic pass — the instrumentation to diagnose it
-  is already in place; this needs a live-log read, then a fix.
-- **Done looks like:** after a camera off→on with the overlay on, the meter returns
-  on its own (no manual Hide→Show), confirmed live with `overlay-rearm:*` in the log.
+## ~~Overlay auto-recover does not fire on camera off/on (live)~~ — DONE
+- **Done in:** `reviews/overlay-rearm-reopen.md` (shipped 2026-06-10, merge `774b6b7`).
+  **Confirmed working live** (Thomas, 2026-06-10): after a camera off→on with the
+  overlay on, the meter returns **on its own** — no manual Hide→Show.
+- **Root cause + fix:** a live log proved `onMyMediaChange` was not firing reliably in
+  the panel, so the panel now **polls `getVideoState()`** (every 1.5 s while the overlay
+  is on); on a detected off→on edge it **closes then reopens** the rendering context
+  (mirroring the manual Hide→Show). The dead event-recovery path was removed.
+- **Known limitation → tracked separately:** a *very brief* camera-off (shorter than the
+  poll interval) can slip the poll's sampling gap — see the next item.
+- **History:** originally found 2026-06-09; the first fix attempt
+  (`overlay-teardown-diagnostics`) used `onMyMediaChange` events, which did not fire in
+  the panel, so it never triggered. `overlay-rearm-reopen` replaced it with the poll.
 
-## RealZoom: `drawWebView` may require `webviewId`
+## Overlay auto-recover misses very-brief camera-off flickers
+- **Found:** live in-Zoom test (2026-06-10, Thomas), splitting off from the (now done)
+  auto-recover item above.
+- **What:** The overlay auto-recover polls `getVideoState()` every **1.5 s** while the
+  overlay is on and recovers on a sampled off→on edge. A camera-off shorter than the
+  poll interval can fall **between two polls** — the poll sees `video:true` before and
+  after and never samples the `false`, so no edge is detected and the meter stays gone
+  until the next genuine (longer) toggle or a manual Hide→Show. Observed once with a
+  ~1 s toggle: `media-change` events fired but no `overlay-rearm:*` followed.
+- **Why low priority:** a real "camera off for a moment, then back on" is comfortably
+  longer than 1.5 s and recovers fine; you have to toggle *deliberately* fast to hit
+  this, and it self-heals on the next normal toggle.
+- **Options when picked up (do NOT resurrect the flaky event path):**
+  - **Tighten the poll** to ~1 s / 750 ms — same reliable signal, smaller gap, a few
+    more (cheap) `getVideoState` calls. Simplest.
+  - Only if it proves necessary, *layer* an event trigger as a non-authoritative
+    extra — but `onMyMediaChange` has fired inconsistently in the panel (silent in one
+    live log, present in another), so it must never be the sole signal.
+- **Done looks like:** a fast (sub-second) camera off→on with the overlay on still
+  auto-recovers, with no regression to the normal-duration case.
 - **Deferred from:** advisor review (2026-06-04, Thomas's call — backlogged
   alongside `reviews/realmode-p1-fixes.md`).
 - **What:** `RealZoom.startCameraOverlay()` calls
