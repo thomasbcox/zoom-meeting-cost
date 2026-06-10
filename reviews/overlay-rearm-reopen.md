@@ -189,3 +189,17 @@ Fix delta reviewed this round (base e8b859a → HEAD): the approved Finding-1 fi
 `RealZoom.stopCameraOverlay()` wraps `closeRenderingContext()` in
 `_instrument('closeRenderingContext', …)` (`client/src/zoom/zoomAdapter.js`) + a test
 asserting the close log (`client/src/zoom/zoomAdapter.test.js`).
+
+## Codex review (2026-06-10, base e8b859a, HEAD a7ecdc0)
+
+**Summary (re-review):** Clean — **no findings**. The approved Finding-1 fix is
+correctly resolved: `RealZoom.stopCameraOverlay()` now instruments
+`closeRenderingContext` and the added test asserts the success log; no new issues in
+the delta (`git diff --check` clean).
+
+### Findings
+None.
+
+## Decisions (2026-06-10, re-review round)
+
+No findings to decide. Clean re-review.
