@@ -410,6 +410,17 @@ describe('RealZoom /api/log instrumentation', () => {
     expect(sdk.drawn).toEqual([]);
   });
 
+  it('logs closeRenderingContext success on stopCameraOverlay (the close half of recovery)', async () => {
+    const { a, logs } = withLog();
+    await a.init();
+    await a.stopCameraOverlay();
+    expect(logs.filter((l) => l.kind === 'zoom-overlay')).toContainEqual({
+      kind: 'zoom-overlay',
+      method: 'closeRenderingContext',
+      ok: true,
+    });
+  });
+
   it('logs a failure entry and still re-throws when runRenderingContext rejects', async () => {
     const { a, logs } = withLog({ renderRejects: true });
     await a.init();

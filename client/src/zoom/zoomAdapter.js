@@ -419,7 +419,10 @@ export class RealZoom {
   }
 
   async stopCameraOverlay() {
-    await this._sdk.closeRenderingContext();
+    // Instrumented so a live run logs the close — both the manual "Hide" and the
+    // close half of auto-recovery's close→reopen (lets the Railway log show
+    // closeRenderingContext before runRenderingContext). Re-throws on failure as before.
+    await this._instrument('closeRenderingContext', () => this._sdk.closeRenderingContext());
   }
 
   // Presenter camera on/off state, polled by the panel for overlay auto-recovery.
