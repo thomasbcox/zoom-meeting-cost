@@ -155,3 +155,22 @@ AC → file map:
 - **AC6** (gate green) → no product files; `npm test && npm run build`.
 - **AC7** (auto-recover live) → post-merge, deploy-observed.
 - **AC8** (scope) → no product files; `git diff --name-only main...HEAD`.
+
+## Codex review (2026-06-10, base main, HEAD e8b859a)
+
+**Summary:** One IMPORTANT observability gap; otherwise the change matches the spec.
+(Codex couldn't run the gate in its read-only sandbox — Vitest temp-write EPERM; the
+local gate is green.)
+
+### IMPORTANT
+
+1. **Auto-recovery cannot log the close half required by AC7** — `client/src/zoom/zoomAdapter.js:421`.
+   AC7 expects the Railway log to show close-then-reopen (`closeRenderingContext` then
+   `runRenderingContext`). Recovery calls `stopCameraOverlay()` before
+   `startCameraOverlay()`, but `RealZoom.stopCameraOverlay()` calls
+   `this._sdk.closeRenderingContext()` **uninstrumented** while only
+   `startCameraOverlay()` is instrumented — so the live log can show `overlay-rearm:*`
+   and `runRenderingContext` but **not** `closeRenderingContext`, so close-before-reopen
+   can't be verified.
+   *Suggestion:* instrument `stopCameraOverlay()` with
+   `_instrument('closeRenderingContext', () => this._sdk.closeRenderingContext())`.
