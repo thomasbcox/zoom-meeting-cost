@@ -143,3 +143,15 @@ overlay is on, and then close+reopen — no dependence on the dead event.
    recovery (keeping the diagnostic log). If you'd rather keep it as a dormant
    secondary trigger in case Zoom ever fires it, say so — but it adds a double-fire
    guard for no current benefit.
+
+## Build note (2026-06-10)
+
+AC → file map:
+- **AC1** (`getVideoState` adapter method Real+Mock; capability; full API doc) → `client/src/zoom/zoomAdapter.js`, `server/zoom-app-config.md`; tests `client/src/zoom/zoomAdapter.test.js`.
+- **AC2** (`reduceVideoPoll` rising-edge reducer) → `client/src/lib/overlayRecover.js`; test `client/src/lib/overlayRecover.test.js`.
+- **AC3** (`createVideoRecovery` close→reopen→post; best-effort close; swallowed getVideoState) → `client/src/lib/overlayRecover.js`; test same.
+- **AC4** (App polls `getVideoState` every 1.5s while overlayOn; `overlayOn` untouched) → `client/src/App.jsx`.
+- **AC5** (dead event-recovery removed; diagnostic log kept) → `client/src/lib/overlayRecover.js`, `client/src/zoom/zoomAdapter.js` (+ tests).
+- **AC6** (gate green) → no product files; `npm test && npm run build`.
+- **AC7** (auto-recover live) → post-merge, deploy-observed.
+- **AC8** (scope) → no product files; `git diff --name-only main...HEAD`.
