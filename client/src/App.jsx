@@ -11,7 +11,7 @@ import { selectActiveTotals } from './lib/cost.js';
 import { buildOverlayState } from './lib/overlayState.js';
 import { seedPresenterName } from './lib/presenterName.js';
 import { logLifecycle } from './lib/lifecycleLog.js';
-import { createMediaRecoveryHandler } from './lib/overlayRecover.js';
+import { createVideoRecovery } from './lib/overlayRecover.js';
 
 // The in-meeting SIDE PANEL: the presenter privately configures rates, sees a
 // live readout, and starts/stops the camera overlay. The overlay itself renders
@@ -103,9 +103,10 @@ export default function App({ adapter, self, initialParticipants = [] }) {
   const [overlayOn, setOverlayOn] = useState(false);
   const overlayOnRef = useRef(false);
   overlayOnRef.current = overlayOn;
-  // Pending overlay re-arm (set when the camera goes off while the overlay is on).
-  // Manual start/stop resets it so a stale pending can't re-arm across a hide/show.
-  const needsRearmRef = useRef(false);
+  // Last polled camera on/off state, for overlay auto-recovery. Seeded true when the
+  // overlay starts (the presenter is on-camera then), so the first poll doesn't read a
+  // phantom off→on transition.
+  const lastVideoOnRef = useRef(true);
 
   // Latest values for the interval/poster without re-arming effects.
   const liveRef = useRef({});
@@ -141,8 +142,9 @@ export default function App({ adapter, self, initialParticipants = [] }) {
     // "Resume" controls own restarting. So the overlay button is visibility; lifecycle
     // is the session controls. (session-restart-controls, 2026-06-09.)
     if (liveRef.current.status === 'idle') sessionActions.start();
-    // Manual (re)start: no teardown is pending, so clear any stale re-arm flag.
-    needsRearmRef.current = false;
+    // Manual (re)start: the presenter is on-camera now, so seed the poll baseline on
+    // so the auto-recover doesn't read a phantom off→on against a stale value.
+    lastVideoOnRef.current = true;
     await adapter?.startCameraOverlay?.();
     logLifecycle('start-overlay:context-started');
     setOverlayOn(true);
@@ -152,9 +154,6 @@ export default function App({ adapter, self, initialParticipants = [] }) {
 
   const stopOverlay = useCallback(async () => {
     await adapter?.stopCameraOverlay?.();
-    // Overlay hidden by the presenter: drop any pending re-arm so a later camera-on
-    // can't restore it without a fresh off→on while the overlay is on.
-    needsRearmRef.current = false;
     setOverlayOn(false);
   }, [adapter]);
 
@@ -184,26 +183,29 @@ export default function App({ adapter, self, initialParticipants = [] }) {
 
   // Auto-recover the camera overlay across a camera off/on. Turning the camera off
   // tears down Zoom's camera rendering context (destroying the overlay webview);
-  // turning it back on does NOT re-run our context, so the meter stays gone until
-  // re-armed. The handler tracks the off→on transition and, on a confirmed re-arm,
-  // re-runs startCameraOverlay() (what the presenter otherwise does by hand) and
-  // pushes a fresh snapshot. overlayOn/needsRearm live in refs so this effect arms
-  // once and the recovery decision is unit-tested in overlayRecover.test.js.
+  // turning it back on does NOT re-run our context, so the meter stays gone. We can't
+  // hear the camera return from onMyMediaChange (it doesn't fire in the panel — see
+  // overlay-rearm-reopen.md), so the panel POLLS getVideoState() and, on a detected
+  // off→on edge while the overlay is on, CLOSES then REOPENS the rendering context
+  // (what the presenter otherwise does by a manual Hide→Show). The poll runs only while
+  // the overlay is on; the decision + close/reopen are unit-tested in overlayRecover.
   useEffect(() => {
-    if (!adapter?.onMediaChange) return undefined;
-    const handle = createMediaRecoveryHandler({
+    if (!overlayOn || !adapter?.getVideoState) return undefined;
+    const recover = createVideoRecovery({
       getOverlayOn: () => overlayOnRef.current,
-      getNeedsRearm: () => needsRearmRef.current,
-      setNeedsRearm: (v) => {
-        needsRearmRef.current = v;
+      getLastVideoOn: () => lastVideoOnRef.current,
+      setLastVideoOn: (v) => {
+        lastVideoOnRef.current = v;
       },
+      getVideoState: () => adapter.getVideoState(),
+      stopCameraOverlay: () => adapter.stopCameraOverlay?.(),
       startCameraOverlay: () => adapter.startCameraOverlay?.(),
       postOverlay,
       log: logLifecycle,
     });
-    const unsub = adapter.onMediaChange(handle);
-    return () => unsub && unsub();
-  }, [adapter, postOverlay]);
+    const id = setInterval(recover, 1500);
+    return () => clearInterval(id);
+  }, [overlayOn, adapter, postOverlay]);
 
   // --- Presenter's own live readout (private; full detail) ------------------
   const readoutState = useMemo(

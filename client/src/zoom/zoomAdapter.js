@@ -10,7 +10,7 @@
 //   adapter.stopCameraOverlay()     -> stop rendering onto the camera feed
 //   adapter.postMessage(payload)    -> side panel -> camera context state push
 //   adapter.onMessage(cb)           -> camera context receives state; unsubscribe()
-//   adapter.onMediaChange(cb)       -> presenter camera off/on events; unsubscribe()
+//   adapter.getVideoState()         -> boolean (presenter camera on/off; polled)
 //   adapter.isMock                  -> boolean
 //
 // where Participant = { id, displayName, email? }
@@ -48,6 +48,9 @@ export const ZOOM_CAPABILITIES = [
   // info; both must also be enabled in the Marketplace dashboard.
   'drawParticipant',
   'onMyMediaChange',
+  // Presenter camera on/off, polled by the panel to auto-recover the overlay after a
+  // camera off→on (onMyMediaChange does not fire in the panel, so we poll this instead).
+  'getVideoState',
   // Side panel -> camera-overlay state push. In camera (Layers) mode the panel
   // calls postMessage directly and the inCamera instance receives via onMessage
   // (matching Zoom's official camera-mode sample) — NO connect()/onConnect handshake.
@@ -79,8 +82,9 @@ export class MockZoom {
     this.calls = [];
     this._msgSubs = new Set();
     this._lastMsg = null;
-    // Presenter media-change subscribers (camera off/on), for overlay auto-recovery.
-    this._mediaSubs = new Set();
+    // Presenter camera on/off state, polled by getVideoState() for overlay
+    // auto-recovery. Starts on (the presenter is on-camera when showing the overlay).
+    this._videoOn = true;
   }
 
   async init() {
@@ -142,18 +146,15 @@ export class MockZoom {
     return () => this._msgSubs.delete(cb);
   }
 
-  // --- Presenter media changes (mock: simulate camera off/on) -------------
-  onMediaChange(cb) {
-    this._mediaSubs.add(cb);
-    return () => this._mediaSubs.delete(cb);
+  // --- Presenter camera state (mock: settable; polled for auto-recovery) ---
+  async getVideoState() {
+    return this._videoOn;
   }
 
   // Prototype-only: simulate the presenter toggling their camera so the overlay
-  // auto-recovery path can be exercised in mock dev and tests. Mirrors the real
-  // onMyMediaChange shape ({ media: { video: { state } } }).
-  simulateCameraToggle(on) {
-    const evt = { media: { video: { state: !!on } }, timestamp: 0 };
-    for (const cb of this._mediaSubs) cb(evt);
+  // auto-recovery poll can be exercised in mock dev and tests.
+  setVideoOn(on) {
+    this._videoOn = !!on;
   }
 
   // --- Prototype-only controls (simulate Zoom join/leave events) ----------
@@ -232,8 +233,6 @@ export class RealZoom {
     this._participants = [];
     this._subs = new Set();
     this._msgSubs = new Set();
-    // Presenter media-change subscribers (camera off/on), for overlay auto-recovery.
-    this._mediaSubs = new Set();
     // Log only the FIRST successful postMessage (proves the bridge is live); steady-state
     // per-tick successes are silent. Failures always log (see postMessage).
     this._firstPostLogged = false;
@@ -323,11 +322,14 @@ export class RealZoom {
     // background swap), killing the overlay webview. Log each media event (shape only,
     // never content) via the lifecycle channel so a live run can line a media toggle up
     // against the overlay-teardown log. No behavior change — purely an observer.
+    // Diagnostic only. A live log proved onMyMediaChange does NOT fire in the panel
+    // (self-media events reach only the inCamera instance, which Zoom destroys on
+    // camera-off), so overlay auto-recovery does NOT depend on it — the panel polls
+    // getVideoState() instead. This subscription is kept purely as observability (and
+    // the capability still feeds drawParticipant); the log records shape only.
     if (typeof sdk.onMyMediaChange === 'function') {
       sdk.onMyMediaChange((evt) => {
         logLifecycle('media-change', summarizeMediaEvent(evt), this._log);
-        // Fan out to app subscribers (overlay auto-recovery re-arms on camera off→on).
-        for (const cb of this._mediaSubs) cb(evt);
       });
     }
 
@@ -420,6 +422,14 @@ export class RealZoom {
     await this._sdk.closeRenderingContext();
   }
 
+  // Presenter camera on/off state, polled by the panel for overlay auto-recovery.
+  // getVideoState() resolves to { video: boolean } (false = off); normalize to the
+  // boolean. Requires the getVideoState capability (config + Marketplace Add API).
+  async getVideoState() {
+    const res = await this._sdk.getVideoState();
+    return !!res?.video;
+  }
+
   // Resolve the presenter's own participantUUID for drawParticipant. Prefer the
   // UUID from getUserContext(); fall back to matching self's name against the
   // refreshed participant list (whose id is already the participantUUID).
@@ -462,13 +472,6 @@ export class RealZoom {
   onMessage(cb) {
     this._msgSubs.add(cb);
     return () => this._msgSubs.delete(cb);
-  }
-
-  // Subscribe to presenter media changes (camera off/on). Wired to onMyMediaChange
-  // in init(); the camera-overlay auto-recovery uses this to re-arm after a toggle.
-  onMediaChange(cb) {
-    this._mediaSubs.add(cb);
-    return () => this._mediaSubs.delete(cb);
   }
 
   async _refresh() {
