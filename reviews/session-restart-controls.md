@@ -173,3 +173,19 @@ AC → file map:
 - **AC5** (backlog item recording overlay auto-recover gap) → `reviews/backlog.md`.
 - **AC6** (scope containment) → no product files; `git diff --name-only main...HEAD`.
 - **Documented overlay-button behavior** (comment-only) → `client/src/App.jsx`.
+
+## Codex review (2026-06-10, base main, HEAD b387ff6)
+
+**Summary:** Clean — **no findings**. The changes match the approved spec: the
+ended-state controls (Start new + Resume) are exposed as required, idle/running/paused
+behavior is preserved, scope is contained to the allowed files, and the backlog
+bookkeeping (#3 reality + auto-recover gap) is present. (Codex could not run `npm test`
+in its read-only sandbox — Vite temp-write EPERM — an environment limit, not a branch
+finding; the local gate is green.)
+
+### Findings
+None.
+
+## Decisions (2026-06-10)
+
+No findings to decide. Clean review.
