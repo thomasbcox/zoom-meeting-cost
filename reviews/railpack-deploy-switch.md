@@ -104,3 +104,13 @@ deferral currently lives only on the closed PR; it should be tracked in the back
    explicit `npm ci --include=dev` in `buildCommand`). If you'd rather de-risk the very
    first Railpack build proactively, I can add that — but it may be redundant with
    Railpack's defaults. Default: verify on deploy, fix only if it fails.
+
+## Build note (2026-06-10)
+
+AC → file map:
+- **AC1** (builder NIXPACKS → RAILPACK; build/start/health unchanged) → `railway.json`.
+- **AC2** (local build unaffected; gate green; dist produced) → no product files; `npm test && npm run build`.
+- **AC3** (README names the Railpack builder) → `README.md`.
+- **AC4** (backlog item for deferred esbuild/vite bump) → `reviews/backlog.md`.
+- **AC5** (Railpack deploy healthy) → post-merge, deploy-observed; no repo file.
+- **AC6** (scope containment) → no product files; `git diff --name-only main...HEAD`.
