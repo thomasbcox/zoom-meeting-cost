@@ -13,6 +13,7 @@ describe('ZOOM_CAPABILITIES', () => {
       'drawWebView',
       'drawParticipant',
       'onMyMediaChange',
+      'getVideoState',
       'clearWebView',
       'closeRenderingContext',
       'postMessage',
@@ -196,10 +197,14 @@ function makeFakeSdk({
   renderTarget = { width: 1280, height: 720 },
   selfParticipantUUID = 'self-uuid',
   contextValue = 'inMeeting',
+  videoOn = true,
 } = {}) {
   return {
     posted: [],
     drawn: [],
+    async getVideoState() {
+      return { video: videoOn };
+    },
     async config() {
       return { media: { renderTarget } };
     },
@@ -405,6 +410,17 @@ describe('RealZoom /api/log instrumentation', () => {
     expect(sdk.drawn).toEqual([]);
   });
 
+  it('logs closeRenderingContext success on stopCameraOverlay (the close half of recovery)', async () => {
+    const { a, logs } = withLog();
+    await a.init();
+    await a.stopCameraOverlay();
+    expect(logs.filter((l) => l.kind === 'zoom-overlay')).toContainEqual({
+      kind: 'zoom-overlay',
+      method: 'closeRenderingContext',
+      ok: true,
+    });
+  });
+
   it('logs a failure entry and still re-throws when runRenderingContext rejects', async () => {
     const { a, logs } = withLog({ renderRejects: true });
     await a.init();
@@ -506,54 +522,30 @@ describe('RealZoom onMyMediaChange diagnostics', () => {
   });
 });
 
-describe('adapter.onMediaChange fan-out (overlay auto-recovery signal)', () => {
-  it('RealZoom delivers each onMyMediaChange event to onMediaChange subscribers', async () => {
-    const sdk = makeFakeSdk();
-    const a = new RealZoom(sdk);
-    await a.init();
+describe('adapter.getVideoState (polled camera state for overlay auto-recovery)', () => {
+  it('RealZoom normalizes sdk.getVideoState() { video } to a boolean', async () => {
+    const on = new RealZoom(makeFakeSdk({ videoOn: true }));
+    await on.init();
+    expect(await on.getVideoState()).toBe(true);
 
-    const received = [];
-    const unsub = a.onMediaChange((evt) => received.push(evt));
-
-    const off = { media: { video: { state: false } }, timestamp: 1 };
-    const on = { media: { video: { state: true } }, timestamp: 2 };
-    sdk.fireMediaChange(off);
-    sdk.fireMediaChange(on);
-    expect(received).toEqual([off, on]);
-
-    unsub();
-    sdk.fireMediaChange(on);
-    expect(received).toHaveLength(2); // no delivery after unsubscribe
+    const off = new RealZoom(makeFakeSdk({ videoOn: false }));
+    await off.init();
+    expect(await off.getVideoState()).toBe(false);
   });
 
-  it('RealZoom still emits the media-change diagnostic log alongside the fan-out', async () => {
-    const logs = [];
-    const sdk = makeFakeSdk();
-    const a = new RealZoom(sdk, { log: (p) => logs.push(p) });
-    await a.init();
-    const received = [];
-    a.onMediaChange((evt) => received.push(evt));
-
-    sdk.fireMediaChange({ media: { video: { state: true } } });
-    expect(received).toHaveLength(1); // subscriber fired
-    expect(logs.some((l) => l.event === 'media-change')).toBe(true); // log still emitted
-  });
-
-  it('MockZoom.simulateCameraToggle fans a video on/off event to subscribers', () => {
+  it('MockZoom.getVideoState reflects setVideoOn (settable for tests/dev)', async () => {
     const a = new MockZoom();
-    const received = [];
-    const unsub = a.onMediaChange((evt) => received.push(evt));
+    expect(await a.getVideoState()).toBe(true); // on-camera by default
+    a.setVideoOn(false);
+    expect(await a.getVideoState()).toBe(false);
+    a.setVideoOn(true);
+    expect(await a.getVideoState()).toBe(true);
+  });
 
-    a.simulateCameraToggle(false);
-    a.simulateCameraToggle(true);
-    expect(received).toEqual([
-      { media: { video: { state: false } }, timestamp: 0 },
-      { media: { video: { state: true } }, timestamp: 0 },
-    ]);
-
-    unsub();
-    a.simulateCameraToggle(true);
-    expect(received).toHaveLength(2);
+  it('the dead event-recovery API is gone (onMediaChange / simulateCameraToggle removed)', () => {
+    const a = new MockZoom();
+    expect(a.onMediaChange).toBeUndefined();
+    expect(a.simulateCameraToggle).toBeUndefined();
   });
 });
 
