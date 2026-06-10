@@ -100,10 +100,10 @@ SDK capabilities) and `server/.env.example` for OAuth credentials. Set
 
 ## Deploy to Railway (from GitHub)
 
-The repo is deploy-ready: `railway.json` declares the build (`npm run build`),
-start (`npm start`), and a health check at `/api/health`. The server boots with
-**no committed `.env`** — config comes from environment variables you set in the
-Railway dashboard.
+The repo is deploy-ready: `railway.json` selects Railway's **Railpack** builder and
+declares the build (`npm run build`), start (`npm start`), and a health check at
+`/api/health`. The server boots with **no committed `.env`** — config comes from
+environment variables you set in the Railway dashboard.
 
 1. Create a Railway project and **Deploy from GitHub repo** (this repo); pushes to
    `main` then build and deploy automatically.

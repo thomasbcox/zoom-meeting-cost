@@ -3,6 +3,27 @@
 Deferred work, tracked so it isn't lost. Each item becomes its own `/frame`
 story when picked up.
 
+## esbuild/vite security bump (dev-only advisory)
+- **Deferred from:** Dependabot PR #23, closed 2026-06-10 (Thomas's call).
+- **What:** A dev-server **esbuild** advisory (esbuild ≤ 0.24.2) reaches the repo
+  transitively through **Vite**. The patched esbuild (`≥ 0.25`) requires Vite 6+
+  (Vite 5.4.x ships esbuild 0.21.x). The bump is **deferred, not urgent**: esbuild is
+  a *devDependency*, so `npm audit --omit=dev` reports **0 production vulnerabilities**
+  — the issue only affects running the local dev server on an untrusted network.
+- **Why PR #23 was closed (not merged):** it was malformed — `npm ci` failed because
+  `client/package.json` pinned `vite@^8.0.16` while the committed lockfile resolved
+  `6.4.2` (manifest ↔ lockfile out of sync; missing `vite@8`/`rolldown`/`lightningcss`).
+  It also overshot to a bleeding-edge Vite 8 (rolldown) when the fix only needs esbuild
+  ≥ 0.25 via Vite 6.
+- **Verified clean path (local, 2026-06-10):** reconciling to **Vite 6.4.2 + esbuild
+  0.25.12** (a regenerated, consistent lockfile) passes `npm test && npm run build`
+  with **0 vulnerabilities**.
+- **Done looks like:** `client` devDependency `vite` bumped to a consistent `^6` (e.g.
+  `^6.4.2`) with a regenerated lockfile that `npm ci` accepts; esbuild resolves to
+  `≥ 0.25`; the gate stays green. **Do it ideally alongside a CI job** (`npm ci` + the
+  test suite on PRs) so future Dependabot PRs are auto-gated — a CI `npm ci` would have
+  caught PR #23's broken lockfile automatically. See backlog **#3 Part C**.
+
 ## Rate-table memory across meetings + harvest attendee names into it
 - **Requested:** 2026-06-08 (Thomas).
 - **What:** Make the per-participant rate table grow from the people you actually
