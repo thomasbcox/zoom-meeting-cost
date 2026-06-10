@@ -114,3 +114,17 @@ AC → file map:
 - **AC4** (backlog item for deferred esbuild/vite bump) → `reviews/backlog.md`.
 - **AC5** (Railpack deploy healthy) → post-merge, deploy-observed; no repo file.
 - **AC6** (scope containment) → no product files; `git diff --name-only main...HEAD`.
+
+## Codex review (2026-06-10, base main, HEAD 4fab4f5)
+
+**Summary:** Clean — **no findings**. The branch touches only the AC6-allowed files,
+switches `railway.json` to `RAILPACK` without changing build/start/health/restart,
+updates the README, and records the deferred esbuild/vite backlog item. (Codex did not
+run the gate in its read-only sandbox; AC5 is explicitly post-merge deploy verification.)
+
+### Findings
+None.
+
+## Decisions (2026-06-10)
+
+No findings to decide. Clean review.
