@@ -64,6 +64,16 @@ story when picked up.
   documents; CSP verified to still render in the Zoom client.
 
 ## Secret-leak guardrails — gitleaks + GitHub non-provider scan
+- **STATUS (2026-06-09):** **Part A DONE** — the local pre-commit secret scanner
+  shipped and merged (`reviews/secret-scan-guardrails.md`): a self-contained
+  detector (`scripts/secret-scan/`), a tracked `.githooks/pre-commit`, gate wiring,
+  and a guarded `postinstall` activating `core.hooksPath`. **Part B PENDING a manual
+  step** — `secret_scanning_non_provider_patterns` is feature-gated; the REST API
+  returns 200 but silently leaves it disabled, so it requires a one-click **GitHub
+  UI toggle by Thomas** (repo *Settings → Code security → Secret scanning → "Scan
+  for non-provider patterns"*). **Part C (CI Action) + a pre-push hook: NOT
+  pursued** (2026-06-09, Thomas — bookkeeping only). So the only open work is
+  Thomas's one UI click for B.
 - **Deferred from:** `reviews/zoom-cred-fingerprint.md` post-mortem (2026-06-04,
   Thomas's call). Prompted by a live Zoom client secret getting committed/pushed
   in a test fixture (Codex caught it; secret rotated).
@@ -104,6 +114,25 @@ story when picked up.
   fresh session — e.g. a "Start new session" button that resets elapsed + total
   via `sessionActions.start()` — and the meter counts again. Decide whether
   `ended` offers "start new" (reset) vs "resume" (continue) semantics.
+
+## Overlay auto-recover does not fire on camera off/on (live)
+- **Found:** live in-Zoom use (2026-06-09, Thomas). The auto-recover shipped in
+  `reviews/overlay-teardown-diagnostics.md` was meant to restore the camera overlay
+  automatically after the presenter toggles their camera off then on. **It does not
+  fire in practice** — the meter stays gone and the presenter still has to manually
+  toggle the cost-display button (Hide → Show) to bring it back.
+- **Repro:** start the overlay, turn the camera off, turn it back on → overlay does
+  not return; click "Hide from video" then "Show cost on video" to restore it.
+- **Suspects (for a diagnostic story):** the panel's `onMyMediaChange` subscription
+  may not be receiving events in the real client; or the off→on gating
+  (`reduceOverlayRecovery`) doesn't match the real event sequence; or re-running
+  `runRenderingContext` while the context is torn down is rejected. The shipped
+  `overlay-teardown` / `media-change` / `overlay-rearm:*` logs should be read from a
+  fresh live run to see which.
+- **When to do:** Next overlay diagnostic pass — the instrumentation to diagnose it
+  is already in place; this needs a live-log read, then a fix.
+- **Done looks like:** after a camera off→on with the overlay on, the meter returns
+  on its own (no manual Hide→Show), confirmed live with `overlay-rearm:*` in the log.
 
 ## RealZoom: `drawWebView` may require `webviewId`
 - **Deferred from:** advisor review (2026-06-04, Thomas's call — backlogged

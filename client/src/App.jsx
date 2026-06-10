@@ -135,6 +135,11 @@ export default function App({ adapter, self, initialParticipants = [] }) {
     // instance did not survive runRenderingContext (the sender died); if both log but no
     // postMessage follows, the bug is downstream of the send call.
     logLifecycle('start-overlay:begin', { status: liveRef.current.status });
+    // Showing the overlay implicitly starts a session ONLY from idle (the original,
+    // primary start path). From `ended` it deliberately does NOT restart — it shows
+    // the frozen final total on the camera feed; the explicit "Start new session" /
+    // "Resume" controls own restarting. So the overlay button is visibility; lifecycle
+    // is the session controls. (session-restart-controls, 2026-06-09.)
     if (liveRef.current.status === 'idle') sessionActions.start();
     // Manual (re)start: no teardown is pending, so clear any stale re-arm flag.
     needsRearmRef.current = false;
