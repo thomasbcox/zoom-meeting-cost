@@ -174,3 +174,7 @@ local gate is green.)
    can't be verified.
    *Suggestion:* instrument `stopCameraOverlay()` with
    `_instrument('closeRenderingContext', () => this._sdk.closeRenderingContext())`.
+
+## Decisions (2026-06-10)
+
+- **Finding 1 (IMPORTANT — close half uninstrumented):** **FIX.** Thomas: "Fix." Wrap `RealZoom.stopCameraOverlay()`'s `closeRenderingContext()` in `_instrument('closeRenderingContext', …)` so the close logs `ok:true` (makes AC7's close-then-reopen verifiable in the live log; manual Hide gains a close log too). Add a test. Behavior unchanged.
