@@ -182,3 +182,10 @@ local gate is green.)
 ## Fixes (2026-06-10)
 
 - **Finding 1 (close half uninstrumented):** `RealZoom.stopCameraOverlay()` now wraps `closeRenderingContext()` in `_instrument('closeRenderingContext', …)`, so the close logs `{kind:'zoom-overlay', method:'closeRenderingContext', ok:true}` (re-throws on failure as before — behavior unchanged). AC7's live log can now show `closeRenderingContext` before `runRenderingContext`; manual "Hide" gains a close log too. Added a `zoomAdapter.test.js` case asserting the close log. Gate green (145 client tests).
+
+## Build note (2026-06-10, re-review round)
+
+Fix delta reviewed this round (base e8b859a → HEAD): the approved Finding-1 fix —
+`RealZoom.stopCameraOverlay()` wraps `closeRenderingContext()` in
+`_instrument('closeRenderingContext', …)` (`client/src/zoom/zoomAdapter.js`) + a test
+asserting the close log (`client/src/zoom/zoomAdapter.test.js`).
