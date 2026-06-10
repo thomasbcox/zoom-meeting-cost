@@ -162,3 +162,14 @@ snapshots), since there is no jsdom for a render test:
 
 (Start new session = `sessionActions.start`, which zeroes elapsed+total — the same
 reset the `idle` Start showed at `00:00:00`.)
+
+## Build note (2026-06-09)
+
+AC → file map:
+- **AC1** (pure `sessionControls(status)` helper) → `client/src/lib/sessionControls.js`; test `client/src/lib/sessionControls.test.js`.
+- **AC2** (PresenterControls renders from it: idle Start; ended Start new + Resume) → `client/src/components/PresenterControls.jsx`; verified live (see Live verification).
+- **AC3** (no regression; gate green) → no product files; the full `npm test && npm run build`.
+- **AC4** (backlog #3 reality: A shipped, B pending manual toggle, C/pre-push not pursued) → `reviews/backlog.md`.
+- **AC5** (backlog item recording overlay auto-recover gap) → `reviews/backlog.md`.
+- **AC6** (scope containment) → no product files; `git diff --name-only main...HEAD`.
+- **Documented overlay-button behavior** (comment-only) → `client/src/App.jsx`.
