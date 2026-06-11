@@ -5,15 +5,12 @@ import * as rateCrypto from './rateCrypto.js';
 
 // Per-presenter rate config persisted to a Railway volume, ENCRYPTED at rest. One JSON
 // file per uid under DATA_DIR (default /data); the file holds ONLY the rateCrypto
-// envelope (ciphertext) — plaintext never touches disk. All reads are defensive:
-// unknown / corrupt / undecryptable → defaults, never throws.
-
-export const DEFAULT_CONFIG = Object.freeze({
-  rateTable: [],
-  aliases: [],
-  defaultRate: 0,
-  multiplier: 1,
-});
+// envelope (ciphertext) — plaintext never touches disk.
+//
+// The server is a dumb, size-bounded blob store: it persists the presenter's config
+// object verbatim (the CLIENT owns the schema + defaults and merges on load), so adding
+// client config fields never needs a server change. Reads are defensive: missing /
+// corrupt / undecryptable → null (the caller falls back to client defaults), never throws.
 
 function dataDir() {
   return process.env.DATA_DIR || '/data';
@@ -26,30 +23,27 @@ function fileFor(uid) {
   return path.join(dataDir(), `rates-${safe}.json`);
 }
 
-// Shape-guard a config object (defensive against tampered/garbage persisted data).
-function sanitize(cfg) {
-  const c = cfg && typeof cfg === 'object' ? cfg : {};
-  return {
-    rateTable: Array.isArray(c.rateTable) ? c.rateTable : [],
-    aliases: Array.isArray(c.aliases) ? c.aliases : [],
-    defaultRate: Number.isFinite(Number(c.defaultRate)) ? Number(c.defaultRate) : 0,
-    multiplier: Number.isFinite(Number(c.multiplier)) ? Number(c.multiplier) : 1,
-  };
+// A plain JSON object (not array/null) or null. Guards stored + incoming data.
+export function asConfigObject(cfg) {
+  return cfg && typeof cfg === 'object' && !Array.isArray(cfg) ? cfg : null;
 }
 
+// Returns the stored config object, or null if there's nothing usable for this uid.
 export async function load(uid) {
   try {
     const raw = await fs.readFile(fileFor(uid), 'utf8');
     const plaintext = rateCrypto.decrypt(uid, JSON.parse(raw));
-    return sanitize(JSON.parse(plaintext));
+    return asConfigObject(JSON.parse(plaintext));
   } catch {
-    // Missing file, corrupt JSON, wrong key, tampering — all degrade to defaults.
-    return { ...DEFAULT_CONFIG };
+    return null;
   }
 }
 
+// Persist the config object for uid (encrypted). Returns the stored object, or null if
+// the input wasn't a plain object (the caller should 400).
 export async function save(uid, config) {
-  const cfg = sanitize(config);
+  const cfg = asConfigObject(config);
+  if (!cfg) return null;
   const envelope = rateCrypto.encrypt(uid, JSON.stringify(cfg));
   await fs.mkdir(dataDir(), { recursive: true });
   await fs.writeFile(fileFor(uid), JSON.stringify(envelope), 'utf8');

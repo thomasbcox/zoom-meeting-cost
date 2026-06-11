@@ -134,10 +134,11 @@ export function createApp({
 
   app.put('/api/rates', requirePresenter, async (req, res, next) => {
     try {
-      // rateStore.save sanitizes the body (shape + numeric coercion) before encrypting.
-      res.json(await rateStore.save(req.uid, req.body));
+      const saved = await rateStore.save(req.uid, req.body);
+      if (!saved) return res.status(400).json({ error: 'invalid-config' });
+      return res.json(saved);
     } catch (err) {
-      next(err);
+      return next(err);
     }
   });
 

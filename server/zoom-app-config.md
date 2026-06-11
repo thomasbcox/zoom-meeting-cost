@@ -38,6 +38,9 @@ Add **every** API below under **Features → Zoom App SDK → Add APIs**. This l
 - `getMeetingContext` — meeting info
 - `getMeetingParticipants` — read display names / the participant list (host/co-host)
 - `getUserContext` — the presenter's own identity (seeds the name + base-video UUID)
+- `getAppContext` — the signed Zoom app context; the client sends it to the server,
+  which decrypts it (with the client secret) to the presenter's stable `uid` to key the
+  encrypted server-side rate store (see `server/src/zoom/appContext.js`)
 - `onParticipantChange` — live participant join/leave/rename
 
 **Camera overlay (Layers API)**

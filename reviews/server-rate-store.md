@@ -125,8 +125,10 @@ wiring the context from the client/load to the server.
    `server/src/zoom/appContext.js` (app-context decrypt → uid), `server/src/app.js`,
    `client/src/state/usePresenterStore.js`, `client/src/components/PresenterControls.jsx`
    (the UI disclaimer), `client/src/zoom/zoomAdapter.js` (+ test — the `getAppContext`
-   capability + adapter method for the chosen transport), `client/src/lib/postLog.js` or a
-   small client http helper if needed, the new server tests, `README.md`, and this story.
+   capability + adapter method for the chosen transport), `client/src/lib/ratesApi.js`
+   (+ test — the client http helper), `server/zoom-app-config.md` (keep the capability
+   doc mirroring `ZOOM_CAPABILITIES` now that `getAppContext` is added), the new server
+   tests, `README.md`, and this story.
 
 > **Transport (decided 2026-06-10):** the client calls `getAppContext()` and sends the
 > context blob in an `x-zoom-app-context` request header on each `/api/rates` call; the

@@ -57,14 +57,18 @@ test('GET → defaults, then PUT → GET round-trips for the authenticated prese
   const headers = { 'x-zoom-app-context': validContext(), 'content-type': 'application/json' };
   try {
     const empty = await (await fetch(base, { headers })).json();
-    assert.deepEqual(empty.rateTable, []);
+    assert.equal(empty, null); // no stored config yet → null; client uses its defaults
 
-    const cfg = { rateTable: [{ id: 'r1', name: 'Jane', rate: 95 }], aliases: [], defaultRate: 125, multiplier: 1 };
+    const cfg = { rateTable: [{ id: 'r1', name: 'Jane', rate: 95 }], aliases: [], defaultRate: 125, multiplier: 1, costModel: 'perParticipant' };
     const putRes = await fetch(base, { method: 'PUT', headers, body: JSON.stringify(cfg) });
     assert.equal(putRes.status, 200);
 
     const got = await (await fetch(base, { headers })).json();
     assert.deepEqual(got, cfg);
+
+    // A non-object body is rejected.
+    const bad = await fetch(base, { method: 'PUT', headers, body: JSON.stringify('nope') });
+    assert.equal(bad.status, 400);
   } finally {
     server.close();
   }

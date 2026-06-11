@@ -14,6 +14,7 @@ describe('ZOOM_CAPABILITIES', () => {
       'drawParticipant',
       'onMyMediaChange',
       'getVideoState',
+      'getAppContext',
       'clearWebView',
       'closeRenderingContext',
       'postMessage',
@@ -198,12 +199,16 @@ function makeFakeSdk({
   selfParticipantUUID = 'self-uuid',
   contextValue = 'inMeeting',
   videoOn = true,
+  appContext = 'signed-context-blob',
 } = {}) {
   return {
     posted: [],
     drawn: [],
     async getVideoState() {
       return { video: videoOn };
+    },
+    async getAppContext() {
+      return { context: appContext };
     },
     async config() {
       return { media: { renderTarget } };
@@ -546,6 +551,18 @@ describe('adapter.getVideoState (polled camera state for overlay auto-recovery)'
     const a = new MockZoom();
     expect(a.onMediaChange).toBeUndefined();
     expect(a.simulateCameraToggle).toBeUndefined();
+  });
+});
+
+describe('adapter.getAppContext (server identity blob)', () => {
+  it('RealZoom returns the SDK getAppContext().context string', async () => {
+    const a = new RealZoom(makeFakeSdk({ appContext: 'ctx-xyz' }));
+    await a.init();
+    expect(await a.getAppContext()).toBe('ctx-xyz');
+  });
+
+  it('MockZoom returns null (no real identity → client runs session-only)', async () => {
+    expect(await new MockZoom().getAppContext()).toBe(null);
   });
 });
 

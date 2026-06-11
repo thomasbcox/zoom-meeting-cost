@@ -24,16 +24,25 @@ after(async () => {
   await fs.rm(dir, { recursive: true, force: true });
 });
 
-test('save then load round-trips the config', async () => {
+test('save then load round-trips the full config verbatim (client owns the schema)', async () => {
   const cfg = {
     rateTable: [{ id: 'r1', name: 'Jane Smith', rate: 95 }],
     aliases: [{ id: 'a1', alias: 'Tom Cox', canonical: 'Thomas Cox' }],
     defaultRate: 125,
     multiplier: 1.25,
+    costModel: 'simple',
+    simpleAverageRate: 100,
+    simpleMultiplier: 1.1,
+    simpleUserCount: null,
   };
   const saved = await rateStore.save('uid-1', cfg);
   assert.deepEqual(saved, cfg);
   assert.deepEqual(await rateStore.load('uid-1'), cfg);
+});
+
+test('save rejects a non-object body (→ null, caller 400s)', async () => {
+  assert.equal(await rateStore.save('uid-x', 'not-an-object'), null);
+  assert.equal(await rateStore.save('uid-x', [1, 2, 3]), null);
 });
 
 test('the on-disk file is ciphertext, not plaintext', async () => {
@@ -49,16 +58,16 @@ test('the on-disk file is ciphertext, not plaintext', async () => {
   assert.ok(JSON.parse(raw).ct, 'file holds an encryption envelope');
 });
 
-test('an unknown uid loads safe defaults', async () => {
-  assert.deepEqual(await rateStore.load('never-saved'), rateStore.DEFAULT_CONFIG);
+test('an unknown uid loads null (caller falls back to client defaults)', async () => {
+  assert.equal(await rateStore.load('never-saved'), null);
 });
 
-test('a corrupt/undecryptable file loads defaults, never throws', async () => {
-  await rateStore.save('uid-corrupt', { rateTable: [], aliases: [], defaultRate: 1, multiplier: 1 });
+test('a corrupt/undecryptable file loads null, never throws', async () => {
+  await rateStore.save('uid-corrupt', { rateTable: [], aliases: [] });
   const files = await fs.readdir(dir);
   const f = path.join(dir, files.find((x) => x.includes(Buffer.from('uid-corrupt').toString('base64url'))));
   await fs.writeFile(f, '{ not valid json', 'utf8');
-  assert.deepEqual(await rateStore.load('uid-corrupt'), rateStore.DEFAULT_CONFIG);
+  assert.equal(await rateStore.load('uid-corrupt'), null);
 });
 
 test('a uid cannot be used to escape DATA_DIR (path traversal)', async () => {
