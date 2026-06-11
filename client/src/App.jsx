@@ -43,7 +43,7 @@ export default function App({ adapter, self, initialParticipants = [] }) {
   }, [adapter]);
 
   // --- Presenter private config --------------------------------------------
-  const { config, overrides, actions } = usePresenterStore();
+  const { config, overrides, actions } = usePresenterStore(adapter);
 
   // --- Session + cost engine -----------------------------------------------
   const [session, setSession] = useState({ status: 'idle' });

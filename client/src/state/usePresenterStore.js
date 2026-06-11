@@ -1,15 +1,17 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-// The presenter's PRIVATE configuration. Persisted to localStorage so it
-// survives reloads. This data NEVER leaves the browser except as resolved,
-// sanitized aggregate numbers in the overlay payload (see lib/overlayState.js).
+import { loadRates, saveRates } from '../lib/ratesApi.js';
+
+// The presenter's PRIVATE configuration. Persisted to the SERVER (encrypted at rest,
+// keyed to the presenter's Zoom identity) — NOT localStorage, which isn't durable inside
+// the Zoom client. ⚠️ This means the rate table (names + estimated rates) leaves the
+// browser and is decryptable by the app operator (see the README / the in-app notice).
+// If the server is unreachable / unconfigured, the store runs session-only (no persistence).
 //
-//   rateTable : [{ id, name, rate }]      persistent best-guess rates
-//   aliases   : [{ id, alias, canonical }] persistent name aliases
-//   defaultRate, multiplier               persistent settings
-//   overrides : { [participantId]: rate } CURRENT MEETING ONLY (not persisted)
-
-const STORAGE_KEY = 'meeting-cost:presenter:v1';
+//   rateTable : [{ id, name, rate }]      best-guess rates (server-persisted)
+//   aliases   : [{ id, alias, canonical }] name aliases (server-persisted)
+//   defaultRate, multiplier, costModel, simple*  settings (server-persisted)
+//   overrides : { [participantId]: rate } CURRENT MEETING ONLY (never persisted)
 
 const DEFAULT_CONFIG = {
   rateTable: [
@@ -30,32 +32,37 @@ const DEFAULT_CONFIG = {
   simpleUserCount: null,
 };
 
-function loadPersisted() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { ...DEFAULT_CONFIG };
-    const parsed = JSON.parse(raw);
-    return { ...DEFAULT_CONFIG, ...parsed };
-  } catch {
-    return { ...DEFAULT_CONFIG };
-  }
-}
-
 let _seq = 100;
 const newId = (prefix) => `${prefix}${_seq++}`;
 
-export function usePresenterStore() {
-  const [persisted, setPersisted] = useState(loadPersisted);
+export function usePresenterStore(adapter) {
+  const [persisted, setPersisted] = useState(() => ({ ...DEFAULT_CONFIG }));
   // Overrides are intentionally NOT persisted — they belong to the live meeting.
   const [overrides, setOverrides] = useState({});
 
+  // Load the presenter's saved config from the server on boot (identity = Zoom app
+  // context). New user / mock / unreachable → keep the defaults. `hydrated` then gates
+  // saving so we don't echo the just-loaded value back.
+  const hydratedRef = useRef(false);
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(persisted));
-    } catch {
-      /* storage may be unavailable; non-fatal */
-    }
-  }, [persisted]);
+    let cancelled = false;
+    (async () => {
+      const server = await loadRates(adapter);
+      if (!cancelled && server) setPersisted((c) => ({ ...c, ...server }));
+      if (!cancelled) hydratedRef.current = true;
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [adapter]);
+
+  // Persist changes to the server, debounced. Best-effort: failures are swallowed in
+  // ratesApi (the app keeps working on session state).
+  useEffect(() => {
+    if (!hydratedRef.current) return undefined;
+    const id = setTimeout(() => saveRates(adapter, persisted), 800);
+    return () => clearTimeout(id);
+  }, [persisted, adapter]);
 
   const setDefaultRate = useCallback((rate) => {
     setPersisted((c) => ({ ...c, defaultRate: clampNum(rate, 0) }));

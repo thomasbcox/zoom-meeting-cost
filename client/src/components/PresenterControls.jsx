@@ -200,6 +200,12 @@ function RateTableEditor({ config, actions }) {
     <section className="panel">
       <h3>Private rate rules</h3>
       <p className="muted small">Best-guess hourly rates. Never shared with viewers.</p>
+      <p className="muted small" role="note">
+        ⚠️ Saved to the server, encrypted, and tied to your Zoom identity so it loads in
+        your future meetings. It is <strong>not</strong> end-to-end encrypted — the app
+        operator can decrypt it. Don&rsquo;t enter anything you wouldn&rsquo;t want stored
+        server-side.
+      </p>
       <table className="edit-table">
         <tbody>
           {config.rateTable.map((r) => (

@@ -3,6 +3,9 @@ import { fileURLToPath } from 'node:url';
 import express from 'express';
 
 import { createOAuthRouter, zoomConfigured } from './zoom/oauth.js';
+import { resolveUid } from './zoom/appContext.js';
+import { isConfigured as rateStoreConfigured } from './store/rateCrypto.js';
+import * as rateStore from './store/rateStore.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -67,7 +70,8 @@ export function createApp({
   // them — this is what unblocks rendering inside the Zoom client.
   app.use(securityHeaders);
 
-  app.use(express.json());
+  // Bounded JSON body — the rate config is small; cap it so a PUT can't be huge.
+  app.use(express.json({ limit: '100kb' }));
 
   app.use((req, _res, next) => {
     // Log the path only — never req.url. The Zoom OAuth redirect arrives as
@@ -96,6 +100,47 @@ export function createApp({
     if (isError) console.error(line);
     else console.log(line);
     res.sendStatus(204);
+  });
+
+  // --- Server-backed rate store (encrypted, keyed to the Zoom presenter) -----
+  // Identity: the client sends its Zoom app context (getAppContext()) in the
+  // x-zoom-app-context header; we decrypt it → the presenter's stable uid.
+  //   503 → the store isn't configured (no RATE_STORE_KEY / client secret); the client
+  //         degrades to session-only state (no plaintext ever written).
+  //   401 → no valid app context (can't identify the presenter).
+  function requirePresenter(req, res, next) {
+    const clientSecret = process.env.ZOOM_CLIENT_SECRET;
+    const clientId = process.env.ZOOM_CLIENT_ID;
+    // Missing key / secret / client id → the store can't run safely. Fail closed (503);
+    // the client degrades to session-only rather than accepting an unverifiable identity.
+    if (!rateStoreConfigured() || !clientSecret || !clientId) {
+      return res.status(503).json({ error: 'rate-store-unconfigured' });
+    }
+    try {
+      req.uid = resolveUid(req.get('x-zoom-app-context'), { clientId, clientSecret });
+      return next();
+    } catch {
+      return res.status(401).json({ error: 'invalid-app-context' });
+    }
+  }
+
+  app.get('/api/rates', requirePresenter, async (req, res, next) => {
+    try {
+      res.json(await rateStore.load(req.uid));
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.put('/api/rates', requirePresenter, async (req, res, next) => {
+    try {
+      // Validate the config shape + numeric rates before persisting (don't trust the body).
+      const cfg = rateStore.validateConfig(req.body);
+      if (!cfg) return res.status(400).json({ error: 'invalid-config' });
+      return res.json(await rateStore.save(req.uid, cfg));
+    } catch (err) {
+      return next(err);
+    }
   });
 
   // --- Zoom OAuth (scaffold; inert until configured) ------------------------

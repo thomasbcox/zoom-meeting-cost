@@ -11,6 +11,7 @@
 //   adapter.postMessage(payload)    -> side panel -> camera context state push
 //   adapter.onMessage(cb)           -> camera context receives state; unsubscribe()
 //   adapter.getVideoState()         -> boolean (presenter camera on/off; polled)
+//   adapter.getAppContext()         -> string|null (signed Zoom app context → server identity)
 //   adapter.isMock                  -> boolean
 //
 // where Participant = { id, displayName, email? }
@@ -34,6 +35,9 @@ import { logLifecycle } from '../lib/lifecycleLog.js';
 // in tests and kept in sync with server/zoom-app-config.md.
 export const ZOOM_CAPABILITIES = [
   'getRunningContext',
+  // Signed app context → the presenter's stable Zoom uid, sent to the server (decrypted
+  // there) to key the encrypted rate store. Must also be added in the Marketplace dashboard.
+  'getAppContext',
   'getMeetingContext',
   'getMeetingParticipants',
   'getUserContext',
@@ -149,6 +153,11 @@ export class MockZoom {
   // --- Presenter camera state (mock: settable; polled for auto-recovery) ---
   async getVideoState() {
     return this._videoOn;
+  }
+
+  // No real Zoom identity in the mock → null, so the client runs session-only locally.
+  async getAppContext() {
+    return null;
   }
 
   // Prototype-only: simulate the presenter toggling their camera so the overlay
@@ -431,6 +440,13 @@ export class RealZoom {
   async getVideoState() {
     const res = await this._sdk.getVideoState();
     return !!res?.video;
+  }
+
+  // The signed Zoom app context blob; sent to the server (decrypted there with the client
+  // secret) to resolve the presenter's uid for the encrypted rate store. Null if absent.
+  async getAppContext() {
+    const res = await this._sdk.getAppContext();
+    return res?.context ?? null;
   }
 
   // Resolve the presenter's own participantUUID for drawParticipant. Prefer the

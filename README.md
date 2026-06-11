@@ -22,9 +22,17 @@ This is a **runnable browser prototype** with **Zoom-ready structure**:
 - The Zoom Apps SDK, OAuth, and Marketplace config are scaffolded behind
   adapters so you can flip to a real in-Zoom app without rewriting the app.
 
-The presenter's private rate table lives only in the browser (localStorage) and
-is **never sent to the server** — only resolved, sanitized shared state is
-broadcast.
+**Where the rate table lives (privacy).** The presenter's private rate table
+(names + estimated rates) is **stored on the server**, **encrypted at rest**
+(AES-256-GCM, a per-user key derived from the `RATE_STORE_KEY` secret + the
+presenter's Zoom user id), keyed to that Zoom identity so it loads in their future
+meetings. It is **not** end-to-end encrypted: the running server — and therefore the
+app **operator** — can decrypt it. A leaked volume/backup alone is useless without
+`RATE_STORE_KEY`. The data is never shared with meeting participants or other users
+(only resolved, sanitized aggregate numbers go to the overlay). `localStorage` is no
+longer used; if the server is unreachable/unconfigured the app runs **session-only**
+(no persistence). *(This is a deliberate departure from the earlier "browser-only"
+model, adopted because `localStorage` isn't durable inside the Zoom client.)*
 
 ## Quick start
 
@@ -113,10 +121,18 @@ environment variables you set in the Railway dashboard.
    - `ZOOM_REDIRECT_URI` — `https://<app>.up.railway.app/auth/callback` (runtime)
    - `VITE_USE_ZOOM` — `1` so the **build** inlines the real Zoom SDK (build-time;
      Vite bakes it into the bundle, so it must be set before/at build)
+   - `RATE_STORE_KEY` — a strong random secret used to encrypt each presenter's rate
+     table at rest (runtime). **Keep it separate from `ZOOM_CLIENT_SECRET`** so rotating
+     Zoom credentials doesn't make stored data undecryptable. If unset, the rate store
+     fails closed (`/api/rates` → `503`) and the app runs session-only.
+   - `DATA_DIR` — the mount path of a Railway **Volume** (e.g. `/data`) where the
+     encrypted rate files live. Attach a Volume to the service and point `DATA_DIR` at
+     it, or persistence is lost on redeploy.
    - **Do not set `PORT`** — Railway injects it; the server reads it automatically.
 3. In the **Zoom Marketplace** app, set the OAuth redirect URL and domain allow
-   list to the same `https://<app>.up.railway.app` host (see
-   `server/zoom-app-config.md`).
+   list to the same `https://<app>.up.railway.app` host, and add `getAppContext` under
+   **Features → Add APIs** (used to identify the presenter for the rate store) — see
+   `server/zoom-app-config.md`.
 4. Railway marks the deploy healthy once `GET /api/health` returns `200`.
 
 No secrets live in the repo — `server/.env.example` lists the keys with empty
