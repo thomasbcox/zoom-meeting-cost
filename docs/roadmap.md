@@ -31,6 +31,22 @@ single presenter, and as of 2026-06-10 the **persistence foundation is built**: 
 per-presenter rate config is stored **server-side, encrypted at rest**, keyed to the
 presenter's stable Zoom identity.
 
+> **🔴 Live-render risk (researched 2026-06-11, must verify before relying on the overlay).**
+> An active Zoom regression — **ZSEE-195647** — makes `runRenderingContext({view:'camera'})`
+> + `drawWebView()` resolve `ok:true` but render **nothing** on the camera feed on **Zoom
+> Workplace 6.7.8 / 7.0.2**; reported workaround (2026-05-02) is **`drawImage` instead of
+> `drawWebView`**. Our overlay is entirely `drawWebView`-based and logs success even when
+> blank — the exact false-success mode that has bitten us before. The overlay was confirmed
+> compositing live on 2026-06-10, so *some* client builds work, but a production user on an
+> affected build may see nothing. **Gate: a live client-version test matrix (+ a possible
+> `drawImage` fallback) before counting the overlay as production-ready.** Tracked as the
+> overlay live-test matrix story. (devforum thread 143155.)
+
+> **Research note (2026-06-11).** The ⚠️ external unknowns this roadmap flagged
+> (Zoom monetization, billing/MoR, Marketplace review, data-compliance, camera-API config)
+> were researched on 2026-06-11 and the answers folded into the phases below — see also
+> memory `reference-zoom-prod-unknowns-research`.
+
 The path to a paid product is therefore **mostly product + commerce work, not core
 re-architecture**:
 
@@ -38,11 +54,14 @@ re-architecture**:
 2. **Attendee harvesting + private-rule UX** (the highest-value paid hook; the matching/
    dedupe primitives already exist).
 3. **One Zoom app, backend entitlements** (free vs Pro), enforced server-side.
-4. **Billing via Stripe/Paddle** with webhook-driven entitlements (Zoom's own monetization
-   is ⚠️ unverified and, if used, is a fallback — not the primary recommendation).
+4. **Billing via a Merchant of Record** (Paddle or Stripe Managed Payments) with
+   webhook-driven entitlements. Zoom's own monetization is now confirmed **US-only**
+   (buyers + payment holder must be US, USD) → ruled out as the primary path for a global
+   launch.
 5. **Paid advanced features** (CSV, history, templates, team libraries) — most need **no
    new Zoom scopes**.
-6. **Marketplace hardening + privacy review** for production listing.
+6. **Marketplace hardening + privacy review** for production listing — incl. the
+   **mandatory Zoom deauthorization / data-compliance endpoint**.
 
 **Recommended MVP for first paid launch** is at the end of this document.
 
@@ -52,7 +71,8 @@ re-architecture**:
 
 | Area | Status | Evidence |
 |------|--------|----------|
-| Cost meter + overlay | ✅ shipped | camera Layers API; `buildOverlayState` emits aggregates only (`status, totalCost, costPerSecond, elapsedSeconds, attendees, currency, prefs:{}`) |
+| Cost meter + overlay | ✅ shipped · ⚠️ live-render risk | camera Layers API; `buildOverlayState` emits aggregates only (`status, totalCost, costPerSecond, elapsedSeconds, attendees, currency, prefs:{}`). ⚠️ `drawWebView` may silently no-op on Zoom Workplace 6.7.8/7.0.2 (ZSEE-195647) — see live-render callout above |
+| Overlay *updates* live (ticks) | ⚠️ unverified in real Zoom | `postMessage`→`onMessage` panel→camera fix shipped (`camera-overlay-message-bridge`, matches canonical sample); drawing/reappearance confirmed live 2026-06-10, but live number-ticking **not** explicitly confirmed — part of the live-test matrix |
 | **Privacy invariant** | ✅ holds | overlay payload carries **no** names/rates/aliases; `prefs:{}` "never carries private data" (`lib/overlayState.js`) |
 | Cost models | ✅ shipped | per-participant table **and** simple `N × rate × multiplier` (`lib/cost.js`, `usePresenterStore.js`) |
 | Matching / dedupe primitives | ✅ shipped | `lib/normalize.js`, `lib/matching.js` (`buildRateIndex`, `buildAliasIndex`, `resolveAll`); rate rules + aliases + per-meeting overrides |
@@ -103,6 +123,13 @@ under Marketplace → Add APIs; attach a Railway **Volume** + set `DATA_DIR`; se
   - **Privacy controls (the real gap):** `DELETE /api/rates` (delete my data) and
     `GET /api/rates/export` (export my data as JSON) — both `uid`-scoped. A short
     **data-retention + deletion** note in the README/privacy policy.
+  - **⚠️ Mandatory Zoom deauthorization / data-compliance endpoint (new, researched
+    2026-06-11):** published apps that store per-user data MUST handle Zoom's
+    deauthorization event. On uninstall Zoom POSTs `user_data_retention`; if `false` you
+    must **delete that `uid`'s data within 10 days** and POST confirmation to
+    `/oauth/data/compliance`. This is a *Zoom-required* webhook, distinct from the
+    user-facing DELETE above, and is a **hard publishing gate** (Phase 6). Wire it to the
+    same `uid`-scoped delete. (developers.zoom.us/docs/api/rest/data-compliance/)
   - **Backend data model** (currently a single encrypted blob per `uid`). Propose
     splitting as features grow (see *Data models* below) but **don't migrate yet** — the
     blob is fine until entitlements/history arrive.
@@ -174,23 +201,40 @@ under Marketplace → Add APIs; attach a Railway **Volume** + set `DATA_DIR`; se
 ### Phase 4 — Billing + webhook entitlements  🔜 / ⚠️
 
 - **Goal:** turn a payment into a Pro entitlement, reliably.
-- **⚠️ Verify first:** Zoom Marketplace has historically offered app **monetization**
-  (Zoom-managed billing / revenue share). **Confirm the current program, constraints, and
-  whether it fits in-meeting apps before relying on it.** It couples billing to Zoom and
-  the listing.
-- **Recommended (🔜):** **Stripe** (or Paddle as Merchant-of-Record for global tax) as
-  the billing system, decoupled from Zoom:
-  - Checkout → subscription; **webhook → update `entitlements`** for the `uid` (map the
-    Stripe customer/subscription to the Zoom `uid` at checkout).
-  - Backend is the single source of truth; the client only reads `GET /api/me`.
-  - Handle the lifecycle: `checkout.session.completed`, `customer.subscription.updated/
-    deleted`, payment failures, grace periods. Idempotent webhook processing.
+- **✅ Zoom-native monetization — researched, ruled out as primary (2026-06-11).** Zoom's
+  app monetization went GA Dec 2024 (15% Zoom cut, supports recurring monthly/annual,
+  mandatory free plan, paid ≥ $0.99) **but is US-only**: the payment-account holder *and*
+  all buyers must be US-based, USD only. That disqualifies it for a global launch. External
+  billing is permitted (no anti-circumvention clause in the Marketplace Terms — confirm in
+  the Developer Agreement before launch). Keep Zoom-native only as a future US-only option.
+- **✅ Recommended — a Merchant of Record (decoupled from Zoom):** **Paddle** (simplest)
+  or **Stripe Managed Payments**. Plain Stripe Billing makes *us* liable for global
+  VAT/GST/US-nexus remittance (Stripe Tax only calculates); an MoR absorbs that liability
+  for a higher fee — the right trade for a solo global launch.
+  - Checkout → subscription; **webhook → update `entitlements`** for the `uid`. Backend is
+    the single source of truth; the client only reads `GET /api/me`.
+  - **Link payment → `uid` server-side:** create the session from the context-derived
+    `uid` (never client-sent). Stripe: `client_reference_id` + copy `uid` into customer/
+    subscription `metadata`. Paddle: `custom_data` (auto-propagates transaction→subscription
+    — cleaner, single field).
+  - **Lifecycle:** Stripe `checkout.session.completed`, `customer.subscription.created/
+    updated/deleted`, `invoice.paid`, `invoice.payment_failed`, `charge.refunded`,
+    `charge.dispute.created`. Paddle `subscription.created/updated`(catch-all)`/canceled`,
+    `transaction.completed/paid`, `adjustment.*`. Signature-verify + dedupe by event id
+    (idempotent).
+- **⚠️ Webview checkout reality (researched):** hosted checkout opens in the **system
+  browser** via `zoomSdk.openUrl` (must allowlist the checkout domain), **not** in-frame;
+  3DS inside an embedded webview is unreliable. So **never grant entitlement on the
+  redirect/return** — the **webhook is the source of truth**, and the Zoom app **polls
+  `GET /api/me`** after the user returns. Show a "return to Zoom and refresh" success page.
 - **Data/API changes:** `subscriptions` record (provider, customer id, subscription id,
-  status, period); webhook endpoint with signature verification; idempotency keys.
-- **Risks / open questions:** ⚠️ Zoom-vs-Stripe choice (control/portability vs frictionless
-  in-Zoom purchase); MoR/tax (Paddle vs Stripe Tax); linking a Stripe customer to a Zoom
-  `uid` from inside the webview; refunds/chargebacks → downgrade.
-- **AC:** completing checkout flips the user to Pro within seconds via webhook; cancellation/
+  status, period); webhook endpoint with signature verification; idempotency keys; the
+  return-poll path on `GET /api/me`.
+- **Risks / open questions:** MoR fee vs control; refunds/chargebacks → downgrade policy;
+  Paddle exact retry window (unconfirmed); confirm `invoice.paid` vs `payment_succeeded`
+  for our Stripe API version if Stripe is chosen.
+- **AC:** completing checkout flips the user to Pro within seconds via webhook (not via
+  redirect); the returning webview reflects Pro by polling `GET /api/me`; cancellation/
   failed payment downgrades to free at period end; replayed webhooks are idempotent; no
   client-trusted entitlement.
 
@@ -215,7 +259,24 @@ under Marketplace → Add APIs; attach a Railway **Volume** + set `DATA_DIR`; se
 ### Phase 6 — Marketplace hardening + privacy review + production readiness  🔜
 
 - **Goal:** pass Zoom Marketplace review and run safely in production.
+- **✅ Review process (researched 2026-06-11):** public apps go through 3 stages —
+  submission/branding, functionality/compliance, and a **Zoom-run security review**
+  (OWASP Top 10, web-app scan, **manual vulnerability testing**, dependency-vuln checks;
+  load/DoS explicitly out of scope). Zoom runs it against your **technical design doc +
+  scope justification** — you don't furnish a third-party pentest, but you must remediate.
+  Submission also requires **privacy policy, ToU, support URL, self-serve docs URL**, all
+  on allowlisted domains. New apps should use the **Unified Build Flow** (single app, one
+  permission set).
 - **Tasks:**
+  - **⚠️ Deauthorization / data-compliance endpoint (hard gate):** ship the mandatory Zoom
+    deauth webhook from Phase 1 (delete `uid` data within 10 days, POST `/oauth/data/
+    compliance`) and set the Deauthorization Notification Endpoint URL in the app config.
+    **Cannot publish without this** given we store per-user data.
+  - **⚠️ Confirm camera-mode surface config:** verify in the live dashboard whether the app
+    must be classified as a **Meeting Component / have a "Camera" surface enabled** (newer
+    Marketplace taxonomy) beyond just adding the Layers SDK capabilities — the
+    capability-only path is confirmed working via the sample but the surface gate is
+    unconfirmed. (Carries the overlay live-test matrix.)
   - **Minimal scopes:** request only what's used (✅ today: `zoomapp:inmeeting`,
     `meeting:read:participant`/capability; drop `user:read:email` unless email matching
     ships). Add scopes *only* when a feature needs them.
@@ -223,16 +284,19 @@ under Marketplace → Add APIs; attach a Railway **Volume** + set `DATA_DIR`; se
     (different client id/secret, redirect URIs, and **`RATE_STORE_KEY`**); document the
     split. ⚠️ Never share `RATE_STORE_KEY` across environments (data encrypted under one
     can't be read under another).
-  - **CSP / headers** (✅ `connect-src` pinned; verify in-Zoom), secret scanning (✅ local
-    hook; Part B GitHub toggle pending), CI gate (🔜 backlog #3 Part C).
+  - **CSP / headers** (✅ `connect-src` pinned; verify in-Zoom — also allowlist any
+    checkout domain from Phase 4), secret scanning (✅ local hook; Part B GitHub toggle
+    pending), CI gate (🔜 backlog #3 Part C).
   - **Privacy policy + data handling doc:** what's stored, where, encryption posture
-    (operator-decryptable), retention, deletion/export rights — required for Marketplace.
+    (operator-decryptable), retention, deletion/export rights, and the deauth-deletion
+    flow — required for Marketplace.
   - **Production ops:** volume backups, key management/rotation plan for `RATE_STORE_KEY`,
     monitoring, error reporting.
 - **Risks / open questions:** Marketplace review timelines; privacy-policy completeness;
-  key rotation without data loss (needs a re-encrypt migration).
-- **AC:** app passes Zoom review with minimal scopes; a published privacy policy matches
-  the implementation; dev/prod are isolated; backups + key plan exist.
+  key rotation without data loss (needs a re-encrypt migration); surface-config gate above.
+- **AC:** app passes Zoom review with minimal scopes; the deauth/data-compliance endpoint
+  works end-to-end; a published privacy policy matches the implementation; dev/prod are
+  isolated; backups + key plan exist.
 
 ---
 
@@ -245,9 +309,10 @@ under Marketplace → Add APIs; attach a Railway **Volume** + set `DATA_DIR`; se
   fragment installs. A **second listing is justified only** for: admin-managed enterprise
   distribution, materially different OAuth scopes, or a separate compliance posture
   (e.g. a HIPAA/government variant).
-- **Zoom paid entitlements** — ⚠️ **do not assume.** Verify Zoom's current monetization
-  program; default recommendation is **Stripe/Paddle + webhooks**, with backend as the
-  source of truth.
+- **Zoom paid entitlements** — ✅ **researched: ruled out as primary.** Zoom-native
+  monetization is GA but **US-only** (buyers + payment holder US, USD). Recommendation is
+  a **Merchant of Record (Paddle / Stripe Managed Payments) + webhooks**, backend as the
+  source of truth. (Zoom-native stays a future US-only option.)
 - **Server persistence vs privacy** — ✅ encryption-at-rest shipped, but privacy work is
   **not done**: delete/export endpoints and a retention/deletion policy are required
   (Phase 1). The posture is **operator-decryptable**; stronger (KMS/passphrase) is a future
@@ -288,16 +353,21 @@ settings + a limited number of private rate rules** (server-enforced cap), data 
    "this saves me time every meeting" value.
 3. **CSV import/export** of the rate library (Phase 5, cheap).
 
-**Commerce:** **Stripe** subscription + **webhook → entitlements** (Phase 4), `GET /api/me`
-gating, backend-enforced limits.
+**Commerce:** **Merchant-of-Record** subscription (Paddle / Stripe Managed Payments) +
+**webhook → entitlements** (Phase 4), `GET /api/me` gating (incl. post-checkout return
+poll), backend-enforced limits.
 
 **Explicitly deferred past MVP:** meeting history, templates, duplicate-detection/alias
 suggestions, team libraries, integrations, and Zoom-native monetization.
 
-**Critical pre-launch gates:** finish Phase 1 privacy controls (delete/export + policy),
-turn on the shipped store (config), Phase 6 minimal-scope + privacy-policy review, and
-dev/prod credential isolation.
+**Critical pre-launch gates:** **verify the overlay actually composites + ticks on current
+Zoom Workplace builds** (the `drawWebView`/ZSEE-195647 live-test matrix — possible
+`drawImage` fallback); finish Phase 1 privacy controls (delete/export + policy) **and the
+mandatory deauthorization/data-compliance endpoint**; turn on the shipped store (config);
+Phase 6 minimal-scope + privacy-policy review + surface-config check; and dev/prod
+credential isolation.
 
 ### Rough sequence
-Phase 1 finish (privacy + config) → Phase 2 (harvest) → Phase 3 (entitlements) →
-Phase 4 (Stripe) → MVP launch → Phase 5/6 iterate.
+**Overlay live-test matrix (de-risk the core feature)** → Phase 1 finish (privacy + config
++ deauth endpoint) → Phase 2 (harvest) → Phase 3 (entitlements) → Phase 4 (MoR billing) →
+MVP launch → Phase 5/6 iterate.
