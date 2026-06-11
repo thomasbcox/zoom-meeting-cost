@@ -116,3 +116,13 @@ one-line revert as rollback.
    only fully verified in-Zoom (post-merge). So this PR mixes a gate-verifiable change
    with an in-Zoom-verifiable one — fine to ship together, with the CSP line as the
    easy rollback if the in-Zoom check fails?
+
+## Build note (2026-06-10)
+
+AC → file map:
+- **AC1** (vite ^6.4.2; lockfile consistent; esbuild ≥0.25; 0 vulns) → `client/package.json`, `package-lock.json`.
+- **AC2** (gate green on vite 6; dist produced) → no product files; `npm test && npm run build`.
+- **AC3** (connect-src pinned; comment fixed; frame-ancestors unchanged) → `server/src/app.js`.
+- **AC4** (CSP test asserts pinned connect-src; no wss:/bare https:) → `server/test/headers.test.js`.
+- **AC5** (renders in Zoom) → post-merge, in-Zoom observed.
+- **AC6** (scope) → no product files; `git diff --name-only main...HEAD`.
