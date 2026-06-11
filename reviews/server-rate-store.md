@@ -238,3 +238,17 @@ fail-closed `resolveUid`/`requirePresenter` (`server/src/zoom/appContext.js`,
 `server/src/app.js`) and `rateStore.validateConfig` + the validating PUT
 (`server/src/store/rateStore.js`, `server/src/app.js`), with tests in
 `server/test/appContext.test.js`, `server/test/rateStore.test.js`, `server/test/rates.test.js`.
+
+## Codex review (2026-06-10, base 10c7f01, HEAD 8a0d50a)
+
+**Summary (re-review):** Clean — **no findings**. Both approved BLOCKER fixes verified
+complete: `resolveUid`/`requirePresenter` fail closed (missing client id, `aud` match,
+finite + unexpired `exp`); `PUT /api/rates` validates via `rateStore.validateConfig` and
+400s malformed bodies. No remaining fail-open path or new issue in the fix delta.
+
+### Findings
+None.
+
+## Decisions (2026-06-10, re-review round)
+
+No findings to decide. Clean re-review; both security BLOCKERs confirmed resolved.
