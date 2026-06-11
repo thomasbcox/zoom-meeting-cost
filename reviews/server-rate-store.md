@@ -185,3 +185,28 @@ AC → file map:
 - **AC7** (no regression; gate green) → `npm test && npm run build`.
 - **AC8** (real persistence) → post-merge, in-Zoom + Railway volume observed.
 - **AC9** (scope) → `git diff --name-only main...HEAD`.
+
+## Codex review (2026-06-10, base main, HEAD 10c7f01)
+
+**Summary:** Two BLOCKER-level security gaps against the AC. (AC8 remains post-merge/
+live-volume only, as noted.) Crypto (rateCrypto) and store path-traversal handling were
+not faulted.
+
+### BLOCKER
+
+1. **App context validation fails open for `aud` and `exp`** — `server/src/zoom/appContext.js`.
+   `resolveUid` only checks `aud` when `clientId` is truthy, and only rejects expiry when
+   `exp` is already a number. With `RATE_STORE_KEY`+`ZOOM_CLIENT_SECRET` set but no
+   `ZOOM_CLIENT_ID`, a decryptable context is accepted without verifying `aud`; a
+   missing/non-numeric `exp` is accepted instead of failing closed. Violates AC1's
+   `aud`/`iss`/`exp` requirement for the identity that keys private data.
+   *Fix:* treat missing client id as unconfigured; require `p.aud === clientId`; reject
+   unless `Number.isFinite(p.exp) && now/1000 <= p.exp`; add tests.
+
+2. **PUT /api/rates does not validate config schema / numeric rates** — `server/src/app.js`.
+   The body is passed to `rateStore.save`, whose guard only checks "non-array object," so
+   `rateTable: "oops"`, non-finite/string rates, etc. persist with 200 — contrary to AC4's
+   "validate body shape + rate values." (My blob-store refactor dropped the typed
+   validation AC4 required.)
+   *Fix:* validate the config (arrays for rateTable/aliases, finite non-negative rates,
+   valid settings) before saving; reject invalid → 400; cover in tests.
