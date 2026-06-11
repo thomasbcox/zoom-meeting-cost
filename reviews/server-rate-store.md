@@ -230,3 +230,11 @@ not faulted.
   persisting. Tests added (validateConfig table + a malformed-body endpoint case).
 
 Gate green: 48 server + 152 client tests; build green.
+
+## Build note (2026-06-10, re-review round)
+
+Fix delta reviewed this round (base adafbde → HEAD): the two approved BLOCKER fixes —
+fail-closed `resolveUid`/`requirePresenter` (`server/src/zoom/appContext.js`,
+`server/src/app.js`) and `rateStore.validateConfig` + the validating PUT
+(`server/src/store/rateStore.js`, `server/src/app.js`), with tests in
+`server/test/appContext.test.js`, `server/test/rateStore.test.js`, `server/test/rates.test.js`.
