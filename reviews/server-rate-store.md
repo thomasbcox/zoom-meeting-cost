@@ -121,10 +121,17 @@ wiring the context from the client/load to the server.
    in a later meeting (or after a redeploy) the same table loads back automatically; the
    on-volume file is ciphertext. Confirmed live.
 9. Scope containment: `git diff --name-only main...HEAD` shows no files beyond:
-   `server/src/store/rateCrypto.js`, `server/src/store/rateStore.js`, an identity module
-   under `server/src/zoom/` (app-context decrypt), `server/src/app.js`,
+   `server/src/store/rateCrypto.js`, `server/src/store/rateStore.js`,
+   `server/src/zoom/appContext.js` (app-context decrypt → uid), `server/src/app.js`,
    `client/src/state/usePresenterStore.js`, `client/src/components/PresenterControls.jsx`
-   (the UI disclaimer), the new server tests, `README.md`, and this story file.
+   (the UI disclaimer), `client/src/zoom/zoomAdapter.js` (+ test — the `getAppContext`
+   capability + adapter method for the chosen transport), `client/src/lib/postLog.js` or a
+   small client http helper if needed, the new server tests, `README.md`, and this story.
+
+> **Transport (decided 2026-06-10):** the client calls `getAppContext()` and sends the
+> context blob in an `x-zoom-app-context` request header on each `/api/rates` call; the
+> server decrypts per request. Adds the `getAppContext` capability (+ a one-time Marketplace
+> **Add API** step, like `getVideoState`) and a `zoomAdapter` method. No cookies.
 
 ## Test notes
 
