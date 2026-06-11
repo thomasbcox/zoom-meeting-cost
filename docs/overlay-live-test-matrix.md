@@ -15,9 +15,12 @@ as production-ready:
    `ok:true` but render **nothing** on **Zoom Workplace 6.7.8 / 7.0.2**. Reported workaround
    (2026-05-02): use **`drawImage` instead of `drawWebView`**. Our overlay is entirely
    `drawWebView`-based and logs success even when blank.
-2. **Does the meter tick with *live* numbers** pushed from the panel — not just draw once?
-   The `camera-overlay-message-bridge` fix shipped but its live verification was deferred.
-   Drawing/auto-recovery was confirmed live 2026-06-10; live value-tracking was not.
+2. **Does the (already-working) live channel still drive the meter on current builds?**
+   The panel→camera data channel was **verified live 1:1** at PR #17 (`overlay-payload-parse`,
+   `overlay-logging-quiet`) and drawing/auto-recovery was confirmed 2026-06-10 — but both on
+   the *then-current* client. The open risk is whether the same channel still updates visible
+   pixels once `drawWebView` rendering is in question (item 1). This is a regression
+   re-confirm, not a first-time verification.
 
 This matrix is the protocol to settle both across the client builds our users actually run,
 and to decide whether we need a `drawImage` fallback before launch.
@@ -45,15 +48,29 @@ All client events POST to `/api/log` (kind shown). De-interleave by timestamp.
 | Context entered | `zoom-overlay` / `runRenderingContext` `ok` | camera rendering context opened |
 | Base video drawn | `zoom-overlay` / `drawParticipant` `ok` | presenter video composited (host/co-host) |
 | **Meter drawn** | `zoom-overlay` / `drawWebView` `ok` | **call accepted — NOT that pixels rendered** (see trap) |
-| Panel → camera send | `zoom-overlay` / `postMessage` `ok` (every send) | panel is pushing snapshots |
+| Panel → camera send | `zoom-overlay` / `postMessage` `ok` (**first success only** + every failure) | panel is pushing snapshots |
 | **Camera received** | `overlay-message` (first + each status change) | **the channel actually reaches `inCamera`** |
 | Teardown | `overlay-teardown`, `closeRenderingContext` | the camera instance/context went away |
 | Camera on/off poll | `media-change` (+ overlay-rearm) | auto-recover sampling |
 
-**Known instrumentation gap (intentional):** `overlay-message` logs the *first* snapshot and
-thereafter only on **status change**, never per-tick (avoids log spam, never logs values).
-That's why the protocol uses **pause/resume** as the liveness probe rather than watching the
-number.
+**Important — steady-state sends/receipts are silent by design** (`overlay-logging-quiet`,
+PR #18). `postMessage` logs only the **first** successful send + every failure (a
+`_firstPostLogged` guard), and `overlay-message` logs the first snapshot then only on
+**status change** — neither logs per-tick, and never logs values. So the per-tick logs are
+NOT available to prove the channel, which is exactly why:
+- the protocol uses a **status change (pause/resume)** as the decisive liveness probe — it
+  forces a fresh `overlay-message`; and
+- **optionally, for the live run, temporarily re-enable verbose send/receipt logging** (the
+  debug-era "log every send / every receipt") so you can see the 1:1 `postMessage`↔
+  `overlay-message` cadence directly. Revert it after — it's a steady-state firehose.
+
+> **Scope note (what this matrix is really testing).** The data channel itself was already
+> **verified live 1:1** (panel `postMessage ok` ↔ camera `overlay-message`, every second) on
+> the build current at PR #17 (`overlay-payload-parse`, `overlay-logging-quiet`). So the open
+> question is **not** "does the channel work" — it's **does `drawWebView` still RENDER pixels
+> on current Workplace builds** (ZSEE-195647), and does the (already-working) channel still
+> drive those pixels there. Treat the liveness probe as a regression re-confirm, and weight
+> the **visual** compositing check (step 4) as the primary unknown.
 
 ## Prerequisites
 
@@ -139,6 +156,13 @@ Record each row's outcome in the results table below.
 | E5 | | | | | | | |
 
 ## Contingent follow-up — `drawImage` fallback (only if D2 reproduces)
+
+> **⚠️ You probably can't feature-detect the failure at runtime.** The whole trap is that
+> `drawWebView` returns `ok:true` while rendering nothing — there is no error to branch on.
+> So "try `drawWebView`, fall back to `drawImage` on failure" is likely **not** implementable
+> as runtime detection; the realistic options are (a) **always** use `drawImage`, or (b)
+> **gate by client version** (the matrix tells you which builds are affected). Decide which
+> before building — and note (b) needs a reliable client-version signal from the SDK.
 
 If `drawWebView` no-ops on builds our users run, frame a story to render the meter to a
 bitmap/canvas and composite via **`drawImage`** instead:
