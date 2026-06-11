@@ -12,8 +12,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // on EVERY response so nothing the client fetches is ever missing them.
 //
 // The CSP must permit the app's own bundle ('self'), inline styles (React style
-// props / Vite), the WebSocket + API (wss:/https:), images/fonts, and embedding
+// props / Vite), the API ('self' — same-origin /api), images/fonts, and embedding
 // inside the Zoom client.
+// connect-src is pinned to our own origin plus the Zoom hosts (the bundled
+// @zoom/appssdk may reach Zoom): the old `wss:` was dead (the shared-state WebSocket
+// was removed) and the bare `https:` allowed connecting to any host.
 // Ref: https://developers.zoom.us/docs/zoom-apps/security/owasp/
 export const CSP = [
   "default-src 'self'",
@@ -21,7 +24,7 @@ export const CSP = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data:",
   "font-src 'self' data:",
-  "connect-src 'self' wss: https:",
+  "connect-src 'self' https://*.zoom.us https://*.zoom.com",
   "base-uri 'self'",
   "form-action 'self'",
   "frame-ancestors 'self' https://*.zoom.us https://*.zoom.com",
