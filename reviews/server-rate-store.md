@@ -210,3 +210,8 @@ not faulted.
    validation AC4 required.)
    *Fix:* validate the config (arrays for rateTable/aliases, finite non-negative rates,
    valid settings) before saving; reject invalid → 400; cover in tests.
+
+## Decisions (2026-06-10)
+
+- **Finding 1 (BLOCKER — fail-open aud/exp):** **FIX.** Thomas: "Fix." Require `ZOOM_CLIENT_ID` (treat missing as unconfigured → 503), always verify `aud === clientId`, require a finite + unexpired `exp`. Add tests (missing client id, missing/non-numeric exp).
+- **Finding 2 (BLOCKER — unvalidated PUT body):** **FIX.** Thomas: "Fix." Add a server-side config validator (rateTable/aliases arrays of well-formed rows, finite non-negative rates, valid settings); malformed body → 400. Restores AC4's typed validation that the blob-store refactor dropped.
