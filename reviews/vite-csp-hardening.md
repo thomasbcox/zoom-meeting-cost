@@ -126,3 +126,18 @@ AC → file map:
 - **AC4** (CSP test asserts pinned connect-src; no wss:/bare https:) → `server/test/headers.test.js`.
 - **AC5** (renders in Zoom) → post-merge, in-Zoom observed.
 - **AC6** (scope) → no product files; `git diff --name-only main...HEAD`.
+
+## Codex review (2026-06-10, base main, HEAD a7e482e)
+
+**Summary:** Clean — **no findings**. Changed files stay within AC6 scope; the vite
+target is `^6.4.2` with lockfile vite 6.4.3 / esbuild 0.25.12; `connect-src` is pinned
+as specified and the CSP header test covers the tightened directive. AC5 remains
+post-merge/in-Zoom observed. (Codex couldn't run the gate — read-only sandbox
+Vitest temp-write; the local gate is green.)
+
+### Findings
+None.
+
+## Decisions (2026-06-10)
+
+No findings to decide. Clean review.
