@@ -172,3 +172,16 @@ wiring the context from the client/load to the server.
 4. **`RATE_STORE_KEY` unset** — RESOLVED: **fail closed (503)**, client → session-only.
 5. **Privacy wording** — RESOLVED: documented **with user-facing disclaimers + warnings**
    (a UI notice plus the README), per Thomas.
+
+## Build note (2026-06-10)
+
+AC → file map:
+- **AC1** (identity: decrypt+verify Zoom app context → uid) → `server/src/zoom/appContext.js`; test `server/test/appContext.test.js`.
+- **AC2** (encryption at rest: AES-256-GCM, HKDF(RATE_STORE_KEY,uid); fail closed) → `server/src/store/rateCrypto.js`; test `server/test/rateCrypto.test.js`.
+- **AC3** (encrypted blob store per uid on the volume) → `server/src/store/rateStore.js`; test `server/test/rateStore.test.js`.
+- **AC4** (GET/PUT /api/rates behind requirePresenter; 503/401/400) → `server/src/app.js`; test `server/test/rates.test.js`.
+- **AC5** (client: localStorage removed; load on boot / debounced save; session-only fallback) → `client/src/state/usePresenterStore.js`, `client/src/lib/ratesApi.js` (+test), `client/src/zoom/zoomAdapter.js` (+test, getAppContext), `client/src/App.jsx`.
+- **AC6** (privacy doc + UI warning) → `README.md`, `client/src/components/PresenterControls.jsx`; capability mirror `server/zoom-app-config.md`.
+- **AC7** (no regression; gate green) → `npm test && npm run build`.
+- **AC8** (real persistence) → post-merge, in-Zoom + Railway volume observed.
+- **AC9** (scope) → `git diff --name-only main...HEAD`.
