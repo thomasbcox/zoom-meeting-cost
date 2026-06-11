@@ -110,14 +110,14 @@ export function createApp({
   //   401 → no valid app context (can't identify the presenter).
   function requirePresenter(req, res, next) {
     const clientSecret = process.env.ZOOM_CLIENT_SECRET;
-    if (!rateStoreConfigured() || !clientSecret) {
+    const clientId = process.env.ZOOM_CLIENT_ID;
+    // Missing key / secret / client id → the store can't run safely. Fail closed (503);
+    // the client degrades to session-only rather than accepting an unverifiable identity.
+    if (!rateStoreConfigured() || !clientSecret || !clientId) {
       return res.status(503).json({ error: 'rate-store-unconfigured' });
     }
     try {
-      req.uid = resolveUid(req.get('x-zoom-app-context'), {
-        clientId: process.env.ZOOM_CLIENT_ID,
-        clientSecret,
-      });
+      req.uid = resolveUid(req.get('x-zoom-app-context'), { clientId, clientSecret });
       return next();
     } catch {
       return res.status(401).json({ error: 'invalid-app-context' });
@@ -134,9 +134,10 @@ export function createApp({
 
   app.put('/api/rates', requirePresenter, async (req, res, next) => {
     try {
-      const saved = await rateStore.save(req.uid, req.body);
-      if (!saved) return res.status(400).json({ error: 'invalid-config' });
-      return res.json(saved);
+      // Validate the config shape + numeric rates before persisting (don't trust the body).
+      const cfg = rateStore.validateConfig(req.body);
+      if (!cfg) return res.status(400).json({ error: 'invalid-config' });
+      return res.json(await rateStore.save(req.uid, cfg));
     } catch (err) {
       return next(err);
     }

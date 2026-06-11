@@ -45,6 +45,36 @@ test('save rejects a non-object body (→ null, caller 400s)', async () => {
   assert.equal(await rateStore.save('uid-x', [1, 2, 3]), null);
 });
 
+test('validateConfig accepts a well-formed config and rejects malformed ones', () => {
+  const ok = {
+    rateTable: [{ id: 'r1', name: 'Jane', rate: 95 }],
+    aliases: [{ id: 'a1', alias: 'Tom', canonical: 'Thomas' }],
+    defaultRate: 125,
+    multiplier: 1,
+    costModel: 'simple',
+    simpleAverageRate: 100,
+    simpleMultiplier: 1.1,
+    simpleUserCount: null,
+  };
+  assert.equal(rateStore.validateConfig(ok), ok);
+
+  // Each of these is rejected (→ null).
+  const bad = [
+    'string',
+    [1, 2],
+    { rateTable: 'oops', aliases: [] }, // rateTable not an array
+    { rateTable: [], aliases: {} }, // aliases not an array
+    { rateTable: [{ name: 'X', rate: '95' }], aliases: [], defaultRate: 0, multiplier: 1 }, // string rate
+    { rateTable: [{ name: 'X', rate: NaN }], aliases: [], defaultRate: 0, multiplier: 1 }, // non-finite rate
+    { rateTable: [{ name: 'X', rate: -5 }], aliases: [], defaultRate: 0, multiplier: 1 }, // negative rate
+    { rateTable: [{ rate: 1 }], aliases: [], defaultRate: 0, multiplier: 1 }, // missing name
+    { rateTable: [], aliases: [{ alias: 'a' }], defaultRate: 0, multiplier: 1 }, // alias missing canonical
+    { rateTable: [], aliases: [], defaultRate: 'free', multiplier: 1 }, // non-number setting
+    { rateTable: [], aliases: [], defaultRate: 0, multiplier: 1, costModel: 'weird' }, // bad costModel
+  ];
+  for (const b of bad) assert.equal(rateStore.validateConfig(b), null, JSON.stringify(b));
+});
+
 test('the on-disk file is ciphertext, not plaintext', async () => {
   await rateStore.save('uid-secret', {
     rateTable: [{ id: 'r1', name: 'Acme CFO', rate: 220 }],

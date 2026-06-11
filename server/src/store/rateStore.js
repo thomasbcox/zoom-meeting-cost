@@ -28,6 +28,38 @@ export function asConfigObject(cfg) {
   return cfg && typeof cfg === 'object' && !Array.isArray(cfg) ? cfg : null;
 }
 
+const numNonNeg = (v) => typeof v === 'number' && Number.isFinite(v) && v >= 0;
+const strOrNull = (v) => v == null || typeof v === 'string';
+
+// Validate an incoming rate config before it is persisted. Returns the config on success,
+// or null if anything is malformed (the endpoint then 400s). Strict: rateTable/aliases
+// must be arrays of well-formed rows; every present numeric field must be a finite,
+// non-negative NUMBER (rejects strings / NaN / negatives); costModel, if present, must be
+// a known value. (Don't trust the client — this is the only writer of the stored data.)
+export function validateConfig(cfg) {
+  const c = asConfigObject(cfg);
+  if (!c) return null;
+
+  if (!Array.isArray(c.rateTable) || !Array.isArray(c.aliases)) return null;
+  for (const r of c.rateTable) {
+    if (!r || typeof r !== 'object' || Array.isArray(r)) return null;
+    if (typeof r.name !== 'string' || !strOrNull(r.id) || !numNonNeg(r.rate)) return null;
+  }
+  for (const a of c.aliases) {
+    if (!a || typeof a !== 'object' || Array.isArray(a)) return null;
+    if (typeof a.alias !== 'string' || typeof a.canonical !== 'string' || !strOrNull(a.id)) return null;
+  }
+
+  // Settings: required numbers must be valid; the simple-model fields are optional.
+  if (!numNonNeg(c.defaultRate) || !numNonNeg(c.multiplier)) return null;
+  if (c.costModel != null && c.costModel !== 'simple' && c.costModel !== 'perParticipant') return null;
+  if (c.simpleAverageRate != null && !numNonNeg(c.simpleAverageRate)) return null;
+  if (c.simpleMultiplier != null && !numNonNeg(c.simpleMultiplier)) return null;
+  if (c.simpleUserCount != null && !numNonNeg(c.simpleUserCount)) return null;
+
+  return c;
+}
+
 // Returns the stored config object, or null if there's nothing usable for this uid.
 export async function load(uid) {
   try {

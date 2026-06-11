@@ -215,3 +215,18 @@ not faulted.
 
 - **Finding 1 (BLOCKER — fail-open aud/exp):** **FIX.** Thomas: "Fix." Require `ZOOM_CLIENT_ID` (treat missing as unconfigured → 503), always verify `aud === clientId`, require a finite + unexpired `exp`. Add tests (missing client id, missing/non-numeric exp).
 - **Finding 2 (BLOCKER — unvalidated PUT body):** **FIX.** Thomas: "Fix." Add a server-side config validator (rateTable/aliases arrays of well-formed rows, finite non-negative rates, valid settings); malformed body → 400. Restores AC4's typed validation that the blob-store refactor dropped.
+
+## Fixes (2026-06-10)
+
+- **Finding 1 (fail-open identity):** `resolveUid` now fails CLOSED — throws if no
+  `clientId`, **always** requires `aud === clientId`, and requires `Number.isFinite(exp)`
+  + unexpired (no missing-exp bypass). `requirePresenter` now also 503s when
+  `ZOOM_CLIENT_ID` is unset (won't accept an unverifiable identity). Tests added: no
+  clientId, missing exp, non-numeric exp, and the endpoint 503-without-client-id.
+- **Finding 2 (unvalidated PUT body):** new `rateStore.validateConfig` enforces the
+  config shape — `rateTable`/`aliases` must be arrays of well-formed rows; every numeric
+  field must be a finite, non-negative **number** (rejects strings/NaN/negatives);
+  `costModel` must be known. `PUT /api/rates` rejects a malformed body with `400` before
+  persisting. Tests added (validateConfig table + a malformed-body endpoint case).
+
+Gate green: 48 server + 152 client tests; build green.

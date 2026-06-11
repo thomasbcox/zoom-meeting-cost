@@ -57,11 +57,15 @@ export function decryptAppContext(context, clientSecret) {
 // Decrypt, validate (iss, aud == our client id, exp not passed), and return the uid.
 // `now` (ms) is injectable for tests. Throws AppContextError on any failure.
 export function resolveUid(context, { clientId, clientSecret, now = Date.now() } = {}) {
+  // Fail CLOSED: this gates private per-user data, so every check is mandatory.
+  if (!clientId) throw new AppContextError('server not configured (no client id)');
   const p = decryptAppContext(context, clientSecret);
   if (p.iss !== 'marketplace.zoom.us') throw new AppContextError('unexpected iss');
-  if (clientId && p.aud !== clientId) throw new AppContextError('aud mismatch');
-  // exp is epoch seconds; reject an expired context.
-  if (typeof p.exp === 'number' && now / 1000 > p.exp) throw new AppContextError('context expired');
+  if (p.aud !== clientId) throw new AppContextError('aud mismatch'); // this app, not another
+  // exp is epoch seconds; require it present + numeric + unexpired (no missing-exp bypass).
+  if (!Number.isFinite(p.exp) || now / 1000 > p.exp) {
+    throw new AppContextError('context expired or missing exp');
+  }
   if (!p.uid || typeof p.uid !== 'string') throw new AppContextError('no uid in context');
   return p.uid;
 }

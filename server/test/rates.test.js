@@ -69,6 +69,14 @@ test('GET → defaults, then PUT → GET round-trips for the authenticated prese
     // A non-object body is rejected.
     const bad = await fetch(base, { method: 'PUT', headers, body: JSON.stringify('nope') });
     assert.equal(bad.status, 400);
+
+    // A malformed config (rateTable not an array) is rejected before persisting.
+    const malformed = await fetch(base, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({ rateTable: 'oops', aliases: [], defaultRate: 0, multiplier: 1 }),
+    });
+    assert.equal(malformed.status, 400);
   } finally {
     server.close();
   }
@@ -86,5 +94,20 @@ test('GET /api/rates is 503 when RATE_STORE_KEY is unset (fail closed)', async (
   } finally {
     server.close();
     process.env.RATE_STORE_KEY = prev;
+  }
+});
+
+test('GET /api/rates is 503 when ZOOM_CLIENT_ID is unset (no aud-bypass)', async () => {
+  const prev = process.env.ZOOM_CLIENT_ID;
+  delete process.env.ZOOM_CLIENT_ID;
+  const server = await start();
+  try {
+    const res = await fetch(`http://127.0.0.1:${server.address().port}/api/rates`, {
+      headers: { 'x-zoom-app-context': validContext() },
+    });
+    assert.equal(res.status, 503);
+  } finally {
+    server.close();
+    process.env.ZOOM_CLIENT_ID = prev;
   }
 });

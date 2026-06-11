@@ -61,3 +61,18 @@ test('rejects a context with no uid', () => {
   const blob = encryptAppContextForTest(ctx({ uid: undefined }), SECRET);
   assert.throws(() => resolveUid(blob, { clientId: CLIENT_ID, clientSecret: SECRET }), /no uid/);
 });
+
+test('fails closed when no clientId is configured (no aud bypass)', () => {
+  const blob = encryptAppContextForTest(ctx(), SECRET);
+  assert.throws(() => resolveUid(blob, { clientId: undefined, clientSecret: SECRET }), /no client id/);
+});
+
+test('rejects a context with a missing exp (no never-expires bypass)', () => {
+  const blob = encryptAppContextForTest(ctx({ exp: undefined }), SECRET);
+  assert.throws(() => resolveUid(blob, { clientId: CLIENT_ID, clientSecret: SECRET }), /exp/);
+});
+
+test('rejects a context with a non-numeric exp', () => {
+  const blob = encryptAppContextForTest(ctx({ exp: 'soon' }), SECRET);
+  assert.throws(() => resolveUid(blob, { clientId: CLIENT_ID, clientSecret: SECRET }), /exp/);
+});
