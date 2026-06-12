@@ -72,3 +72,11 @@ _Raw Codex output: `reviews/zoom-config-privacy-fix.codex.json`._
   `buildOverlayState` shape `{ status, totalCost, costPerSecond, elapsedSeconds,
   attendees, currency, updatedAt, prefs:{} }` and an explicit "no names/aliases/rate
   table/per-person rates" clause — verified against `client/src/lib/overlayState.js`.
+
+## Fixes (2026-06-11)
+
+- **NIT #1 — applied.** `server/zoom-app-config.md`: replaced the illustrative aggregate
+  list with the exact `buildOverlayState` payload `{ status, totalCost, costPerSecond,
+  elapsedSeconds, attendees, currency, updatedAt, prefs:{} }` plus an explicit "no names,
+  aliases, rate table, or per-person rates" clause. Verified against
+  `client/src/lib/overlayState.js`. (Committed `dc54ee2`.)
