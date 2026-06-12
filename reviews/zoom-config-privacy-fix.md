@@ -64,3 +64,11 @@ payload-shape precision issue in the new text.
    aliases, rate table, or per-person rates.
 
 _Raw Codex output: `reviews/zoom-config-privacy-fix.codex.json`._
+
+## Decisions (2026-06-11)
+
+- **NIT #1 (overlay payload description narrower than actual) — FIX** (Thomas: "fix").
+  Replaced the illustrative "(total, per-second, attendee count)" with the exact
+  `buildOverlayState` shape `{ status, totalCost, costPerSecond, elapsedSeconds,
+  attendees, currency, updatedAt, prefs:{} }` and an explicit "no names/aliases/rate
+  table/per-person rates" clause — verified against `client/src/lib/overlayState.js`.

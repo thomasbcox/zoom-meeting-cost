@@ -84,8 +84,10 @@ Add **every** API below under **Features → Zoom App SDK → Add APIs**. This l
   plaintext is ever written. (`localStorage` was removed; it isn't durable inside the
   Zoom client. The earlier "rates never leave the browser" framing is obsolete.)
 - **Privacy boundary that still holds:** the rate table and per-person rates are never
-  shown to *attendees*. The side panel pushes only sanitized aggregate numbers
-  (`buildOverlayState` — total, per-second, attendee count) to the camera rendering
-  context via `postMessage`; the overlay composited on the presenter's video is what
-  every participant sees. (Privacy detail — what's stored, where, and the
+  shown to *attendees*. The side panel pushes only sanitized **aggregate display state**
+  via `postMessage` — `buildOverlayState` emits exactly `{ status, totalCost,
+  costPerSecond, elapsedSeconds, attendees, currency, updatedAt, prefs:{} }` and
+  **nothing else**: no names, aliases, rate table, or per-person rates (`prefs` is
+  reserved and never carries private data). The overlay composited on the presenter's
+  video is what every participant sees. (Privacy detail — what's stored, where, and the
   operator-decryptable posture — belongs in the README / privacy policy.)
