@@ -71,7 +71,23 @@ Add **every** API below under **Features → Zoom App SDK → Add APIs**. This l
 - `client/src/zoom/zoomAdapter.js` has a `MockZoom` (used now) and a
   `RealZoom` implementation (wraps `@zoom/appssdk`). The app talks only to the
   adapter interface, so switching is a config flag.
-- The presenter's private rate table stays in the browser (localStorage) and is
-  never sent anywhere. The side panel pushes only sanitized aggregate numbers
-  (`buildOverlayState`) to the camera rendering context via `postMessage`; the
-  overlay composited on the presenter's video is what every participant sees.
+- The presenter's private rate config (rate table, aliases, default rate,
+  multiplier, cost-model settings) is persisted **server-side, encrypted at rest**
+  via `GET`/`PUT /api/rates` — keyed to the presenter's stable Zoom identity (the
+  `uid` decrypted from the `getAppContext()` the client sends in the
+  `x-zoom-app-context` header). At-rest encryption is AES-256-GCM with a per-user
+  key derived (HKDF-SHA256) from a dedicated `RATE_STORE_KEY` secret salted by the
+  `uid`, so a leaked volume/backup is useless without the env secret. The posture is
+  **operator-decryptable** (the running server can decrypt; true zero-knowledge would
+  need a user passphrase this app has nowhere durable to anchor). If the store is
+  unconfigured or unreachable the client degrades to **session-only** state — no
+  plaintext is ever written. (`localStorage` was removed; it isn't durable inside the
+  Zoom client. The earlier "rates never leave the browser" framing is obsolete.)
+- **Privacy boundary that still holds:** the rate table and per-person rates are never
+  shown to *attendees*. The side panel pushes only sanitized **aggregate display state**
+  via `postMessage` — `buildOverlayState` emits exactly `{ status, totalCost,
+  costPerSecond, elapsedSeconds, attendees, currency, updatedAt, prefs:{} }` and
+  **nothing else**: no names, aliases, rate table, or per-person rates (`prefs` is
+  reserved and never carries private data). The overlay composited on the presenter's
+  video is what every participant sees. (Privacy detail — what's stored, where, and the
+  operator-decryptable posture — belongs in the README / privacy policy.)
