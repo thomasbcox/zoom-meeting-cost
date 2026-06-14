@@ -172,3 +172,9 @@ one cadence-propagation bug for non-running sessions.
    > **Suggestion:** Trigger `postOverlay()` when `config.displayIntervalSeconds`
    > changes while `overlayOn` is true — add `config.displayIntervalSeconds` to
    > that effect's dependency list, or add a dedicated effect for cadence changes.
+
+## Decisions (2026-06-14)
+- **IMPORTANT #1 (overlay not refreshed on cadence change while paused/ended):**
+  **FIX** (Thomas: "Fix"). Add `config.displayIntervalSeconds` to the
+  `if (overlayOn) postOverlay()` effect's dependency array so a cadence change
+  immediately re-posts to the camera overlay while it's on; re-run the gate.
