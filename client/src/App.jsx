@@ -181,11 +181,13 @@ export default function App({ adapter, self, initialParticipants = [] }) {
     return () => clearInterval(id);
   }, [session.status, postOverlay]);
 
-  // Push a fresh snapshot whenever the overlay turns on or the session status
-  // changes (so a paused/ended overlay shows the frozen number, not stale data).
+  // Push a fresh snapshot whenever the overlay turns on, the session status
+  // changes, or the display cadence changes (so a paused/ended overlay shows the
+  // frozen number, not stale data — and a cadence change reaches the camera
+  // overlay immediately, even when no 1 s tick is running to carry it).
   useEffect(() => {
     if (overlayOn) postOverlay();
-  }, [overlayOn, session.status, postOverlay]);
+  }, [overlayOn, session.status, config.displayIntervalSeconds, postOverlay]);
 
   // Auto-recover the camera overlay across a camera off/on. Turning the camera off
   // tears down Zoom's camera rendering context (destroying the overlay webview);

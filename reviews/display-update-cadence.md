@@ -178,3 +178,10 @@ one cadence-propagation bug for non-running sessions.
   **FIX** (Thomas: "Fix"). Add `config.displayIntervalSeconds` to the
   `if (overlayOn) postOverlay()` effect's dependency array so a cadence change
   immediately re-posts to the camera overlay while it's on; re-run the gate.
+
+## Fixes (2026-06-14)
+- **IMPORTANT #1 (FIX):** Added `config.displayIntervalSeconds` to the
+  `if (overlayOn) postOverlay()` effect's dependency array in
+  `client/src/App.jsx`. Now a cadence change re-posts the overlay snapshot
+  immediately whenever the overlay is on — including paused/ended sessions where
+  no 1 s tick is running — so the on-camera overlay and the preview stay in sync.
