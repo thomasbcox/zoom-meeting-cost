@@ -185,3 +185,10 @@ one cadence-propagation bug for non-running sessions.
   `client/src/App.jsx`. Now a cadence change re-posts the overlay snapshot
   immediately whenever the overlay is on — including paused/ended sessions where
   no 1 s tick is running — so the on-camera overlay and the preview stay in sync.
+
+## Codex review (2026-06-14, base 02bf751, HEAD bdad4f4) — re-review
+**Summary:** Reviewed `git diff 02bf751...HEAD`, `git log --oneline 02bf751..HEAD`,
+and this spec. The new runtime change adds `config.displayIntervalSeconds` to the
+existing overlay refresh effect, which matches the approved fix and re-posts the
+current overlay payload when cadence changes while the overlay is on. **No new
+issues found in the post-02bf751 changes — zero findings.**
