@@ -123,3 +123,52 @@ exact live readout for their own use.
 - None outstanding — the default (10s), option set {1,10,60}, quantization scope
   (overlay + preview only; private readout stays live/detailed), and clock
   formatting are all settled above. Flag if 10s-default should instead be 1s.
+
+## Build note (2026-06-14)
+AC → file map:
+- **AC1** (pure quantize helper) — `client/src/lib/displayCadence.js`
+  (`quantizeForDisplay`) + `displayCadence.test.js`.
+- **AC2** (cadence-aware duration formatter) — `client/src/lib/displayCadence.js`
+  (`formatCadenceDuration`) + `displayCadence.test.js`.
+- **AC3** (persisted setting, default 10, action ∈ {1,10,60}) —
+  `client/src/state/usePresenterStore.js` (`displayIntervalSeconds`,
+  `setDisplayInterval` via `normalizeDisplayInterval`).
+- **AC4** (overlay quantized; 1-min drops seconds) —
+  `client/src/lib/overlayState.js` (`buildOverlayState` carries the cadence) +
+  `client/src/components/OverlayApp.jsx` (quantize after extrapolation) +
+  `client/src/components/CostOverlay.jsx` (cadence-aware clock); tests in
+  `overlayState.test.js` + `CostOverlay.test.js`.
+- **AC5** (cadence picker) — `client/src/components/PresenterControls.jsx` +
+  `client/src/styles.css`.
+- **AC6** (aggregate-only viewer preview) —
+  `client/src/components/PresenterControls.jsx` (preview card) +
+  `client/src/App.jsx` (`previewDisplay`, built from `buildOverlayState` +
+  `quantizeForDisplay`) + `client/src/styles.css`.
+- **AC7** (private detailed readout unchanged) — `client/src/App.jsx`
+  (`readoutState` untouched; `SharedCostScreen` not modified).
+- **AC8** (accrual independent of cadence) — `client/src/App.jsx` tick loop
+  unchanged; quantization is display-only (`displayCadence.js`).
+- **AC9** (scope containment) — verified: `git diff --name-only main...HEAD`
+  lists only the enumerated files.
+
+## Codex review (2026-06-14, base main, HEAD 02bf751)
+**Summary:** Reviewed `git diff main...HEAD`, `git log --oneline main..HEAD`, and
+this spec. The implementation mostly matches the approved spec, but Codex found
+one cadence-propagation bug for non-running sessions.
+
+### IMPORTANT
+1. **Visible overlay is not refreshed on cadence changes when the session is not
+   running** — `client/src/App.jsx:188`.
+   > The immediate overlay refresh effect only depends on `overlayOn`,
+   > `session.status`, and `postOverlay`; `postOverlay` reads
+   > `displayIntervalSeconds` through `liveRef`, so changing the cadence does not
+   > change the callback identity and does not trigger this effect. During a
+   > paused or ended session there is no running 1-second tick to call
+   > `postOverlay`, so the preview updates to the new cadence while the on-camera
+   > overlay keeps using the old `displayIntervalSeconds`. That breaks the spec's
+   > requirement that cadence applies to the on-camera overlay and that the
+   > preview shows exactly what viewers see.
+   >
+   > **Suggestion:** Trigger `postOverlay()` when `config.displayIntervalSeconds`
+   > changes while `overlayOn` is true — add `config.displayIntervalSeconds` to
+   > that effect's dependency list, or add a dedicated effect for cadence changes.
