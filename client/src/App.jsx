@@ -9,6 +9,7 @@ import { usePresenterStore } from './state/usePresenterStore.js';
 import { resolveAll } from './lib/matching.js';
 import { selectActiveTotals } from './lib/cost.js';
 import { buildOverlayState } from './lib/overlayState.js';
+import { quantizeForDisplay } from './lib/displayCadence.js';
 import { seedPresenterName } from './lib/presenterName.js';
 import { logLifecycle } from './lib/lifecycleLog.js';
 import { createVideoRecovery } from './lib/overlayRecover.js';
@@ -110,11 +111,15 @@ export default function App({ adapter, self, initialParticipants = [] }) {
 
   // Latest values for the interval/poster without re-arming effects.
   const liveRef = useRef({});
-  liveRef.current = { totals, status: session.status };
+  liveRef.current = {
+    totals,
+    status: session.status,
+    displayIntervalSeconds: config.displayIntervalSeconds,
+  };
 
   const postOverlay = useCallback(() => {
     if (!adapter?.postMessage) return;
-    const { totals: t, status } = liveRef.current;
+    const { totals: t, status, displayIntervalSeconds } = liveRef.current;
     adapter.postMessage(
       buildOverlayState({
         status,
@@ -122,6 +127,7 @@ export default function App({ adapter, self, initialParticipants = [] }) {
         totals: t,
         elapsedSeconds: elapsedRef.current,
         updatedAt: Date.now(),
+        displayIntervalSeconds,
       })
     );
   }, [adapter]);
@@ -207,6 +213,30 @@ export default function App({ adapter, self, initialParticipants = [] }) {
     return () => clearInterval(id);
   }, [overlayOn, adapter, postOverlay]);
 
+  // --- Viewer's-eye preview (aggregate only, quantized to the chosen cadence) -
+  // Exactly what participants see on the camera overlay: total, $/min, stepped
+  // clock, head-count — NO names or per-person rates (reuses buildOverlayState's
+  // sanitized payload). Re-derived each render (the 1 s tick) but quantization
+  // holds it steady between N-second steps. updatedAt is irrelevant here (no
+  // extrapolation — the preview shows the already-quantized snapshot).
+  const previewDisplay = useMemo(() => {
+    const base = buildOverlayState({
+      status: session.status,
+      totalCost: totalRef.current,
+      totals,
+      elapsedSeconds: elapsedRef.current,
+      displayIntervalSeconds: config.displayIntervalSeconds,
+    });
+    const q = quantizeForDisplay({
+      totalCost: base.totalCost,
+      elapsedSeconds: base.elapsedSeconds,
+      costPerSecond: base.costPerSecond,
+      stepSeconds: config.displayIntervalSeconds,
+    });
+    return { ...base, ...q };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session.status, totals, config.displayIntervalSeconds, elapsedRef.current, totalRef.current]);
+
   // --- Presenter's own live readout (private; full detail) ------------------
   const readoutState = useMemo(
     () => ({
@@ -288,6 +318,7 @@ export default function App({ adapter, self, initialParticipants = [] }) {
             startOverlay={startOverlay}
             stopOverlay={stopOverlay}
             resolved={resolved}
+            previewDisplay={previewDisplay}
           />
         </aside>
       </main>

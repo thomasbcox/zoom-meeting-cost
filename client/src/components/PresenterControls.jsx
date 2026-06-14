@@ -1,7 +1,9 @@
 import { useRef, useState } from 'react';
 import { formatMoney, simpleCountCommit } from '../lib/cost.js';
 import { sessionControls } from '../lib/sessionControls.js';
+import { DISPLAY_INTERVALS, DISPLAY_INTERVAL_LABELS } from '../lib/displayCadence.js';
 import { SourceBadge } from './SharedCostScreen.jsx';
+import CostOverlay from './CostOverlay.jsx';
 
 // Presenter-only panel. Everything here is private to the presenter; only the
 // resolved/sanitized shared state is broadcast to viewers.
@@ -16,6 +18,7 @@ export default function PresenterControls({
   startOverlay,
   stopOverlay,
   resolved,
+  previewDisplay,
 }) {
   // Which session controls to show for the current status. `ended` now offers a
   // way out (start new / resume) instead of being a dead-end. Overlay Show/Hide is
@@ -72,6 +75,37 @@ export default function PresenterControls({
           The meter renders on your camera feed, so everyone sees it natively —
           no app install needed for other participants.
         </p>
+
+        {/* --- Display cadence + viewer preview ------------------------- */}
+        <div className="cadence">
+          <span className="muted small">Update display every</span>
+          <div className="btn-row">
+            {DISPLAY_INTERVALS.map((sec) => (
+              <button
+                key={sec}
+                className={`btn tiny ${config.displayIntervalSeconds === sec ? 'primary' : ''}`}
+                onClick={() => actions.setDisplayInterval(sec)}
+                aria-pressed={config.displayIntervalSeconds === sec}
+              >
+                {DISPLAY_INTERVAL_LABELS[sec]}
+              </button>
+            ))}
+          </div>
+          <p className="muted small">
+            Slows how often the on-camera number changes so it doesn&rsquo;t draw the
+            eye. The running total stays exact underneath.
+          </p>
+        </div>
+
+        <div className="overlay-preview">
+          <span className="muted small">What viewers see</span>
+          <div className="overlay-preview-stage">
+            <CostOverlay display={previewDisplay} />
+          </div>
+          <p className="muted small">
+            Aggregate only — never names or per-person rates.
+          </p>
+        </div>
       </section>
 
       {/* --- Cost model toggle (shown in BOTH modes) ---------------------- */}

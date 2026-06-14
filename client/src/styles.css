@@ -526,6 +526,35 @@ input.inline.num {
   border-radius: 6px;
 }
 
+/* --- Display cadence picker + viewer preview ----------------------------- */
+.cadence {
+  margin-top: 12px;
+}
+.cadence .btn-row {
+  margin-top: 6px;
+}
+.overlay-preview {
+  margin-top: 12px;
+}
+/* A small video-like stage so the (position:absolute, inset:0) overlay card has
+   a sized, positioned box to anchor to — mirrors the real camera frame. */
+.overlay-preview-stage {
+  position: relative;
+  margin-top: 6px;
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: repeating-linear-gradient(
+      45deg,
+      #0d1320,
+      #0d1320 16px,
+      #0f1626 16px,
+      #0f1626 32px
+    );
+  overflow: hidden;
+}
+
 /* --- Error boundary fallback --------------------------------------------- */
 .app-error {
   max-width: 560px;

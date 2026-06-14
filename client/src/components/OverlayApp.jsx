@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import CostOverlay from './CostOverlay.jsx';
 import { extrapolateOverlay } from '../lib/overlayState.js';
+import { quantizeForDisplay } from '../lib/displayCadence.js';
 import { runCameraDraw } from '../lib/cameraDraw.js';
 import { logLifecycle } from '../lib/lifecycleLog.js';
 
@@ -90,6 +91,15 @@ export default function OverlayApp({ adapter, transparentBody = true }) {
   useEffect(() => runCameraDraw(adapter, transparentBody), [adapter, transparentBody]);
 
   if (!state) return <CostOverlay display={null} />;
+  // Extrapolate smoothly from the last snapshot, THEN quantize to the chosen
+  // cadence so the visible number holds steady between N-second steps. The
+  // extrapolation keeps accrual accurate; quantization only steadies the display.
   const ex = extrapolateOverlay(state);
-  return <CostOverlay display={{ ...state, ...ex }} />;
+  const q = quantizeForDisplay({
+    totalCost: ex.totalCost,
+    elapsedSeconds: ex.elapsedSeconds,
+    costPerSecond: state.costPerSecond,
+    stepSeconds: state.displayIntervalSeconds,
+  });
+  return <CostOverlay display={{ ...state, ...q }} />;
 }
