@@ -12,6 +12,7 @@
  * @param {number} args.elapsedSeconds
  * @param {string} [args.currency]
  * @param {number} args.updatedAt          epoch ms, for overlay-side extrapolation
+ * @param {number} [args.displayIntervalSeconds] cadence the overlay quantizes to
  */
 export function buildOverlayState({
   status,
@@ -20,6 +21,7 @@ export function buildOverlayState({
   elapsedSeconds,
   currency = 'USD',
   updatedAt,
+  displayIntervalSeconds = 1,
 }) {
   return {
     status,
@@ -29,6 +31,8 @@ export function buildOverlayState({
     attendees: Number(totals?.attendeeCount) || 0,
     currency,
     updatedAt,
+    // Non-private scalar: how often the overlay steps its displayed number.
+    displayIntervalSeconds: Number(displayIntervalSeconds) || 1,
     prefs: {}, // reserved; never carries private data
   };
 }

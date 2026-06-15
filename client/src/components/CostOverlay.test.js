@@ -35,4 +35,28 @@ describe('CostOverlay', () => {
     });
     expect(JSON.stringify(el)).toContain('3 people');
   });
+
+  describe('cadence-aware clock', () => {
+    const base = { status: 'running', totalCost: 10, costPerSecond: 1, attendees: 2 };
+
+    it('shows h:mm:ss for the per-second / 10s cadences', () => {
+      const sec = JSON.stringify(CostOverlay({ display: { ...base, elapsedSeconds: 70, displayIntervalSeconds: 1 } }));
+      expect(sec).toContain('00:01:10');
+      const ten = JSON.stringify(CostOverlay({ display: { ...base, elapsedSeconds: 70, displayIntervalSeconds: 10 } }));
+      expect(ten).toContain('00:01:10');
+    });
+
+    it('drops seconds entirely at the 1-minute cadence', () => {
+      const min = JSON.stringify(
+        CostOverlay({ display: { ...base, elapsedSeconds: 5160, displayIntervalSeconds: 60 } })
+      );
+      expect(min).toContain('1h 26m');
+      expect(min).not.toContain('1:26'); // no colon/seconds ambiguity
+    });
+
+    it('defaults to per-second formatting when no cadence is given', () => {
+      const def = JSON.stringify(CostOverlay({ display: { ...base, elapsedSeconds: 70 } }));
+      expect(def).toContain('00:01:10');
+    });
+  });
 });

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { loadRates, saveRates } from '../lib/ratesApi.js';
+import { DEFAULT_DISPLAY_INTERVAL, normalizeDisplayInterval } from '../lib/displayCadence.js';
 
 // The presenter's PRIVATE configuration. Persisted to the SERVER (encrypted at rest,
 // keyed to the presenter's Zoom identity) — NOT localStorage, which isn't durable inside
@@ -30,6 +31,9 @@ const DEFAULT_CONFIG = {
   simpleAverageRate: 75,
   simpleMultiplier: 1.0,
   simpleUserCount: null,
+  // How often the ON-CAMERA cost number is allowed to change (seconds). Only
+  // affects what viewers see / the preview — never the internal accrual.
+  displayIntervalSeconds: DEFAULT_DISPLAY_INTERVAL,
 };
 
 let _seq = 100;
@@ -83,6 +87,10 @@ export function usePresenterStore(adapter) {
 
   const setSimpleMultiplier = useCallback((mult) => {
     setPersisted((c) => ({ ...c, simpleMultiplier: clampNum(mult, 0) }));
+  }, []);
+
+  const setDisplayInterval = useCallback((seconds) => {
+    setPersisted((c) => ({ ...c, displayIntervalSeconds: normalizeDisplayInterval(seconds) }));
   }, []);
 
   const setSimpleUserCount = useCallback((count) => {
@@ -155,6 +163,7 @@ export function usePresenterStore(adapter) {
       setSimpleAverageRate,
       setSimpleMultiplier,
       setSimpleUserCount,
+      setDisplayInterval,
       addRule,
       updateRule,
       deleteRule,

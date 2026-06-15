@@ -22,6 +22,7 @@ describe('buildOverlayState', () => {
         'attendees',
         'costPerSecond',
         'currency',
+        'displayIntervalSeconds',
         'elapsedSeconds',
         'prefs',
         'status',
@@ -32,6 +33,19 @@ describe('buildOverlayState', () => {
     expect(out.totalCost).toBe(12.35); // rounded to cents
     expect(out.attendees).toBe(3);
     expect(out.currency).toBe('USD');
+    expect(out.displayIntervalSeconds).toBe(1); // defaults to per-second
+  });
+
+  it('carries the chosen display cadence', () => {
+    const out = buildOverlayState({
+      status: 'running',
+      totalCost: 1,
+      totals,
+      elapsedSeconds: 1,
+      updatedAt: 1,
+      displayIntervalSeconds: 60,
+    });
+    expect(out.displayIntervalSeconds).toBe(60);
   });
 
   it('never carries participant names or individual rates', () => {

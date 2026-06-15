@@ -1,4 +1,5 @@
-import { formatMoney, formatDuration } from '../lib/cost.js';
+import { formatMoney } from '../lib/cost.js';
+import { formatCadenceDuration } from '../lib/displayCadence.js';
 
 // Pure, hook-free presentational overlay — the "taxi meter" composited onto the
 // presenter's camera feed. No app chrome (no panels, header, or role bar) and a
@@ -10,6 +11,9 @@ export default function CostOverlay({ display }) {
   if (!display) return null;
 
   const { totalCost, costPerSecond, elapsedSeconds, attendees, status } = display;
+  // totalCost / elapsedSeconds arrive already quantized to the display cadence by
+  // the caller (overlay or preview); the cadence only picks the clock format here.
+  const interval = Number(display.displayIntervalSeconds) || 1;
   const perMinute = (Number(costPerSecond) || 0) * 60;
   const live = status === 'running';
   const paused = status === 'paused';
@@ -27,7 +31,7 @@ export default function CostOverlay({ display }) {
         </div>
         <div className="cost-overlay-meta">
           <span>{`${formatMoney(perMinute)}/min`}</span>
-          <span>{formatDuration(elapsedSeconds)}</span>
+          <span>{formatCadenceDuration(elapsedSeconds, interval)}</span>
           <span>{`${count} ${count === 1 ? 'person' : 'people'}`}</span>
         </div>
       </div>
