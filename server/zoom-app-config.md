@@ -6,16 +6,28 @@ real Zoom client. None of it is required for the local prototype.
 ## App type
 Create a **Zoom Apps** app at <https://marketplace.zoom.us>.
 
+> **Deployment host.** The app is served from the **Railway** deploy
+> (`railway.json`; see the README's "Deploy to Railway"), **not** a local tunnel.
+> Below, `<app>.up.railway.app` is your live Railway host. Every URL/allow-list
+> entry must match that **exact current host**.
+>
+> ⚠️ **If the app stops appearing in the Zoom client's app list, check here first.**
+> A Home URL / OAuth redirect / domain-allow-list that points at a **dead or changed
+> host** (an old tunnel, or a Railway subdomain that changed on redeploy) makes Zoom
+> unable to load the app — it can be auto-deactivated and drop off the installable
+> list. Reconcile every entry below against the running deployment, confirm the app
+> is **Activated** (Manage → your app), and re-add it via **Local Test → Add**.
+
 ## OAuth
-- **Redirect URL for OAuth:** `https://<tunnel>/auth/callback`
-- **OAuth allow list:** `https://<tunnel>`
-- `<tunnel>` is your HTTPS dev tunnel (e.g. ngrok) pointing at this server.
+- **Redirect URL for OAuth:** `https://<app>.up.railway.app/auth/callback`
+  (must equal the `ZOOM_REDIRECT_URI` env var set in Railway)
+- **OAuth allow list:** `https://<app>.up.railway.app`
 
 ## Home / app URL
-- **Home URL:** `https://<tunnel>/`
+- **Home URL:** `https://<app>.up.railway.app/`
 
 ## Domain allow list
-- `<tunnel>` host
+- `<app>.up.railway.app` host
 - `appssdk.zoom.us`
 
 ## Scopes (minimum for the MVP)
