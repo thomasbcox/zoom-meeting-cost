@@ -97,19 +97,22 @@ story when picked up.
 
 ## CSP hardening — pin to exact origins
 - **Deferred from:** `reviews/zoom-owasp-headers.md` (2026-06-03, Thomas's call).
-- **What:** The Content-Security-Policy shipped for the Zoom blank-screen fix is
-  intentionally permissive for dev:
-  - `connect-src 'self' wss: https:` — allows the WebSocket/API to any HTTPS/WSS
-    host, not just our origin.
+- **What:** The Content-Security-Policy still uses broad wildcards. *(Partial
+  progress: `connect-src` was since pinned from the old `'self' wss: https:` to
+  `'self' https://*.zoom.us https://*.zoom.com` — the `wss:` WebSocket was removed
+  and the bare `https:` is gone — see `server/src/app.js`. So the remaining work is
+  mainly `frame-ancestors`.)*
   - `frame-ancestors 'self' https://*.zoom.us https://*.zoom.com` — broad Zoom
     wildcards.
-- **Why defer:** Tightening needs the stable production origin(s) (tunnel today,
-  a real domain later), which aren't fixed yet. Loosening for dev unblocked
-  in-Zoom testing without risk to a prototype.
+  - `connect-src` still wildcards `*.zoom.us` / `*.zoom.com` rather than exact origins.
+- **Why defer:** Tightening to *exact* origins needs the stable production host(s)
+  (the **Railway host today**, a custom domain later), which aren't fixed yet.
+  Wildcards unblocked in-Zoom testing without risk to a prototype.
 - **When to do:** Before any real distribution / Marketplace submission.
-- **Done looks like:** `connect-src` pinned to our own origin + the specific WSS
-  endpoint; `frame-ancestors` narrowed to the exact Zoom client origins Zoom
-  documents; CSP verified to still render in the Zoom client.
+- **Done looks like:** `connect-src` narrowed from Zoom wildcards to the exact
+  origins actually contacted; `frame-ancestors` narrowed to the exact Zoom client
+  origins Zoom documents; CSP verified to still render in the Zoom client. (No WSS
+  endpoint remains — the shared-state WebSocket was removed.)
 
 ## ~~Secret-leak guardrails — gitleaks + GitHub non-provider scan~~ — DONE
 - **CLOSED 2026-06-10** (Thomas: "the secret guardrails are in place already").
