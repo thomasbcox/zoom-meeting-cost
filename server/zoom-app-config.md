@@ -3,8 +3,56 @@
 This file documents the Zoom App setup needed to run **Meeting Cost** inside the
 real Zoom client. None of it is required for the local prototype.
 
+> **Setting up the hosting from scratch?** See **[`docs/railway-setup.md`](../docs/railway-setup.md)**
+> for the step-by-step Railway guide (deploy, variables, persistent storage Volume,
+> and the two-environment Dev/Prod layout). This file is the **Marketplace side**;
+> that guide is the **hosting side** — they reference each other.
+
 ## App type
 Create a **Zoom Apps** app at <https://marketplace.zoom.us>.
+
+## Development vs Production credentials → two deployments
+
+A Zoom Marketplace app exposes **two independent credential blocks — Development and
+Production — each with its own `client_id` *and* secret** (and its own Home URL /
+redirect / allow-list fields). They are not interchangeable:
+
+- **`Local Test → Add` (how you install an *unpublished* app) uses the Development
+  block.** Production credentials have **no install path until the app is published**.
+- The server reads a **single** credential set per process (`ZOOM_CLIENT_ID` /
+  `ZOOM_CLIENT_SECRET` / `ZOOM_REDIRECT_URI`), and that secret also decrypts the
+  in-client app context. So **one deployment serves one credential block.**
+
+To run both, use **two Railway environments**, each holding one block and pointing the
+matching Zoom block's URLs at its own domain:
+
+| Zoom credential block | Railway env | `ZOOM_CLIENT_ID` | Home URL / redirect point at |
+|---|---|---|---|
+| **Development** | `development` | the Dev id | the **dev** Railway domain |
+| **Production** | `production` | the Prod id | the **prod** Railway domain |
+
+Mixing them (e.g. a Dev `client_id` with a Prod secret) yields
+`400 invalid_client` at token exchange. Each block must be internally consistent and
+point at the deployment that holds the matching secret. Full walkthrough:
+[`docs/railway-setup.md`](../docs/railway-setup.md).
+
+## Persistent storage (required for saved rate tables)
+
+The presenter's rate config is persisted **server-side, encrypted at rest** — this needs
+two things on **each** environment, or it silently degrades:
+
+- **`RATE_STORE_KEY`** (a strong secret, e.g. `openssl rand -base64 32`) — the master
+  encryption key. **If unset, `GET/PUT /api/rates` returns `503` and the app runs
+  session-only (nothing is saved).** Keep it separate from `ZOOM_CLIENT_SECRET`, use a
+  **different** value per environment, and **never lose it** — all stored data is
+  derived from it and becomes undecryptable if it changes.
+- **A Railway Volume** mounted at **`/data`**, with `DATA_DIR=/data`. Railway's normal
+  filesystem is **wiped on every redeploy**, so without the Volume saved rate tables
+  vanish on the next deploy.
+
+Quick check: `curl -s -i https://<domain>/api/rates | head -1` →
+`503` means persistence is **off** (set `RATE_STORE_KEY`); `401` means it's configured.
+Setup steps: [`docs/railway-setup.md`](../docs/railway-setup.md) Part C.
 
 > **Deployment host.** The app is served from the **Railway** deploy
 > (`railway.json`; see the README's "Deploy to Railway"), **not** a local tunnel.

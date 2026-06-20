@@ -109,6 +109,11 @@ SDK capabilities) and `server/.env.example` for OAuth credentials. Set
 
 ## Deploy to Railway (from GitHub)
 
+> **New to Railway, or setting up storage / dev + prod environments?** Follow the
+> step-by-step **[`docs/railway-setup.md`](docs/railway-setup.md)** — it covers the
+> deploy, every variable, the persistent-storage **Volume**, and the two-environment
+> (Development/Production) layout. The summary below is the quick reference.
+
 The repo is deploy-ready: `railway.json` selects Railway's **Railpack** builder and
 declares the build (`npm run build`), start (`npm start`), and a health check at
 `/api/health`. The server boots with **no committed `.env`** — config comes from
