@@ -9,6 +9,3 @@ server/node_modules/
 
 # Machine-local Claude settings (contains local paths; not for sharing)
 .claude/settings.local.json
-
-# Local dev/tunnel scratch notes (per-machine; records the live tunnel URL)
-dev-state.md

@@ -103,8 +103,9 @@ overrides ──────────┘            │
 
 See `server/zoom-app-config.md` for Marketplace setup (scopes, redirect URLs,
 SDK capabilities) and `server/.env.example` for OAuth credentials. Set
-`VITE_USE_ZOOM=1` for the client to use the real Zoom SDK, install
-`@zoom/appssdk`, and serve over an HTTPS tunnel (e.g. ngrok).
+`VITE_USE_ZOOM=1` for the client to use the real Zoom SDK and install
+`@zoom/appssdk`. Real in-Zoom testing runs against the Railway deploy (see
+"Deploy to Railway" below) — there is no local tunnel.
 
 ## Deploy to Railway (from GitHub)
 
