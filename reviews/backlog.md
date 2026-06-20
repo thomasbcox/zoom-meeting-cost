@@ -3,6 +3,33 @@
 Deferred work, tracked so it isn't lost. Each item becomes its own `/frame`
 story when picked up.
 
+## Identify notetakers and default them to $1/hr
+- **Requested:** 2026-06-12 (Thomas).
+- **What:** Let the user flag certain attendees as notetakers (e.g. AI notetaker
+  bots, or a human scribe) and have them default to a **$1/hr** rate rather than
+  a full participant rate, so passive/automated attendees don't inflate the cost.
+- **Why:** Bots and notetakers occupy a participant slot but aren't a real labor
+  cost; counting them at a normal rate overstates the meeting's true cost.
+- **Design notes / open questions:**
+  - Ties into the per-participant rate table — a notetaker flag/tag on a row that
+    sets (and re-applies) the $1/hr default; user can still override.
+  - Consider auto-detecting common notetaker bot display names (e.g. Fathom,
+    Otter, Read.ai, Zoom's own) as a *suggestion* to mark as notetaker — opt-in,
+    never silent, to avoid mis-classifying a real person.
+  - Interacts with the attendee-harvest item below (harvested notetaker names
+    should be markable as such) and only matters in the per-participant model.
+- **Done looks like:** the presenter can mark an attendee as a notetaker; that
+  attendee is costed at $1/hr by default (overridable), and the marking persists
+  / auto-matches like other rate-table rows.
+
+## ~~Configurable cost-update cadence~~ — DONE
+- **Shipped 2026-06-14** (merge `08a2fee`, `shipped/display-update-cadence`,
+  PR #32). Presenter picks how often the on-camera number changes (1s / 10s /
+  1min, default 10s); a pure `quantizeForDisplay` floors the displayed total +
+  clock to the cadence grid while internal accrual stays second-accurate, with a
+  cadence-aware clock (no seconds at the 1-min step) and an aggregate-only viewer
+  preview beside the picker. Full story: `reviews/display-update-cadence.md`.
+
 ## esbuild/vite security bump (dev-only advisory)
 - **Deferred from:** Dependabot PR #23, closed 2026-06-10 (Thomas's call).
 - **What:** A dev-server **esbuild** advisory (esbuild ≤ 0.24.2) reaches the repo
