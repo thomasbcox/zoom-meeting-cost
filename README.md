@@ -102,6 +102,29 @@ overrides ──────────┘            │
   scaffold, `/api/health`, and serving the built client. State flows entirely
   through Zoom's in-client message bridge — there is no server-side WebSocket.
 
+![Meeting Cost Meter — architecture and data flow](dev-docs/meeting-cost-architecture.png)
+
+## Technology stack
+
+- **Frontend:** React 18 single-page app built with Vite 6, running inside the Zoom
+  client via the **Zoom Apps SDK** (`@zoom/appssdk`) — used for meeting context,
+  participant counts, and compositing the live cost meter onto the presenter's camera
+  feed (Zoom camera/Layers rendering context). Plain CSS; no UI framework, web fonts,
+  CDN, or analytics.
+- **Backend:** Node.js 22 + Express, serving the built client and a minimal API
+  (`/api/health`, `/api/log`, `/api/rates`). No database.
+- **Auth:** Zoom OAuth 2.0; requests authenticated via the signed Zoom App Context
+  header, decrypted server-side (AES-256-GCM).
+- **Storage:** each presenter's config saved as a per-user AES-256-GCM-encrypted JSON
+  file on a persistent volume (Node `crypto`); plaintext never hits disk. No
+  third-party data processors or trackers.
+- **Security:** HTTPS/HSTS, Content-Security-Policy, `nosniff`, and `no-store` headers
+  on all responses.
+- **Hosting:** Railway (Node service, auto-deploy from GitHub); GitHub Pages serves the
+  static legal/support pages.
+
+Full diagram source: [`dev-docs/meeting-cost-architecture.svg`](dev-docs/meeting-cost-architecture.svg).
+
 ## Going live in Zoom (later)
 
 See `server/zoom-app-config.md` for Marketplace setup (scopes, redirect URLs,
