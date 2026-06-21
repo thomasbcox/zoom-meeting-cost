@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacy Policy — Meeting Cost Meter</title>
+  <meta name="description" content="Privacy Policy for the Meeting Cost Meter Zoom App.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand" href="index.html">
+        <span class="brand-mark">Meeting Cost Meter</span>
+        <span class="brand-sub">by Transformative Leadership Lab</span>
+      </a>
+      <nav class="site-nav">
+        <a href="documentation.html">Docs</a>
+        <a href="privacy.html">Privacy</a>
+        <a href="terms.html">Terms</a>
+        <a href="support.html">Support</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap">
+      <p class="eyebrow">Policy</p>
+      <h1>Privacy Policy</h1>
+      <p class="meta">Effective date: 1 June 2026 · Meeting Cost Meter</p>
+
+      <p class="lede">Meeting Cost Meter is built to be privacy-preserving by design. The
+        rate information you enter stays in your own browser, and the app's server never
+        receives it.</p>
+
+      <h2>The short version</h2>
+      <div class="callout">
+        <p><strong>Rate data stays on your device.</strong> The hourly rates, default
+          rate, and loaded-cost multiplier you enter are stored only in your own
+          browser's <code>localStorage</code>. They are never sent to our server.</p>
+        <p><strong>No participant data is stored.</strong> The app does not store
+          participant information on the server or keep it after the meeting ends.</p>
+        <p><strong>The server only sees aggregate numbers.</strong> It receives sanitized,
+          aggregate cost figures only — never individual rates or names.</p>
+        <p><strong>No HR or identity systems.</strong> The app does not connect to HR,
+          payroll, SSO, or any employee directory.</p>
+      </div>
+
+      <h2>What the app is</h2>
+      <p>Meeting Cost Meter is a Zoom App that displays the live estimated cost of a
+        meeting. A presenter enters a private, best-guess table of hourly rates, a default
+        rate, and a loaded-cost multiplier. The app multiplies those estimates by the
+        elapsed time and the number of participants to produce a running cost, which can
+        be shown as an overlay on the presenter's camera feed.</p>
+
+      <h2>Rate data you enter</h2>
+      <p>The rate table, default rate, and loaded-cost multiplier are entered by the
+        presenter and are stored <strong>only in that presenter's browser</strong>, using
+        the browser's <code>localStorage</code>. This data:</p>
+      <ul>
+        <li>never leaves the presenter's device as individual rate data;</li>
+        <li>is not transmitted to, or stored on, our server;</li>
+        <li>is not shared with other meeting participants; and</li>
+        <li>can be cleared at any time by clearing it in the app or clearing your
+          browser's site data.</li>
+      </ul>
+      <p>Because rate data lives in your browser, it is specific to that browser and
+        device. Using a different browser or device, or clearing site data, starts fresh.</p>
+
+      <h2>What the server receives</h2>
+      <p>To render the on-camera overlay, the app sends the server a small, sanitized
+        snapshot of <strong>aggregate</strong> meeting state — for example the running
+        total cost, the cost per minute, the elapsed time, and the participant count.
+        This snapshot:</p>
+      <ul>
+        <li>contains <strong>no individual rates</strong> and <strong>no participant
+          names or identities</strong>;</li>
+        <li>reflects only combined, summary figures; and</li>
+        <li>is used to display the live cost during the active meeting.</li>
+      </ul>
+      <p>No participant data is persisted on the server beyond the active meeting session.
+        The app does not build profiles, does not track individuals across meetings, and
+        does not retain meeting cost history on the server.</p>
+
+      <h2>What the app does <em>not</em> do</h2>
+      <ul>
+        <li>It does <strong>not</strong> integrate with HR, payroll, SSO, or any employee
+          directory.</li>
+        <li>It does <strong>not</strong> read real salary or compensation data — all rates
+          are the presenter's own estimates.</li>
+        <li>It does <strong>not</strong> record audio, video, chat, or meeting content.</li>
+        <li>It does <strong>not</strong> sell data or use it for advertising.</li>
+      </ul>
+
+      <h2>Information from Zoom</h2>
+      <p>To run inside a meeting, the app uses the Zoom Apps SDK to obtain the in-meeting
+        context it needs (such as the current participant count) and, where required, an
+        authorization token. This information is used in real time to compute and display
+        the live cost and is not stored on our server beyond the active session.</p>
+
+      <h2>Data retention</h2>
+      <p>Rate data persists only in your browser until you clear it. Aggregate cost state
+        exists only during the active meeting and is not retained on the server afterward.</p>
+
+      <h2>Removing the app</h2>
+      <p>You can remove Meeting Cost Meter at any time from the Zoom App Marketplace. To
+        also remove the rate data held in your browser, clear the app's data or your
+        browser's site data for this app.</p>
+
+      <h2>Changes to this policy</h2>
+      <p>If this policy changes, we will update the effective date above and post the
+        revised policy at this address.</p>
+
+      <h2>Contact</h2>
+      <p>Questions about privacy? Email
+        <a href="mailto:thomas+mcsupport@txl-lab.com">thomas+mcsupport@txl-lab.com</a>.
+        Meeting Cost Meter is provided by Transformative Leadership Lab LLC.</p>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p>Meeting Cost Meter is provided by <strong>Transformative Leadership Lab LLC</strong>.</p>
+      <p><a href="index.html">← All documents</a> ·
+         <a href="mailto:thomas+mcsupport@txl-lab.com">thomas+mcsupport@txl-lab.com</a></p>
+      <p class="fineprint">Effective date: 1 June 2026</p>
+    </div>
+  </footer>
+</body>
+</html>

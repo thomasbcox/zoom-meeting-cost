@@ -1,8 +1,8 @@
 # Camera overlay — live-test matrix
 
 Status: **draft** · Created 2026-06-11 · Owner: Thomas
-Relates to: `docs/roadmap.md` (🔴 live-render risk), `reviews/camera-overlay-message-bridge.md`,
-`docs/camera-overlay-no-draw.md`, `docs/camera-overlay-no-update.md`,
+Relates to: `dev-docs/roadmap.md` (🔴 live-render risk), `reviews/camera-overlay-message-bridge.md`,
+`dev-docs/camera-overlay-no-draw.md`, `dev-docs/camera-overlay-no-update.md`,
 memory `reference-zoom-prod-unknowns-research`.
 
 ## Why this exists

@@ -247,4 +247,4 @@ instance before routing, plus Root init catches and `onRenderedAppOpened`. (5) `
    run should confirm the raw context value, the second-instance event firing, and the
    Marketplace camera-mode surface/capability setup.
 
-_Raw Codex output: `docs/camera-overlay-no-draw.codex.json`._
+_Raw Codex output: `dev-docs/camera-overlay-no-draw.codex.json`._

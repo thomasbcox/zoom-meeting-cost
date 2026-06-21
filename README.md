@@ -11,7 +11,7 @@ natively — no second app, no shared screen, no collaborate space.
 > directory. The presenter is asked to estimate each person's hourly rate; the
 > app computes the cost from those numbers and does not verify them.
 
-![Meeting Cost shared screen — live total, cost/minute, elapsed time, and attendee count](docs/screenshot.png)
+![Meeting Cost shared screen — live total, cost/minute, elapsed time, and attendee count](dev-docs/screenshot.png)
 
 ## What's in this repo
 
@@ -110,7 +110,7 @@ SDK capabilities) and `server/.env.example` for OAuth credentials. Set
 ## Deploy to Railway (from GitHub)
 
 > **New to Railway, or setting up storage / dev + prod environments?** Follow the
-> step-by-step **[`docs/railway-setup.md`](docs/railway-setup.md)** — it covers the
+> step-by-step **[`dev-docs/railway-setup.md`](dev-docs/railway-setup.md)** — it covers the
 > deploy, every variable, the persistent-storage **Volume**, and the two-environment
 > (Development/Production) layout. The summary below is the quick reference.
 
