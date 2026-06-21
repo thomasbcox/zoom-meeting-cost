@@ -188,3 +188,13 @@ gate under its read-only sandbox; the gate was run green locally before this rev
    definition and both reasons across ~6 lines — the duplication the hybrid explicitly avoids.
 
 Last-reviewed SHA: 4415098 (base for any re-review)
+
+## Decisions (2026-06-21)
+Thomas decided per finding ("b1 fix; b2 fix; i3 fix; i4 fix; 5 fix"):
+- BLOCKER 1 (privacy page implies server handles overlay snapshot) — **FIX**
+- BLOCKER 2 (privacy page missing full canonical definition) — **FIX**
+- IMPORTANT 3 (docs misstate per-participant math) — **FIX**
+- IMPORTANT 4 (compensation-era comments in matching.js + test) — **FIX**
+- IMPORTANT 5 (README duplicates canonical definition) — **FIX**
+
+All five approved to fix; routing to /close. (Fix approval is not a merge authorization.)
