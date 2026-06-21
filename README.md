@@ -2,14 +2,21 @@
 
 Shows the **live estimated cost of a Zoom meeting** as a "taxi meter" overlay on
 the presenter's video, exactly like Zoom's Timer app. The presenter owns a
-private, best-guess table of hourly rates in the in-meeting **side panel** and
-clicks **Show cost on video**; the live total then renders onto their camera
-feed (via Zoom's camera rendering context) so every participant sees it
+private, best-guess table of per-person **hourly opportunity cost** in the in-meeting
+**side panel** and clicks **Show cost on video**; the live total then renders onto
+their camera feed (via Zoom's camera rendering context) so every participant sees it
 natively — no second app, no shared screen, no collaborate space.
 
+> **"Rate" means hourly opportunity cost, not pay.** The figure entered for each
+> person is the value of the highest and best work they could be doing instead of
+> being in the meeting — deliberately **not** their wage or salary (pay is private,
+> and pay understates the meeting's cost). The code keeps the historical `rate`
+> identifier; see [`dev-docs/opportunity-cost-rate.md`](dev-docs/opportunity-cost-rate.md)
+> for the canonical definition.
+
 > The app does **not** integrate with HR, payroll, SSO, or any employee
-> directory. The presenter is asked to estimate each person's hourly rate; the
-> app computes the cost from those numbers and does not verify them.
+> directory. The presenter is asked to estimate each person's hourly opportunity
+> cost; the app computes the cost from those numbers and does not verify them.
 
 ![Meeting Cost shared screen — live total, cost/minute, elapsed time, and attendee count](dev-docs/screenshot.png)
 

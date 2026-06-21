@@ -7,6 +7,9 @@ import * as rateCrypto from './rateCrypto.js';
 // file per uid under DATA_DIR (default /data); the file holds ONLY the rateCrypto
 // envelope (ciphertext) — plaintext never touches disk.
 //
+// NOTE: every `rate` here is an hourly OPPORTUNITY COST (value of best alternative work),
+// never pay. See dev-docs/opportunity-cost-rate.md. Field/identifier names are unchanged.
+//
 // The server is a dumb, size-bounded blob store: it persists the presenter's config
 // object verbatim (the CLIENT owns the schema + defaults and merges on load), so adding
 // client config fields never needs a server change. Reads are defensive: missing /

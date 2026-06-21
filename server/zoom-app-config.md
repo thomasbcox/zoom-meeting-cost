@@ -41,6 +41,9 @@ point at the deployment that holds the matching secret. Full walkthrough:
 The presenter's rate config is persisted **server-side, encrypted at rest** — this needs
 two things on **each** environment, or it silently degrades:
 
+> Note: "rate" here is hourly **opportunity cost**, not pay — see
+> [`dev-docs/opportunity-cost-rate.md`](../dev-docs/opportunity-cost-rate.md).
+
 - **`RATE_STORE_KEY`** (a strong secret, e.g. `openssl rand -base64 32`) — the master
   encryption key. **If unset, `GET/PUT /api/rates` returns `503` and the app runs
   session-only (nothing is saved).** Keep it separate from `ZOOM_CLIENT_SECRET`, use a

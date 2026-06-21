@@ -3,6 +3,20 @@
 Deferred work, tracked so it isn't lost. Each item becomes its own `/frame`
 story when picked up.
 
+## Remove the loaded-cost multiplier
+- **Requested:** 2026-06-21 (Thomas), flagged from `reviews/opportunity-cost-framing.md`.
+- **What:** Remove the `multiplier` / `simpleMultiplier` field, its UI, and its use in
+  `computeTotals` / `computeSimpleTotals`, plus the stored-config schema field.
+- **Why:** "Loaded cost" (overhead on top of pay) is a compensation concept. Now that the
+  per-person number is an **opportunity cost** (already the full value of the person's time),
+  multiplying it by an overhead factor double-counts and muddies the meaning. The framing
+  pass ([`reviews/opportunity-cost-framing.md`](opportunity-cost-framing.md)) only neutralized
+  the help text; this item removes the field.
+- **Design notes / open questions:**
+  - Touches identifiers + the persisted schema (`validateConfig`) → needs a back-compat read
+    (ignore a legacy `multiplier`) or a migration, unlike the copy-only framing pass.
+  - Decide whether to keep a value-neutral "scale" control or drop scaling entirely.
+
 ## Identify notetakers and default them to $1/hr
 - **Requested:** 2026-06-12 (Thomas).
 - **What:** Let the user flag certain attendees as notetakers (e.g. AI notetaker

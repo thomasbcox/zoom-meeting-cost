@@ -33,11 +33,24 @@
         cost appears as an overlay on the presenter's camera, where everyone in the meeting
         can see it.</p>
 
+      <h2>What you enter: opportunity cost</h2>
+      <p>The figure you enter for each person is their <strong>hourly opportunity
+        cost</strong> — the value of the highest and best work they could be doing instead
+        of being in this meeting. It is deliberately <strong>not</strong> their wage or
+        salary, for two reasons:</p>
+      <ul>
+        <li><strong>Pay is private.</strong> The app never asks for it, and we never want
+          it.</li>
+        <li><strong>Pay understates the cost.</strong> An hour of someone's best work is
+          usually worth far more to the organization than what they are paid for it, so a
+          wage figure would make the meeting look cheaper than it really is.</li>
+      </ul>
+
       <h2>What it does</h2>
-      <p>One presenter enters a private, best-guess table of hourly rates, a default rate
-        for anyone not in the table, and a loaded-cost multiplier (to account for overhead
-        beyond base pay). While the meeting runs, the app multiplies those estimates by the
-        elapsed time and the number of participants and displays a running figure:</p>
+      <p>One presenter privately estimates each person's hourly opportunity cost, with a
+        default for anyone not listed. While the meeting runs, the app multiplies those
+        estimates by the elapsed time and the number of participants and displays a running
+        figure:</p>
       <ul>
         <li>the total estimated cost so far;</li>
         <li>the estimated cost per minute;</li>
@@ -48,25 +61,23 @@
       <h2>Getting started</h2>
       <ol>
         <li>Add Meeting Cost Meter from the Zoom App Marketplace and open it in a meeting.</li>
-        <li>In the app's side panel, enter your default hourly rate and, optionally, a table
-          of specific rates and a loaded-cost multiplier.</li>
+        <li>In the app's side panel, set a default hourly opportunity cost and, optionally,
+          add specific people with their own values.</li>
         <li>Click to show the cost overlay on your camera. Participants see the live
           estimate composited natively on your video.</li>
       </ol>
 
       <h2>How your data is handled</h2>
-      <p>Your rate information never leaves your device. The server handles only aggregate
-        figures.</p>
+      <p>Your individual figures are stored encrypted and tied to your Zoom account.
+        Participants only ever see an aggregate total.</p>
       <div class="callout">
-        <p><strong>Rate data → your browser only.</strong> The hourly-rate table, default
-          rate, and loaded-cost multiplier you enter are stored only in your own browser's
-          <code>localStorage</code>. They are never sent to our server.</p>
-        <p><strong>Server → aggregate state only.</strong> To draw the overlay, the app
-          sends the server a sanitized snapshot of aggregate cost state (total, cost per
-          minute, elapsed time, participant count) — never individual rates and never
-          participant names.</p>
-        <p><strong>Nothing persisted.</strong> No participant data is stored on the server
-          or kept after the active meeting session ends.</p>
+        <p><strong>Your settings → encrypted, for you.</strong> The names and
+          opportunity-cost values you enter are saved on our server, encrypted at rest and
+          tied to your Zoom account, so your setup is there next time. Only you can retrieve
+          it.</p>
+        <p><strong>Overlay → aggregate only.</strong> To draw the overlay, the app sends a
+          sanitized aggregate snapshot (total, cost per minute, elapsed time, participant
+          count) — never individual values and never names.</p>
         <p><strong>No HR/identity systems.</strong> The app does not connect to HR,
           payroll, SSO, or any employee directory.</p>
       </div>
@@ -74,11 +85,11 @@
 
       <h2>Tips for using it well</h2>
       <ul>
+        <li>Estimate opportunity cost, not pay — the value of what each person would
+          otherwise be doing. It is usually higher than salary, and it is the honest cost of
+          the meeting.</li>
         <li>Remember that every figure is an estimate, not a fact about anyone's pay.</li>
-        <li>Use the loaded-cost multiplier to reflect overhead if you want a fuller picture
-          of cost.</li>
-        <li>Set a sensible default rate so participants without a specific rate are still
-          counted.</li>
+        <li>Set a sensible default so people you have not listed are still counted.</li>
       </ul>
 
       <h2>Troubleshooting</h2>
@@ -86,9 +97,10 @@
       <p>Make sure your camera is on and that you've enabled the cost overlay in the app's
         side panel. The overlay renders on the presenter's video.</p>
 
-      <h3>My rates reset</h3>
-      <p>Rate data is stored per browser and per device. You will lose your rates if you
-        switch browsers or devices, use private or incognito mode, or clear your site data.</p>
+      <h3>My settings didn't save</h3>
+      <p>Your configuration is saved to your Zoom account, so it follows you across devices.
+        If it isn't saving, the app may be unable to authenticate with Zoom — for example
+        when it's opened outside a Zoom meeting — and is running with session-only settings.</p>
 
       <h2>Need more help?</h2>
       <p>See <a href="support.html">Support</a> or email
