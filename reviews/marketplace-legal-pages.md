@@ -1,9 +1,9 @@
 Date: 2026-06-21 · Branch: claude/marketplace-legal-pages · Status: approved
 
-Approved 2026-06-21 by Thomas: "make it so" — provider = the Wyoming LLC that owns
-txl-lab.com; support email thomas+mcsupport@txl-lab.com; governing law Wyoming;
-effective date 01-Jun-2026; app name "Meeting Cost Meter"; pages styled to match
-txl-lab.com; internal docs → `dev-docs/`.
+Approved 2026-06-21 by Thomas: "make it so" — provider = Transformative Leadership
+Lab LLC; support email thomas+mcsupport@txl-lab.com; **governing law Washington**
+(updated from initial Wyoming guess); effective date 01-Jun-2026; app name "Meeting
+Cost Meter"; pages styled to the TXL brand palette; internal docs → `dev-docs/`.
 
 ## Problem
 The Zoom App Marketplace submission for **Meeting Cost Meter** requires four publicly
@@ -77,7 +77,7 @@ The pages must reflect the app's actual architecture (from project memory + code
 5. Pages contain no JavaScript and no tracking/analytics; **"Meeting Cost Meter"** is
    the app name used throughout; each page shows "Effective date: 1 June 2026"; the
    provider entity name and `thomas+mcsupport@txl-lab.com` support email appear where
-   relevant; Terms names Wyoming as governing law.
+   relevant; Terms names **Washington** as governing law.
 6. After the move, `docs/` contains **only** the public site (the six files in AC1)
    — no `.md`/`.json`/`.png` internal docs remain — and `dev-docs/` contains the 8
    relocated files. File contents of the moved docs are unchanged except for
@@ -120,12 +120,14 @@ follow-up — not part of this story's diff. Internal dev docs are relocated to
 
 ## Decisions (resolved 2026-06-21)
 - **App name:** "Meeting Cost Meter".
-- **Provider entity:** the Wyoming LLC that owns txl-lab.com. Exact registered legal
-  name to be read from txl-lab.com's own footer/legal pages during the design scrape;
-  if not found there, a clearly-bracketed `[LLC legal name]` placeholder is used and
-  flagged for Thomas. Governing law: **Wyoming** (Thomas to confirm state of
-  incorporation before submission).
+- **Provider entity:** Transformative Leadership Lab LLC (confirmed from
+  txl-lab.com's privacy/terms page, which lists it at Ridgefield, Washington).
+- **Governing law:** **Washington** (Thomas updated from his initial "Wyoming" guess
+  2026-06-21 — matches the entity's listed state).
 - **Support contact:** thomas+mcsupport@txl-lab.com.
 - **Effective date:** 1 June 2026 (01-Jun-2026).
 - **New internal-docs folder:** `dev-docs/`.
-- **Visual style:** match txl-lab.com (scraped).
+- **Visual style:** match the TXL brand palette (Thomas-supplied 2026-06-21): sage
+  `#dde2c9`, teal `#07a496`, sky `#31b5e9`, green `#a3d28b`, blue `#0070a5`, deep
+  teal `#006060`, navy `#234262`. Fonts (Typekit `stolzl`/`korolev-compressed`)
+  approximated with a self-contained stack — no external requests.
