@@ -103,7 +103,7 @@ export default function PresenterControls({
             <CostOverlay display={previewDisplay} />
           </div>
           <p className="muted small">
-            Aggregate only — never names or per-person rates.
+            Aggregate only — never names or per-person values.
           </p>
         </div>
       </section>
@@ -127,8 +127,8 @@ export default function PresenterControls({
         </div>
         <p className="muted small">
           {config.costModel === 'simple'
-            ? 'Flat estimate: attendees × average rate × multiplier.'
-            : 'Per-person rates from your private table.'}
+            ? 'Flat estimate: attendees × average opportunity cost × multiplier.'
+            : 'Per-person opportunity cost from your private table.'}
         </p>
       </section>
 
@@ -139,10 +139,10 @@ export default function PresenterControls({
         <>
           {/* --- Global rate settings ------------------------------------- */}
           <section className="panel">
-            <h3>Rate settings</h3>
+            <h3>Opportunity-cost settings</h3>
             <div className="field-row">
               <label>
-                Default hourly rate
+                Default hourly opportunity cost
                 <NumberInput
                   value={config.defaultRate}
                   onCommit={(v) => actions.setDefaultRate(v)}
@@ -150,7 +150,7 @@ export default function PresenterControls({
                 />
               </label>
               <label>
-                Loaded-cost multiplier
+                Multiplier
                 <NumberInput
                   value={config.multiplier}
                   step="0.05"
@@ -160,7 +160,7 @@ export default function PresenterControls({
               </label>
             </div>
             <p className="muted small">
-              Multiplier applies to every rate (e.g. 1.25 for benefits/overhead).
+              Multiplier scales every value (e.g. 1.25 to nudge estimates up).
             </p>
           </section>
 
@@ -188,7 +188,7 @@ function SimpleCostPanel({ config, actions, liveCount }) {
       </p>
       <div className="field-row">
         <label>
-          Average hourly rate
+          Average hourly opportunity cost
           <NumberInput
             value={config.simpleAverageRate}
             onCommit={(v) => actions.setSimpleAverageRate(v)}
@@ -232,8 +232,8 @@ function RateTableEditor({ config, actions }) {
 
   return (
     <section className="panel">
-      <h3>Private rate rules</h3>
-      <p className="muted small">Best-guess hourly rates. Never shared with viewers.</p>
+      <h3>Private per-person values</h3>
+      <p className="muted small">Your best-guess hourly opportunity cost for each person. Never shown to participants.</p>
       <p className="muted small" role="note">
         ⚠️ Saved to the server, encrypted, and tied to your Zoom identity so it loads in
         your future meetings. It is <strong>not</strong> end-to-end encrypted — the app
@@ -302,7 +302,7 @@ function AliasEditor({ config, actions }) {
   return (
     <section className="panel">
       <h3>Name aliases</h3>
-      <p className="muted small">Map a meeting display name to a rate-rule name.</p>
+      <p className="muted small">Map a meeting display name to a name in your private list.</p>
       <table className="edit-table">
         <tbody>
           {config.aliases.map((a) => (
@@ -343,7 +343,7 @@ function OverridesEditor({ resolved, overrides, actions }) {
     <section className="panel">
       <h3>Per-participant overrides</h3>
       <p className="muted small">
-        Override the rate for someone in this meeting. Not saved to the rate table.
+        Override the value for someone in this meeting. Not saved to your private list.
       </p>
       <table className="edit-table">
         <tbody>

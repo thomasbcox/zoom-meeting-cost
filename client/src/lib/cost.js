@@ -1,6 +1,10 @@
 // Cost aggregation + formatting helpers.
+//
+// "rate" here means each person's hourly OPPORTUNITY COST, not pay — the value of the best
+// work they could be doing instead of being in the meeting. See
+// dev-docs/opportunity-cost-rate.md. (Identifiers keep the historical `rate` name.)
 
-/** Sum the (multiplier-applied) hourly rates and derive per-minute/second. */
+/** Sum the (multiplier-applied) hourly opportunity-cost values and derive per-minute/second. */
 export function computeTotals(resolvedParticipants = []) {
   const combinedHourly = resolvedParticipants.reduce(
     (sum, p) => sum + (Number(p.rate) || 0),
@@ -15,7 +19,7 @@ export function computeTotals(resolvedParticipants = []) {
 }
 
 /**
- * Simple cost model: a flat estimate of N people × average $/hr × multiplier.
+ * Simple cost model: a flat estimate of N people × average opportunity cost × multiplier.
  * Returns the SAME shape as computeTotals so everything downstream is unchanged.
  * Negative / non-numeric inputs clamp to 0.
  */

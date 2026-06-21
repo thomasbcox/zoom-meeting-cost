@@ -1,5 +1,6 @@
 // Load/save the presenter's rate config to the server, authenticated by the Zoom app
-// context. The signed context blob (from the adapter) is sent in the `x-zoom-app-context`
+// context. ("rate" = hourly opportunity cost, not pay; see dev-docs/opportunity-cost-rate.md.)
+// The signed context blob (from the adapter) is sent in the `x-zoom-app-context`
 // header; the server decrypts it → uid and reads/writes the encrypted store.
 //
 // Every call is BEST-EFFORT: a missing context (mock / not in Zoom), a 401/503, or a

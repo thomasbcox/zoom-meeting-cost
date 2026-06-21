@@ -14,7 +14,7 @@ import { seedPresenterName } from './lib/presenterName.js';
 import { logLifecycle } from './lib/lifecycleLog.js';
 import { createVideoRecovery } from './lib/overlayRecover.js';
 
-// The in-meeting SIDE PANEL: the presenter privately configures rates, sees a
+// The in-meeting SIDE PANEL: the presenter privately configures opportunity-cost values, sees a
 // live readout, and starts/stops the camera overlay. The overlay itself renders
 // in the camera rendering context (see OverlayApp via Root) and receives state
 // pushed over the adapter's message bridge — there is no viewer webview and no
@@ -75,7 +75,7 @@ export default function App({ adapter, self, initialParticipants = [] }) {
     []
   );
 
-  // Resolve participants -> rates with the presenter's private config.
+  // Resolve participants -> opportunity-cost values with the presenter's private config.
   const resolved = useMemo(
     () => resolveAll(participants, { ...config, overrides }),
     [participants, config, overrides]
@@ -217,7 +217,7 @@ export default function App({ adapter, self, initialParticipants = [] }) {
 
   // --- Viewer's-eye preview (aggregate only, quantized to the chosen cadence) -
   // Exactly what participants see on the camera overlay: total, $/min, stepped
-  // clock, head-count — NO names or per-person rates (reuses buildOverlayState's
+  // clock, head-count — NO names or per-person values (reuses buildOverlayState's
   // sanitized payload). Re-derived each render (the 1 s tick) but quantization
   // holds it steady between N-second steps. updatedAt is irrelevant here (no
   // extrapolation — the preview shows the already-quantized snapshot).
@@ -290,8 +290,8 @@ export default function App({ adapter, self, initialParticipants = [] }) {
           ) : session.status === 'idle' ? (
             <div className="cost-screen empty">
               <p className="muted">
-                Configure rates, then <strong>Show cost on video</strong> to put the
-                live meter on your camera feed for everyone to see.
+                Set your opportunity-cost values, then <strong>Show cost on video</strong>
+                to put the live meter on your camera feed for everyone to see.
               </p>
             </div>
           ) : (

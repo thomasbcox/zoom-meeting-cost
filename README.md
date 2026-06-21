@@ -2,16 +2,19 @@
 
 Shows the **live estimated cost of a Zoom meeting** as a "taxi meter" overlay on
 the presenter's video, exactly like Zoom's Timer app. The presenter owns a
-private, best-guess table of hourly rates in the in-meeting **side panel** and
-clicks **Show cost on video**; the live total then renders onto their camera
-feed (via Zoom's camera rendering context) so every participant sees it
+private, best-guess table of per-person **hourly opportunity cost** in the in-meeting
+**side panel** and clicks **Show cost on video**; the live total then renders onto
+their camera feed (via Zoom's camera rendering context) so every participant sees it
 natively — no second app, no shared screen, no collaborate space.
 
-> The app does **not** integrate with HR, payroll, SSO, or any employee
-> directory. The presenter is asked to estimate each person's hourly rate; the
-> app computes the cost from those numbers and does not verify them.
+> **"Rate" means hourly opportunity cost, not pay** — see
+> [`dev-docs/opportunity-cost-rate.md`](dev-docs/opportunity-cost-rate.md) for the canonical definition.
 
-![Meeting Cost shared screen — live total, cost/minute, elapsed time, and attendee count](docs/screenshot.png)
+> The app does **not** integrate with HR, payroll, SSO, or any employee
+> directory. The presenter is asked to estimate each person's hourly opportunity
+> cost; the app computes the cost from those numbers and does not verify them.
+
+![Meeting Cost shared screen — live total, cost/minute, elapsed time, and attendee count](dev-docs/screenshot.png)
 
 ## What's in this repo
 
@@ -110,7 +113,7 @@ SDK capabilities) and `server/.env.example` for OAuth credentials. Set
 ## Deploy to Railway (from GitHub)
 
 > **New to Railway, or setting up storage / dev + prod environments?** Follow the
-> step-by-step **[`docs/railway-setup.md`](docs/railway-setup.md)** — it covers the
+> step-by-step **[`dev-docs/railway-setup.md`](dev-docs/railway-setup.md)** — it covers the
 > deploy, every variable, the persistent-storage **Volume**, and the two-environment
 > (Development/Production) layout. The summary below is the quick reference.
 

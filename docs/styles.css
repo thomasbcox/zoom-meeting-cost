@@ -1,0 +1,122 @@
+/* Meeting Cost Meter — public docs site
+   Visual style matches the Transformative Leadership Lab brand: cool teal /
+   blue / green palette on a light cool ground, geometric sans (Stolzl-like)
+   body, condensed uppercase display accents (Korolev-like), generous spacing.
+   Fully self-contained: no external fonts, scripts, or analytics — a privacy
+   page should not make third-party requests.
+   Brand colors are the variables below; tweak to retune. */
+
+:root {
+  /* TXL brand palette */
+  --sage:   #dde2c9;
+  --teal:   #07a496;
+  --sky:    #31b5e9;
+  --green:  #a3d28b;
+  --blue:   #0070a5;
+  --dteal:  #006060;
+  --navy:   #234262;
+
+  /* roles */
+  --bg:       #f4f7f6;   /* light cool ground */
+  --surface:  #ffffff;
+  --ink:      #223240;   /* body + headings (near brand navy) */
+  --muted:    #5b6f73;
+  --line:     #dde6e3;
+  --link:     #0070a5;   /* primary blue */
+  --link-hov: #006060;   /* deep teal */
+  --accent:   #07a496;   /* teal — bars, hovers */
+  --maxw:     44rem;
+
+  --font-body: "Stolzl", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+               "Helvetica Neue", Arial, sans-serif;
+  --font-disp: "Korolev Compressed", "Stolzl", "Oswald", "Helvetica Neue",
+               Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 17px;
+  line-height: 1.65;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap { width: 100%; max-width: var(--maxw); margin: 0 auto; padding: 0 1.5rem; }
+
+/* ---- header ---- */
+.site-header { border-bottom: 1px solid var(--line); background: var(--surface); border-top: 4px solid var(--navy); }
+.header-inner {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: 1rem; padding-top: 1.1rem; padding-bottom: 1.1rem;
+}
+.brand { text-decoration: none; color: var(--navy); display: inline-flex; flex-direction: column; line-height: 1.1; }
+.brand-mark {
+  font-family: var(--font-disp);
+  font-weight: 700; font-size: 1.4rem; color: var(--navy);
+  text-transform: uppercase; letter-spacing: .06em;
+}
+.brand-sub { font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; color: var(--dteal); margin-top: .2rem; }
+.site-nav { display: flex; flex-wrap: wrap; gap: 1.1rem; }
+.site-nav a {
+  text-decoration: none; color: var(--muted);
+  font-size: .82rem; letter-spacing: .08em; text-transform: uppercase;
+  padding-bottom: 2px; border-bottom: 2px solid transparent;
+}
+.site-nav a:hover { color: var(--navy); border-bottom-color: var(--accent); }
+
+/* ---- main ---- */
+main { padding: 3rem 0 1rem; }
+.eyebrow {
+  font-family: var(--font-disp);
+  text-transform: uppercase; letter-spacing: .16em;
+  font-size: .8rem; color: var(--dteal); margin: 0 0 .6rem;
+}
+h1 { font-size: 2.15rem; line-height: 1.12; margin: 0 0 .5rem; letter-spacing: -.01em; color: var(--navy); }
+h2 { font-size: 1.3rem; margin: 2.4rem 0 .6rem; letter-spacing: -.005em; color: var(--navy); }
+h3 { font-size: 1.02rem; margin: 1.6rem 0 .4rem; color: var(--navy); }
+p, li { color: var(--ink); }
+.lede { font-size: 1.12rem; color: var(--muted); margin: 0 0 1.5rem; }
+.meta { color: var(--muted); font-size: .9rem; margin: 0 0 2.2rem; padding-bottom: 1.4rem; border-bottom: 1px solid var(--line); }
+a { color: var(--link); }
+a:hover { color: var(--link-hov); }
+ul { padding-left: 1.2rem; }
+li { margin: .35rem 0; }
+strong { font-weight: 700; }
+
+.callout {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--teal);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin: 1.6rem 0;
+}
+.callout p { margin: .4rem 0; }
+
+/* index hub cards */
+.cards { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 2rem 0 1rem; }
+.card {
+  display: block; text-decoration: none; color: var(--ink);
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+  border-top: 3px solid var(--teal);
+  padding: 1.25rem 1.35rem; transition: border-color .12s ease, transform .12s ease, box-shadow .12s ease;
+}
+.card:hover { border-color: var(--blue); border-top-color: var(--blue); transform: translateY(-2px); box-shadow: 0 6px 18px rgba(35,66,98,.08); }
+.card .card-title { font-family: var(--font-disp); text-transform: uppercase; letter-spacing: .05em; font-weight: 700; font-size: 1.05rem; margin: 0 0 .3rem; color: var(--navy); }
+.card .card-desc { color: var(--muted); font-size: .92rem; margin: 0; }
+@media (max-width: 36rem) { .cards { grid-template-columns: 1fr; } }
+
+/* ---- footer ---- */
+.site-footer { background: var(--navy); color: #c9d6e2; margin-top: 3rem; padding: 2rem 0; font-size: .9rem; }
+.site-footer p { margin: .3rem 0; color: #c9d6e2; }
+.site-footer strong { color: #ffffff; }
+.site-footer a { color: var(--sage); }
+.site-footer a:hover { color: var(--sky); }
+.site-footer .fineprint { font-size: .82rem; color: #9fb1c2; }

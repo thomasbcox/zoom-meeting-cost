@@ -1,8 +1,8 @@
 // Builds the payload streamed from the side panel to the camera overlay.
 //
-// PRIVACY: this must never carry the presenter's private rate table, aliases,
-// per-participant names, or individual rates. The overlay shows aggregate
-// numbers only, so only aggregate numbers are sent to the camera context.
+// PRIVACY: this must never carry the presenter's private value table, aliases,
+// per-participant names, or individual opportunity-cost values. The overlay shows
+// aggregate numbers only, so only aggregate numbers are sent to the camera context.
 
 /**
  * @param {Object} args

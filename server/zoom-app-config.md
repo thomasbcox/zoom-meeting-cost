@@ -3,7 +3,7 @@
 This file documents the Zoom App setup needed to run **Meeting Cost** inside the
 real Zoom client. None of it is required for the local prototype.
 
-> **Setting up the hosting from scratch?** See **[`docs/railway-setup.md`](../docs/railway-setup.md)**
+> **Setting up the hosting from scratch?** See **[`dev-docs/railway-setup.md`](../dev-docs/railway-setup.md)**
 > for the step-by-step Railway guide (deploy, variables, persistent storage Volume,
 > and the two-environment Dev/Prod layout). This file is the **Marketplace side**;
 > that guide is the **hosting side** — they reference each other.
@@ -34,12 +34,15 @@ matching Zoom block's URLs at its own domain:
 Mixing them (e.g. a Dev `client_id` with a Prod secret) yields
 `400 invalid_client` at token exchange. Each block must be internally consistent and
 point at the deployment that holds the matching secret. Full walkthrough:
-[`docs/railway-setup.md`](../docs/railway-setup.md).
+[`dev-docs/railway-setup.md`](../dev-docs/railway-setup.md).
 
 ## Persistent storage (required for saved rate tables)
 
 The presenter's rate config is persisted **server-side, encrypted at rest** — this needs
 two things on **each** environment, or it silently degrades:
+
+> Note: "rate" here is hourly **opportunity cost**, not pay — see
+> [`dev-docs/opportunity-cost-rate.md`](../dev-docs/opportunity-cost-rate.md).
 
 - **`RATE_STORE_KEY`** (a strong secret, e.g. `openssl rand -base64 32`) — the master
   encryption key. **If unset, `GET/PUT /api/rates` returns `503` and the app runs
@@ -52,7 +55,7 @@ two things on **each** environment, or it silently degrades:
 
 Quick check: `curl -s -i https://<domain>/api/rates | head -1` →
 `503` means persistence is **off** (set `RATE_STORE_KEY`); `401` means it's configured.
-Setup steps: [`docs/railway-setup.md`](../docs/railway-setup.md) Part C.
+Setup steps: [`dev-docs/railway-setup.md`](../dev-docs/railway-setup.md) Part C.
 
 > **Deployment host.** The app is served from the **Railway** deploy
 > (`railway.json`; see the README's "Deploy to Railway"), **not** a local tunnel.

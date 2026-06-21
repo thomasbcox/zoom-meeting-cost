@@ -169,7 +169,7 @@ Layers instance**. The fix is an out-of-band **server relay**.
 5. **Adapter comments/mocks encode the wrong (impossible) bridge model** and the mock
    loopback makes it look valid in tests — update once the relay lands.
 
-_Raw Codex output: `docs/camera-overlay-no-update.codex.json`._
+_Raw Codex output: `dev-docs/camera-overlay-no-update.codex.json`._
 
 ---
 

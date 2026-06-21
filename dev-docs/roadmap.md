@@ -6,6 +6,10 @@ A living strategic roadmap for turning Meeting Cost from a prototype into a prod
 Zoom App with free and paid tiers. Tactical, per-feature work is tracked in
 [`reviews/backlog.md`](../reviews/backlog.md); this file is the strategy above it.
 
+> **Terminology.** Throughout this repo, "rate" means each person's hourly **opportunity
+> cost** (value of their best alternative work), not pay. The identifier name is historical;
+> the canonical definition is [`opportunity-cost-rate.md`](opportunity-cost-rate.md).
+
 > **Legend.** ✅ **verified from repo** (grounded in current code/commits) ·
 > 🔜 **recommended next step** (proposal, not yet built or not yet confirmed) ·
 > ⚠️ **needs external verification** (Zoom/Stripe docs, must confirm before committing).

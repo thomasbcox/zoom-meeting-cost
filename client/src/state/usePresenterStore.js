@@ -5,11 +5,14 @@ import { DEFAULT_DISPLAY_INTERVAL, normalizeDisplayInterval } from '../lib/displ
 
 // The presenter's PRIVATE configuration. Persisted to the SERVER (encrypted at rest,
 // keyed to the presenter's Zoom identity) — NOT localStorage, which isn't durable inside
-// the Zoom client. ⚠️ This means the rate table (names + estimated rates) leaves the
+// the Zoom client. ⚠️ This means the value table (names + estimated values) leaves the
 // browser and is decryptable by the app operator (see the README / the in-app notice).
 // If the server is unreachable / unconfigured, the store runs session-only (no persistence).
 //
-//   rateTable : [{ id, name, rate }]      best-guess rates (server-persisted)
+// Every `rate` below is an hourly OPPORTUNITY COST (value of best alternative work), not
+// pay — see dev-docs/opportunity-cost-rate.md. Identifier names are intentionally unchanged.
+//
+//   rateTable : [{ id, name, rate }]      best-guess hourly opportunity cost (server-persisted)
 //   aliases   : [{ id, alias, canonical }] name aliases (server-persisted)
 //   defaultRate, multiplier, costModel, simple*  settings (server-persisted)
 //   overrides : { [participantId]: rate } CURRENT MEETING ONLY (never persisted)

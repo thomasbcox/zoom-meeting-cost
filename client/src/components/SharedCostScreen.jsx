@@ -48,8 +48,8 @@ export default function SharedCostScreen({ state }) {
       )}
 
       <p className="estimate-note">
-        The presenter was asked to estimate each person's hourly rate. These
-        numbers aren't verified.
+        The presenter was asked to estimate each person's hourly opportunity cost — the
+        value of their best alternative work, not their pay. These numbers aren't verified.
       </p>
     </div>
   );
@@ -73,7 +73,7 @@ function ParticipantRows({ participants = [], hideRates }) {
       <thead>
         <tr>
           <th>Participant</th>
-          {!hideRates && <th className="num">Est. rate / hr</th>}
+          {!hideRates && <th className="num">Est. opp. cost / hr</th>}
           {!hideRates && <th>Source</th>}
         </tr>
       </thead>
