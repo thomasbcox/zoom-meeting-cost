@@ -144,3 +144,47 @@ renames. No logic or math changes.**
 4. **Canonical note (hybrid):** add `dev-docs/opportunity-cost-rate.md` as the single
    source of truth; README carries a one-line definition that links to it; other docs
    point at it rather than restating.
+
+## Build note (2026-06-21)
+AC → file map (implementation):
+- AC1 Privacy accuracy → `docs/privacy.html`
+- AC2 Terms aligned → `docs/terms.html`
+- AC3 Opportunity-cost framing (public) → `docs/index.html`, `docs/privacy.html`, `docs/terms.html`, `docs/support.html`, `docs/documentation.html`
+- AC4 In-app copy → `client/src/components/PresenterControls.jsx`, `client/src/App.jsx`, `client/src/components/SharedCostScreen.jsx`
+- AC5 Comments → `client/src/lib/cost.js`, `client/src/lib/overlayState.js`, `server/src/store/rateStore.js`, `client/src/lib/ratesApi.js`, `client/src/state/usePresenterStore.js`
+- AC6 Internal docs (hybrid) → `dev-docs/opportunity-cost-rate.md` (new canonical), `README.md` (one-line + link), `dev-docs/roadmap.md`, `server/zoom-app-config.md`
+- AC7 No behavior change → `cost.js` / `overlayState.js` diffs are comments only; no identifier/field/route/schema renames
+- AC9 Multiplier neutralized + backlog flag → `client/src/components/PresenterControls.jsx`, `reviews/backlog.md`
+
+Note: this branch also carries the earlier `marketplace-legal-pages` story; Codex reviews the full branch vs `main` and reads both spec files. PR step skipped — repo uses a local-merge workflow.
+
+## Codex review (2026-06-21, base main, HEAD 4415098)
+**Summary:** The branch preserves identifiers, routes, schemas, and application math,
+but does not yet fully satisfy the documentation/framing specs. (Codex could not run the
+gate under its read-only sandbox; the gate was run green locally before this review.)
+
+### BLOCKER
+1. **Privacy policy falsely says the server handles overlay snapshots** — `docs/privacy.html:75`.
+   The "How our server handles your data" section lists the aggregate overlay snapshot as a
+   second *server-handled* flow, but the app server has no overlay route — `buildOverlayState()`
+   goes through Zoom's panel→camera message bridge, in-client. Suggestion: server handles only
+   the saved config; describe the overlay aggregate as an in-client Zoom camera message the
+   server never receives or retains.
+2. **Privacy policy omits half the canonical definition** — `docs/privacy.html:38`. AC3 requires
+   the full canonical definition on this page ("highest and best work" + both reasons). The page
+   gives "best work" + pay-is-private only; missing "highest and best" and reason B (pay
+   understates the cost).
+
+### IMPORTANT
+3. **Public docs misstate the per-participant math** — `docs/documentation.html:50` (also
+   privacy.html, terms.html). Docs say the app multiplies per-person estimates by elapsed time
+   *and participant count*; the per-participant model sums each person's value and prorates by
+   elapsed time — count-multiplication belongs only to the simple-average model.
+4. **Compensation-era comments remain in `client/src/lib/matching.js`** (lines 3, 12, 72) and
+   `matching.test.js` ("hourly rate", "loaded-cost multiplier/overhead"). The comment reframe
+   (AC5) missed this core module, leaving inconsistent framing.
+5. **README duplicates the canonical definition** — `README.md:10`. Decision 4 wanted a one-line
+   definition + link (single source of truth in dev-docs); the added block restates the full
+   definition and both reasons across ~6 lines — the duplication the hybrid explicitly avoids.
+
+Last-reviewed SHA: 4415098 (base for any re-review)
