@@ -7,12 +7,8 @@ private, best-guess table of per-person **hourly opportunity cost** in the in-me
 their camera feed (via Zoom's camera rendering context) so every participant sees it
 natively — no second app, no shared screen, no collaborate space.
 
-> **"Rate" means hourly opportunity cost, not pay.** The figure entered for each
-> person is the value of the highest and best work they could be doing instead of
-> being in the meeting — deliberately **not** their wage or salary (pay is private,
-> and pay understates the meeting's cost). The code keeps the historical `rate`
-> identifier; see [`dev-docs/opportunity-cost-rate.md`](dev-docs/opportunity-cost-rate.md)
-> for the canonical definition.
+> **"Rate" means hourly opportunity cost, not pay** — see
+> [`dev-docs/opportunity-cost-rate.md`](dev-docs/opportunity-cost-rate.md) for the canonical definition.
 
 > The app does **not** integrate with HR, payroll, SSO, or any employee
 > directory. The presenter is asked to estimate each person's hourly opportunity

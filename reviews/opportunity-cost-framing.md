@@ -198,3 +198,21 @@ Thomas decided per finding ("b1 fix; b2 fix; i3 fix; i4 fix; 5 fix"):
 - IMPORTANT 5 (README duplicates canonical definition) — **FIX**
 
 All five approved to fix; routing to /close. (Fix approval is not a merge authorization.)
+
+## Fixes (2026-06-21)
+Applied the five approved Codex findings (copy/comments only; no logic):
+- **BLOCKER 1** — `docs/privacy.html`: split the data section into "What our server stores"
+  (saved config only) and "The on-camera total" (computed in-client, passed via Zoom's app
+  message channel, never sent to our server). Removes the false implication that the server
+  receives the overlay snapshot.
+- **BLOCKER 2** — `docs/privacy.html`: the Summary now states the full canonical definition
+  ("highest and best work" + both reasons: pay is private, pay understates the cost).
+- **IMPORTANT 3** — `docs/privacy.html`, `docs/documentation.html`, `docs/terms.html`:
+  per-participant math reworded from "multiplied by elapsed time and participant count" to
+  "totals everyone's hourly opportunity cost and accrues it over the elapsed time" (count
+  multiplication applies only to the simple model).
+- **IMPORTANT 4** — `client/src/lib/matching.js` + `matching.test.js`: reframed comments to
+  opportunity-cost/value-neutral wording, added the canonical-note pointer, neutralized
+  "loaded-cost overhead".
+- **IMPORTANT 5** — `README.md`: collapsed the duplicated block to a one-line definition +
+  link to the canonical note.

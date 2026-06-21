@@ -36,9 +36,10 @@
       <h2>Summary</h2>
       <div class="callout">
         <p><strong>You estimate opportunity cost, not pay.</strong> For each person you
-          enter your own estimate of their hourly opportunity cost — the value of the best
-          work they could be doing instead of being in the meeting. You never enter, and
-          we never want, anyone's wage or salary.</p>
+          enter your own estimate of their hourly opportunity cost — the value of the
+          highest and best work they could be doing instead of being in the meeting. It is
+          deliberately not their wage or salary: pay is private (we never want it), and pay
+          understates the meeting's cost.</p>
         <p><strong>Your settings are stored encrypted, for you.</strong> The names and
           values you enter are saved on our server, encrypted at rest and tied to your
           Zoom account, so your setup is there next time. Only you can retrieve it.</p>
@@ -51,11 +52,11 @@
       <h2>What the app is</h2>
       <p>Meeting Cost Meter is a Zoom App that displays the live estimated cost of a
         meeting. The presenter privately estimates each person's <strong>hourly
-        opportunity cost</strong> — the value of the best work they could be doing instead
-        of being in the meeting, not their pay — with a default for anyone not listed. The
-        app multiplies those estimates by the elapsed time and the number of participants
-        to produce a running figure, which can be shown as an overlay on the presenter's
-        camera feed.</p>
+        opportunity cost</strong> — the value of the highest and best work they could be
+        doing instead of being in the meeting, not their pay — with a default for anyone not
+        listed. The app totals everyone's hourly opportunity cost and accrues it over the
+        elapsed time to produce a running figure, which can be shown as an overlay on the
+        presenter's camera feed.</p>
 
       <h2>The figures you enter</h2>
       <p>For each person, you enter your own estimate of their hourly opportunity cost. You
@@ -71,21 +72,21 @@
           data</a>).</li>
       </ul>
 
-      <h2>How our server handles your data</h2>
-      <p>Our server handles your information in two separate ways:</p>
-      <ul>
-        <li><strong>Your saved configuration.</strong> The names and opportunity-cost
-          values you enter are sent to our server and stored <strong>encrypted at
-          rest</strong>, tied to your Zoom account, so your setup is there next time. This
-          is the only place individual values are kept, and only you can retrieve them.</li>
-        <li><strong>The live overlay total.</strong> To draw the on-camera overlay, the app
-          sends a sanitized, <strong>aggregate</strong> snapshot — the running total, the
-          cost per minute, the elapsed time, and the participant count. It contains no
-          individual values and no names, and is not retained after the meeting.</li>
-      </ul>
-      <p>We do not build profiles, do not track individuals across meetings, and do not
-        retain the live overlay totals after a meeting ends. Your saved configuration is
-        kept (encrypted) until you delete it.</p>
+      <h2>What our server stores</h2>
+      <p>Our server stores one thing: your saved configuration. The names and
+        opportunity-cost values you enter are sent to our server and kept
+        <strong>encrypted at rest</strong>, tied to your Zoom account, so your setup is
+        there next time. This is the only place individual values are kept, and only you can
+        retrieve them. We do not build profiles and do not track individuals across
+        meetings.</p>
+
+      <h2>The on-camera total</h2>
+      <p>The live total on the overlay is computed inside the Zoom client and passed
+        straight to your camera view through Zoom's in-client app message channel. It is an
+        <strong>aggregate</strong> only — the running total, the cost per minute, the
+        elapsed time, and the participant count — with no individual values and no names.
+        This snapshot <strong>does not go to our server</strong>, and nothing about it is
+        stored.</p>
 
       <h2>What the app does <em>not</em> do</h2>
       <ul>

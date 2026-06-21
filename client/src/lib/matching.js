@@ -1,15 +1,16 @@
 import { normalizeName } from './normalize.js';
 
-// Matching resolves each meeting participant to an hourly rate and records how
-// that rate was determined (the "source"), so the UI can be honest about it.
+// Matching resolves each meeting participant to an hourly opportunity-cost value and
+// records how that value was determined (the "source"), so the UI can be honest about it.
+// ("rate" throughout = hourly opportunity cost, not pay — see dev-docs/opportunity-cost-rate.md.)
 //
 // Precedence (highest first):
 //   1. manual override for this participant in the current meeting -> "manual"
 //   2. exact match on normalized display name                      -> "matched"
 //   3. alias -> canonical name, then exact match                   -> "matched"
-//   4. fall back to the configurable default rate                  -> "default"
+//   4. fall back to the configurable default value                 -> "default"
 //
-// The loaded-cost multiplier is applied on top of whatever base rate is chosen.
+// The multiplier is applied on top of whatever base value is chosen.
 
 export const SOURCE = {
   MANUAL: 'manual',
@@ -69,7 +70,7 @@ export function resolveParticipant(participant, ctx) {
 }
 
 /**
- * Resolve every participant, applying the loaded-cost multiplier.
+ * Resolve every participant, applying the multiplier.
  * Returns rows: { id, displayName, baseRate, rate, source, matchedName }.
  */
 export function resolveAll(participants = [], config) {

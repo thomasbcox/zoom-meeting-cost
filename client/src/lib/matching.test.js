@@ -71,7 +71,7 @@ describe('rate matching logic', () => {
   });
 
   describe('resolveAll', () => {
-    it('should resolve multiple participants and apply loaded-cost multiplier', () => {
+    it('should resolve multiple participants and apply the multiplier', () => {
       const participants = [
         { id: 'p1', displayName: 'Thomas Cox' },
         { id: 'p2', displayName: 'Unknown User' },
@@ -81,7 +81,7 @@ describe('rate matching logic', () => {
         aliases,
         overrides: { p1: 100 }, // overrides Thomas Cox to $100 base
         defaultRate: 50,
-        multiplier: 1.25, // 25% loaded-cost overhead
+        multiplier: 1.25, // 25% scaling factor
       };
 
       const resolved = resolveAll(participants, config);
