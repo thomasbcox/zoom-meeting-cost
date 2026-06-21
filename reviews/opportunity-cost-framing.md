@@ -216,3 +216,11 @@ Applied the five approved Codex findings (copy/comments only; no logic):
   "loaded-cost overhead".
 - **IMPORTANT 5** — `README.md`: collapsed the duplicated block to a one-line definition +
   link to the canonical note.
+
+## Codex review (2026-06-21, base 4415098, HEAD ed710dc) — re-review
+**Summary:** All five approved fixes are correctly implemented with no new issues. The diff
+changes only documentation and comments; identifiers, routes, schemas, logic, and math remain
+unchanged. **No findings.** (Gate run green locally; Codex's own run was blocked only by its
+read-only sandbox.)
+
+Last-reviewed SHA: ed710dc
