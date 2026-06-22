@@ -112,3 +112,51 @@ aspirational "24/7 SOC" boilerplate. (3rd-party pen testing stays **No**.)
   "Yes" and the ruleset's required-check both become live **after** the first merged run.
   Plan: merge this story (CodeQL runs once), then enable the ruleset requiring that check.
   The ruleset step is the last action so it never blocks merging this story itself.
+
+## Build note (2026-06-21)
+AC → file map:
+- AC1 CodeQL SAST → `.github/workflows/codeql.yml`
+- AC2 Dependabot → `.github/dependabot.yml`
+- AC3 SSDLC → `dev-docs/policies/ssdlc.md`
+- AC4 policy set → `dev-docs/policies/{security-policy,vulnerability-management,data-retention-and-protection,incident-response,dependency-management}.md`
+- AC5 SECURITY.md → `SECURITY.md`
+- AC6 public Security page → `docs/security.html`
+- AC7 honesty (no false SOC2/ISO/pen-test/DAST) → all docs above
+- AC8 README links → `README.md`
+- AC9 `main` ruleset → enabled post-merge via `gh api` (needs CodeQL's first run)
+- AC10/AC11 scope + gate
+
+Branch also carries the architecture-diagram work (`dev-docs/meeting-cost-architecture.{svg,png}` + README stack section). Codex reviews the full branch vs `main`.
+
+## Codex review (2026-06-21, base main, HEAD 306720f)
+**Summary:** Scope + prohibited-assurance checks pass (no app logic/identifier changes; all
+SOC2/ISO27001/pen-test/DAST mentions are negatives). But several security docs make claims
+contradicted by the code/infra — should not merge as written.
+
+### BLOCKER
+1. **False "no third-party data processors" claim** — `README.md` (+ architecture SVG,
+   public page). Railway/GitHub/Zoom *are* sub-processors (the security policy lists them),
+   so "no third-party data processors" is internally contradictory. Fix: say no processors
+   *beyond* the named infra providers; no analytics/advertising/sale. Align README, SVG,
+   security.html, policies (+ privacy page if it repeats it).
+2. **Key-rotation guidance risks data loss** — `dev-docs/policies/incident-response.md`.
+   Rotating `RATE_STORE_KEY` makes every stored config undecryptable (key derived from it,
+   no versioning, decrypt-fail → null). Fix: document that rotation resets all stored
+   configs (needs user notification) or a dual-key re-encryption migration; distinguish from
+   safely-rotatable Zoom credentials.
+3. **Logs not scrubbed as claimed** — `dev-docs/policies/data-retention-and-protection.md`.
+   `/api/log` writes the submitted JSON body verbatim (diagnostics include raw Zoom SDK
+   results). No redaction exists. Fix: accurately document what logs may contain (or add
+   server-side redaction — larger, separate).
+4. **False "GitHub runs CI (tests)" claim** — `dev-docs/policies/dependency-management.md`.
+   Only CodeQL runs in CI; `npm test`/`build` is not a GitHub check, and the ruleset
+   requires only CodeQL. Fix: add a test/build CI workflow + require it, or revise docs to
+   describe tests as a locally-enforced pre-merge step.
+
+### IMPORTANT
+5. **Dependabot splits the root workspace lockfile** — `.github/dependabot.yml`. One npm
+   workspace rooted at `/` with one root lockfile; the `/client` + `/server` jobs target
+   dirs without lockfiles and overlap the root job. Fix: one npm entry for `/` + the
+   github-actions entry.
+
+Last-reviewed SHA: 306720f
