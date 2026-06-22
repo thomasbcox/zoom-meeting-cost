@@ -191,6 +191,26 @@ also catch generic secrets (e.g. a Zoom client secret), enable **"Scan for
 non-provider patterns"** under repo *Settings → Code security → Secret scanning*
 (a one-click toggle; it is not currently settable via the REST API).
 
+## Security & policies
+
+- **Report a vulnerability:** see [`SECURITY.md`](SECURITY.md) (private disclosure to the
+  security contact).
+- **SAST:** GitHub **CodeQL** scans JS/TS on every push/PR to `main` and weekly
+  ([`.github/workflows/codeql.yml`](.github/workflows/codeql.yml)).
+- **Dependencies:** **Dependabot** opens weekly update PRs
+  ([`.github/dependabot.yml`](.github/dependabot.yml)).
+- **Branch protection:** `main` is governed by a repository ruleset (PR required, CodeQL
+  check required, force-push/deletion blocked).
+- **Policy set** (operational detail) in [`dev-docs/policies/`](dev-docs/policies/):
+  [SSDLC](dev-docs/policies/ssdlc.md) ·
+  [Security](dev-docs/policies/security-policy.md) ·
+  [Vulnerability management](dev-docs/policies/vulnerability-management.md) ·
+  [Data retention & protection](dev-docs/policies/data-retention-and-protection.md) ·
+  [Incident response](dev-docs/policies/incident-response.md) ·
+  [Infrastructure & dependencies](dev-docs/policies/dependency-management.md).
+- **Public-facing:** [Security overview](https://thomasbcox.github.io/zoom-meeting-cost/security.html)
+  · [Privacy Policy](https://thomasbcox.github.io/zoom-meeting-cost/privacy.html).
+
 ## License
 
 [MIT](LICENSE) © 2026 Thomas Cox
