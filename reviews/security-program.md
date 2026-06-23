@@ -193,3 +193,15 @@ Applied the five approved Codex findings:
   README; the `main` ruleset will require both CodeQL and CI checks.
 - **I5** — `.github/dependabot.yml`: collapsed to one npm entry for `/` (the workspace root /
   sole lockfile) + the github-actions entry.
+
+## Codex review (2026-06-21, base 306720f, HEAD c6662f2) — re-review
+**Summary:** Changes limited to docs, workflows, Dependabot config, review artifacts, and the
+regenerated PNG; no application logic changed. Four of five fixes resolved.
+
+### IMPORTANT
+1. **security-policy.md still omits CI from the ruleset requirement** — `dev-docs/policies/security-policy.md`.
+   B4 updated README/SSDLC/dependency-management to "ruleset requires CodeQL **and CI**", but
+   the security policy's access-control line still says "PR + passing CodeQL required". Since
+   this set is the questionnaire evidence, it should match.
+
+Last-reviewed SHA: c6662f2
