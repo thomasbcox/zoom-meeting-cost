@@ -230,3 +230,20 @@ of the re-review IMPORTANT):
 - **Verified:** the enumerated check list no longer appears outside `ssdlc.md`.
 - **Backlog:** ruleset-as-code (`.github/rulesets/main.json` + drift check) filed in
   `reviews/backlog.md` as the durable end-state (config becomes the real source of truth).
+
+## Codex review (2026-06-21, base c6662f2, HEAD e341f2d) — re-review #2
+**Summary:** Diff limited to docs/review artifacts; no application logic changed. The old
+CodeQL-only / "security scan" wording is gone, but the DRY fix is **incomplete**:
+`dependency-management.md` still restates the merge-gate check list in two other sentences.
+
+### IMPORTANT
+1. **Dependency policy still restates merge-gate checks** — `dev-docs/policies/dependency-management.md`.
+   Line 13–14 ("standard review + test + CodeQL gate before merge") and line 32 ("passing
+   tests and SAST … before deploy") still name the volatile check list outside SSDLC, so it
+   can drift again. Generalize to "the standard SSDLC merge gate / all required status
+   checks" + link, without naming individual checks.
+   (Same class, not flagged by Codex this round but caught in verification:
+   `vulnerability-management.md:36` "review → tests/CodeQL → merge" — recommend fixing in the
+   same pass to fully close the class.)
+
+Last-reviewed SHA: e341f2d
