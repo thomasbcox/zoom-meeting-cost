@@ -21,13 +21,19 @@ to hold and why holding is safe.
 
 ## In scope
 1. **Tune `.github/dependabot.yml`:**
-   - Add `ignore` for **major** updates on `react`, `react-dom`, and `express` — deliberate,
-     breaking upgrades we drive by hand, not via auto-PR. Minor/patch + security updates for
-     them still flow.
+   - Add `ignore` for **major** updates on `react`, `react-dom`, `express`, **and the build
+     toolchain `vite` + `@vitejs/plugin-react`** — deliberate, breaking upgrades we drive by
+     hand. (Scope note: `vite`/`@vitejs/plugin-react` were added to the approved
+     react/react-dom/express list after discovering PR #41 bundled `vite 6→8` +
+     `@vitejs/plugin-react 4→6` behind a trivial vitest patch — squarely the "hold breaking
+     majors" intent of decision #2.) Minor/patch + security updates for all of them still flow.
+   - **Restrict the dev-dependencies group to `minor` + `patch`** so a patch can never drag a
+     major (e.g. Vite 8) in.
    - **Group** `github-actions` updates into a single PR (kills the 3-PR salvo).
-   - Keep the existing single root npm entry, weekly cadence, and dev-dependencies group.
-   - Effect on next Dependabot run: the `react`/`react-dom` major PRs become ignored (auto-
-     closed), and the individual Actions PRs consolidate into one grouped PR.
+   - Keep the single root npm entry, weekly cadence, and `open-pull-requests-limit`.
+   - Effect on next Dependabot run: the `react`/`react-dom` major PRs and the major-bearing
+     dev-deps PR #41 become ignored (auto-closed), and the individual Actions PRs consolidate
+     into one grouped PR.
 2. **Dependency review report — `dev-docs/dependency-review.md`:** a dated snapshot covering
    every runtime, dev, and CI-action dependency — current version, latest/proposed, a
    recommendation (**upgrade now / hold**), and the rationale **and safety reasoning** for
@@ -46,8 +52,9 @@ to hold and why holding is safe.
 
 ## Acceptance criteria
 1. `.github/dependabot.yml` is valid and: ignores **major** updates for `react`, `react-dom`,
-   `express`; groups `github-actions`; retains the single root npm entry, weekly schedule,
-   and dev-dependencies group.
+   `express`, `vite`, `@vitejs/plugin-react`; restricts the dev-dependencies group to
+   `minor`+`patch`; groups `github-actions`; retains the single root npm entry and weekly
+   schedule.
 2. `dev-docs/dependency-review.md` exists and, for each dependency below, gives current
    version, recommendation (upgrade now / hold), rationale, and a safety note:
    - runtime: `@zoom/appssdk`, `react`, `react-dom`, `express`
