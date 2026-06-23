@@ -30,8 +30,11 @@ jobs:
       - name: Install
         run: npm ci
 
-      - name: Test
-        run: npm test
-
+      # Build before test: the server's secure-header test exercises GET / which serves
+      # the built client (client/dist). Without a prior build the SPA fallback errors and
+      # the CSP assertion fails — see reviews/backlog.md.
       - name: Build
         run: npm run build
+
+      - name: Test
+        run: npm test

@@ -3,6 +3,20 @@
 Deferred work, tracked so it isn't lost. Each item becomes its own `/frame`
 story when picked up.
 
+## Server header test depends on a built client (order-fragile gate)
+- **Requested:** 2026-06-21 (Thomas), surfaced by the new CI workflow.
+- **What:** `server/test/headers.test.js` (test "CSP allows the app bundle … connect-src
+  pinned") fetches `GET /`. With no `client/dist`, the SPA fallback `sendFile` errors and
+  Express's finalhandler overwrites the CSP with `default-src 'none'`, so the assertion
+  fails. The test's own comment wrongly claims it passes without a build, and the gate
+  `npm test && npm run build` passes locally only because a stale `dist` exists.
+- **Why:** order-independence is the honest expectation. Fix the test to not depend on a
+  built client (e.g. assert headers on a route that doesn't hit the SPA fallback, like
+  `/api/health`), or have the SPA fallback preserve the security headers on a missing-file
+  error. CI now builds before test as a stopgap.
+- **Note:** app/test logic was intentionally NOT changed in the security-program story
+  (docs-only scope); this is the proper follow-up.
+
 ## Ruleset-as-code (single source of truth for branch protection)
 - **Requested:** 2026-06-21 (Thomas), from `reviews/security-program.md` re-review (DRY fix).
 - **What:** Export the GitHub `main` ruleset to a committed `.github/rulesets/main.json` and
