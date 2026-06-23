@@ -257,3 +257,13 @@ Thomas: "fix all with the expectation we'll take up ruleset-as-code next."
 - **Next story:** ruleset-as-code (already filed in `reviews/backlog.md`) — make the GitHub
   ruleset config the real single source of truth so prose stops enumerating entirely. To be
   picked up after this merges.
+
+## Fixes (2026-06-21, re-review #2 round)
+Completed the DRY fix — generalized the three remaining merge-gate enumerations so the check
+list now lives only in `ssdlc.md` § Merge control:
+- `dependency-management.md` "Vulnerable dependencies" → "standard SSDLC merge gate (review +
+  all required status checks)" + link.
+- `dependency-management.md` "Change management" → "all required status checks passing" + link.
+- `vulnerability-management.md` flow → "review → required checks → merge".
+Verified: no "test + CodeQL / tests and SAST / tests/CodeQL" merge-gate wording remains
+outside `ssdlc.md`. Ruleset-as-code remains the queued next story (`reviews/backlog.md`).

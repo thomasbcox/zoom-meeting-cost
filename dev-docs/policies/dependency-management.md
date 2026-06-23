@@ -10,8 +10,9 @@
 - **Automated updates:** Dependabot (`.github/dependabot.yml`) opens weekly PRs for npm and
   GitHub-Actions updates; GitHub dependency alerts are enabled.
 - **Vulnerable dependencies:** security-relevant updates are prioritized and remediated per
-  `vulnerability-management.md`. Every update PR goes through the standard review + test +
-  CodeQL gate before merge.
+  `vulnerability-management.md`. Every update PR goes through the standard SSDLC merge gate
+  (review + all required status checks) before merge — see [`ssdlc.md`](ssdlc.md) § Merge
+  control.
 - **Supply chain:** a pre-commit secret-scanning hook prevents credential leakage;
   dependencies are pinned via the lockfile; the Node engine is pinned (`engines.node >=22`).
 
@@ -29,7 +30,8 @@
 
 ## Change management
 Infrastructure and dependency changes follow the same SSDLC as application code: a reviewed
-pull request, passing tests and SAST, and merge to a protected branch before deploy.
+pull request, all required status checks passing, and merge to the protected `main` branch
+before deploy (see [`ssdlc.md`](ssdlc.md) § Merge control).
 
 ## Vendors
 GitHub (source/CI), Railway (hosting/storage), Zoom (platform). No other infrastructure
