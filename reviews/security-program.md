@@ -175,3 +175,21 @@ Thomas: "fix all" — all five approved to FIX, with the recommended approaches:
   test && npm run build`) and require it in the `main` ruleset; align the docs. Tests
   become a real GitHub-enforced gate.
 - **IMPORTANT 5** — FIX: one npm Dependabot entry for `/` + the github-actions entry.
+
+## Fixes (2026-06-21)
+Applied the five approved Codex findings:
+- **B1** — `README.md` + architecture SVG (+regenerated PNG): replaced the flat "no
+  third-party data processors" claim with "providers are Railway/GitHub/Zoom; no other
+  processors, analytics, advertising, or sale." Now consistent with the policy set.
+- **B2** — `incident-response.md`: rewrote secrets-rotation guidance — Zoom credentials
+  rotate safely; `RATE_STORE_KEY` rotation makes all stored configs unreadable (last resort,
+  user notice) or requires a dual-key re-encryption migration. Containment step updated.
+- **B3** — `data-retention-and-protection.md` + `security-policy.md` + `ssdlc.md`: removed
+  the false "logs are scrubbed" claim; documented that `/api/log` is not redacted today and
+  may contain Zoom meeting context. Added a backlog item to add real `/api/log` redaction
+  (`reviews/backlog.md`).
+- **B4** — added `.github/workflows/ci.yml` (`npm ci && npm test && npm run build`) so the
+  test/build gate runs in GitHub CI; aligned `dependency-management.md` + `ssdlc.md` and the
+  README; the `main` ruleset will require both CodeQL and CI checks.
+- **I5** — `.github/dependabot.yml`: collapsed to one npm entry for `/` (the workspace root /
+  sole lockfile) + the github-actions entry.

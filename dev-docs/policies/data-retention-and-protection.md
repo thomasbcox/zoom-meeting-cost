@@ -11,7 +11,7 @@ This policy complements the public Privacy Policy
 |---|---|---|---|
 | Presenter configuration — names entered + per-person hourly **opportunity-cost** values, defaults | Confidential | Railway persistent volume, one file per user | AES-256-GCM at rest |
 | Zoom OAuth tokens / app-context material | Secret | Server memory / environment | In transit (TLS); not persisted in plaintext |
-| Operational logs (requests, errors) | Low | Hosting platform logs | In transit (TLS) |
+| Operational logs + client diagnostics (via `/api/log`) | Low–Medium (may include Zoom meeting context) | Hosting platform logs | In transit (TLS) |
 
 We do **not** collect wages or salaries, audio/video/chat, or any HR/payroll/directory data.
 The live on-camera cost total is aggregate-only and is computed in the Zoom client — it is
@@ -31,8 +31,13 @@ never sent to or stored by our server.
   deletion. There is no automatic expiry, because it exists to restore the user's own setup.
 - **Aggregate meeting totals:** not retained — they exist only during the active meeting,
   in-client.
-- **Operational logs:** retained only as long as the hosting platform's standard log
-  retention; scrubbed of secrets and per-person values.
+- **Operational logs:** the app logs runtime errors and client-reported diagnostics (via
+  `/api/log`) to the hosting platform's logs. These are **not separately redacted today** and
+  may include diagnostic payloads such as Zoom-provided meeting context (e.g. participant or
+  user-context data) sent for troubleshooting; they do **not** include the encrypted
+  rate-store contents or secrets. Logs follow the hosting platform's standard retention and
+  are accessible only to the operator. (Server-side log redaction is tracked as a future
+  change — see `reviews/backlog.md`.)
 
 ## Deletion / data-subject requests
 A user can remove the app from the Zoom Marketplace and email the contact above to have the

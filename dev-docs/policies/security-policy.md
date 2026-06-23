@@ -16,7 +16,10 @@ entrusted to it.
   Zoom account. Never wages/salaries — we do not request or store pay data.
 - **Zoom OAuth tokens / app context:** secret; used only to authenticate and operate;
   not exposed to other users.
-- **Operational logs:** low-sensitivity; scrubbed of secrets and per-person values.
+- **Operational logs / client diagnostics:** low-to-moderate sensitivity; logged to the
+  hosting platform via `/api/log`. Not separately redacted today, so they may include
+  Zoom meeting context sent for troubleshooting; they exclude the encrypted rate-store
+  contents and secrets. See `data-retention-and-protection.md`.
 
 ## Controls
 - **Encryption in transit:** HTTPS/TLS enforced (HSTS).

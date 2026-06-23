@@ -121,5 +121,5 @@
   <line x1="36" y1="654" x2="76" y2="654" stroke="#8a94a0" stroke-width="2"/>
   <text x="86" y="658" class="lz"><tspan font-weight="700">Zoom Apps SDK / platform calls</tspan> (in-client).</text>
 
-  <text x="36" y="678" font-size="10.5" fill="#5b6f73">No HR / payroll / SSO / directory integration. No database, no third-party data processors, no analytics or trackers.</text>
+  <text x="36" y="678" font-size="10.5" fill="#5b6f73">No HR / payroll / SSO / directory integration. No database. Providers: Railway, GitHub, Zoom — no other processors, analytics, or trackers.</text>
 </svg>

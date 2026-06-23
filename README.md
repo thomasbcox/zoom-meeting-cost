@@ -116,8 +116,9 @@ overrides ──────────┘            │
 - **Auth:** Zoom OAuth 2.0; requests authenticated via the signed Zoom App Context
   header, decrypted server-side (AES-256-GCM).
 - **Storage:** each presenter's config saved as a per-user AES-256-GCM-encrypted JSON
-  file on a persistent volume (Node `crypto`); plaintext never hits disk. No
-  third-party data processors or trackers.
+  file on a persistent volume (Node `crypto`); plaintext never hits disk. The only providers
+  are Railway (hosting/storage), GitHub, and Zoom — no other data processors, and no
+  analytics, advertising, or data sale.
 - **Security:** HTTPS/HSTS, Content-Security-Policy, `nosniff`, and `no-store` headers
   on all responses.
 - **Hosting:** Railway (Node service, auto-deploy from GitHub); GitHub Pages serves the
@@ -199,8 +200,10 @@ non-provider patterns"** under repo *Settings → Code security → Secret scann
   ([`.github/workflows/codeql.yml`](.github/workflows/codeql.yml)).
 - **Dependencies:** **Dependabot** opens weekly update PRs
   ([`.github/dependabot.yml`](.github/dependabot.yml)).
-- **Branch protection:** `main` is governed by a repository ruleset (PR required, CodeQL
-  check required, force-push/deletion blocked).
+- **CI:** test + build runs in GitHub Actions on every push/PR
+  ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
+- **Branch protection:** `main` is governed by a repository ruleset (PR required, CodeQL +
+  CI checks required, force-push/deletion blocked).
 - **Policy set** (operational detail) in [`dev-docs/policies/`](dev-docs/policies/):
   [SSDLC](dev-docs/policies/ssdlc.md) ·
   [Security](dev-docs/policies/security-policy.md) ·

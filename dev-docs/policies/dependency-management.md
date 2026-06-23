@@ -18,8 +18,10 @@
 ## Infrastructure
 - **Hosting:** Railway runs the Node/Express service and provides the encrypted persistent
   volume. Deploys are automatic on merge to `main` and gated by a `/api/health` check.
-- **Source & CI:** GitHub hosts the repository and runs CI (CodeQL, tests). `main` is
-  protected by a ruleset (PR + passing CodeQL required; force-push/deletion blocked).
+- **Source & CI:** GitHub hosts the repository and runs CI on every push/PR to `main` —
+  CodeQL (SAST) and a test/build workflow (`npm test` + `npm run build`). `main` is
+  protected by a ruleset (PR + passing CodeQL and CI checks required; force-push/deletion
+  blocked).
 - **Configuration & secrets:** all environment-specific configuration and secrets are set as
   environment variables per environment, never committed to the repository.
 - **Runtime hardening:** HTTPS/HSTS and security headers on all responses; least-privilege

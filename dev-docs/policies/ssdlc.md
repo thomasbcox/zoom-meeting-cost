@@ -32,7 +32,8 @@ is addressed at each stage rather than bolted on afterward.
    review** (an automated reviewer plus human approval) that explicitly considers
    correctness and security before merge.
 4. **Test gate.** Automated tests must pass (`npm test`) and the client must build
-   (`npm run build`) before merge.
+   (`npm run build`) before merge — enforced both locally (the pre-merge gate) and in GitHub
+   CI (`.github/workflows/ci.yml`).
 5. **Static analysis (SAST).** **GitHub CodeQL** (`.github/workflows/codeql.yml`) scans the
    JavaScript/TypeScript on every push and pull request to `main`, plus a weekly scheduled
    scan. Findings surface in the repository's Code scanning view.
@@ -40,12 +41,14 @@ is addressed at each stage rather than bolted on afterward.
    vulnerable/outdated npm and GitHub-Actions dependencies; GitHub dependency alerts are
    enabled. See `dependency-management.md`.
 7. **Merge control.** `main` is protected by a repository **ruleset**: a pull request is
-   required, the CodeQL check must pass, and force-pushes and branch deletion are blocked.
+   required, the CodeQL and CI checks must pass, and force-pushes and branch deletion are
+   blocked.
 8. **Release / deploy.** Merging to `main` triggers an automatic deploy to Railway, gated by
    a `/api/health` check. Configuration and secrets are environment variables, set per
    environment, never in the repository.
-9. **Operate & monitor.** Runtime errors and notable requests are logged (without secrets or
-   participant rate data). Issues feed back into step 1.
+9. **Operate & monitor.** Runtime errors and client-reported diagnostics are logged to the
+   hosting platform (no secrets, no stored rate-store contents; see
+   `data-retention-and-protection.md` for what logs may contain). Issues feed back into step 1.
 
 ## Data security in the lifecycle
 - Presenter configuration is stored **AES-256-GCM encrypted at rest** with a per-user key

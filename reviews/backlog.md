@@ -3,6 +3,19 @@
 Deferred work, tracked so it isn't lost. Each item becomes its own `/frame`
 story when picked up.
 
+## Redact `/api/log` payloads server-side
+- **Requested:** 2026-06-21 (Thomas), flagged from `reviews/security-program.md` review.
+- **What:** `server/src/app.js` `/api/log` currently logs the submitted JSON body verbatim
+  (`console.log("[client-log] " + JSON.stringify(req.body))`). Client diagnostics can include
+  Zoom-provided meeting context (participant / user-context data). Add a strict server-side
+  schema / field allowlist + redaction so logs cannot contain personal data, and trim the
+  client diagnostics to non-identifying fields.
+- **Why:** the data-retention/security policies now honestly state logs are *not* redacted
+  today; this closes that gap so the stronger "scrubbed" claim becomes true. Privacy + log
+  hygiene.
+- **Design notes:** allowlist event `kind` + a fixed set of scalar fields; drop raw
+  `getMeetingParticipants` / `getUserContext` dumps; keep error stacks but strip payloads.
+
 ## Remove the loaded-cost multiplier
 - **Requested:** 2026-06-21 (Thomas), flagged from `reviews/opportunity-cost-framing.md`.
 - **What:** Remove the `multiplier` / `simpleMultiplier` field, its UI, and its use in
