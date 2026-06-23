@@ -160,3 +160,18 @@ contradicted by the code/infra — should not merge as written.
    github-actions entry.
 
 Last-reviewed SHA: 306720f
+
+## Decisions (2026-06-21)
+Thomas: "fix all" — all five approved to FIX, with the recommended approaches:
+- **BLOCKER 1** — FIX: qualify the "no third-party data processors" claim in `README.md`
+  and the architecture SVG (and regenerate the PNG) to "none beyond Railway/GitHub/Zoom".
+- **BLOCKER 2** — FIX: rewrite `incident-response.md` so rotating `RATE_STORE_KEY` is
+  described as resetting all stored configs (last resort, user notice), distinct from
+  safely-rotatable Zoom credentials.
+- **BLOCKER 3** — FIX: make `data-retention-and-protection.md` truthful about logs (no
+  scrubbing today; describe content/retention/access) **and** flag a backlog item to add
+  real `/api/log` redaction (separate code story).
+- **BLOCKER 4** — FIX via **add a CI workflow** (`.github/workflows/ci.yml`: `npm ci && npm
+  test && npm run build`) and require it in the `main` ruleset; align the docs. Tests
+  become a real GitHub-enforced gate.
+- **IMPORTANT 5** — FIX: one npm Dependabot entry for `/` + the github-actions entry.
