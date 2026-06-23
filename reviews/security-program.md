@@ -205,3 +205,15 @@ regenerated PNG; no application logic changed. Four of five fixes resolved.
    this set is the questionnaire evidence, it should match.
 
 Last-reviewed SHA: c6662f2
+
+## Decisions (2026-06-21, re-review)
+Thomas: apply the **proper (DRY) fix**, not the one-liner. Root cause = the merge-gate's
+required checks were duplicated across six docs with no source of truth (one drifted).
+- **FIX (DRY):** make `ssdlc.md` § Merge control the single canonical statement that
+  enumerates the exact required checks (CodeQL + CI). Generalize the other docs
+  (`security-policy.md`, `dependency-management.md`, `README.md`, `docs/security.html`) to
+  the *stable* intent ("a PR and all required status checks must pass") + a reference to
+  SSDLC, so the volatile check list lives in exactly one prose place. `vulnerability-management.md`
+  (passing mention) left as-is.
+- **Backlog:** ruleset-as-code (`.github/rulesets/main.json` + a drift check) so the enforced
+  config becomes the real single source of truth — filed, not done now.
