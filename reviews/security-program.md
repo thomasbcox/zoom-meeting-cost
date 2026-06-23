@@ -247,3 +247,13 @@ CodeQL-only / "security scan" wording is gone, but the DRY fix is **incomplete**
    same pass to fully close the class.)
 
 Last-reviewed SHA: e341f2d
+
+## Decisions (2026-06-21, re-review #2)
+Thomas: "fix all with the expectation we'll take up ruleset-as-code next."
+- **FIX (complete the DRY fix):** generalize the three remaining merge-gate enumerations —
+  `dependency-management.md:13-14` and `:32`, and `vulnerability-management.md:36` — to
+  reference the standard SSDLC merge gate / required checks (link to `ssdlc.md` § Merge
+  control), naming no individual checks outside SSDLC.
+- **Next story:** ruleset-as-code (already filed in `reviews/backlog.md`) — make the GitHub
+  ruleset config the real single source of truth so prose stops enumerating entirely. To be
+  picked up after this merges.
