@@ -102,6 +102,30 @@ overrides ──────────┘            │
   scaffold, `/api/health`, and serving the built client. State flows entirely
   through Zoom's in-client message bridge — there is no server-side WebSocket.
 
+![Meeting Cost Meter — architecture and data flow](dev-docs/meeting-cost-architecture.png)
+
+## Technology stack
+
+- **Frontend:** React 18 single-page app built with Vite 6, running inside the Zoom
+  client via the **Zoom Apps SDK** (`@zoom/appssdk`) — used for meeting context,
+  participant counts, and compositing the live cost meter onto the presenter's camera
+  feed (Zoom camera/Layers rendering context). Plain CSS; no UI framework, web fonts,
+  CDN, or analytics.
+- **Backend:** Node.js 22 + Express, serving the built client and a minimal API
+  (`/api/health`, `/api/log`, `/api/rates`). No database.
+- **Auth:** Zoom OAuth 2.0; requests authenticated via the signed Zoom App Context
+  header, decrypted server-side (AES-256-GCM).
+- **Storage:** each presenter's config saved as a per-user AES-256-GCM-encrypted JSON
+  file on a persistent volume (Node `crypto`); plaintext never hits disk. The only providers
+  are Railway (hosting/storage), GitHub, and Zoom — no other data processors, and no
+  analytics, advertising, or data sale.
+- **Security:** HTTPS/HSTS, Content-Security-Policy, `nosniff`, and `no-store` headers
+  on all responses.
+- **Hosting:** Railway (Node service, auto-deploy from GitHub); GitHub Pages serves the
+  static legal/support pages.
+
+Full diagram source: [`dev-docs/meeting-cost-architecture.svg`](dev-docs/meeting-cost-architecture.svg).
+
 ## Going live in Zoom (later)
 
 See `server/zoom-app-config.md` for Marketplace setup (scopes, redirect URLs,
@@ -167,6 +191,29 @@ Server-side, the GitHub repo has secret-scanning **push protection** enabled. To
 also catch generic secrets (e.g. a Zoom client secret), enable **"Scan for
 non-provider patterns"** under repo *Settings → Code security → Secret scanning*
 (a one-click toggle; it is not currently settable via the REST API).
+
+## Security & policies
+
+- **Report a vulnerability:** see [`SECURITY.md`](SECURITY.md) (private disclosure to the
+  security contact).
+- **SAST:** GitHub **CodeQL** scans JS/TS on every push/PR to `main` and weekly
+  ([`.github/workflows/codeql.yml`](.github/workflows/codeql.yml)).
+- **Dependencies:** **Dependabot** opens weekly update PRs
+  ([`.github/dependabot.yml`](.github/dependabot.yml)).
+- **CI:** test + build runs in GitHub Actions on every push/PR
+  ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
+- **Branch protection:** `main` is a protected branch — PR required, required status checks
+  must pass, force-push/deletion blocked. The exact required checks are defined in
+  [SSDLC § Merge control](dev-docs/policies/ssdlc.md).
+- **Policy set** (operational detail) in [`dev-docs/policies/`](dev-docs/policies/):
+  [SSDLC](dev-docs/policies/ssdlc.md) ·
+  [Security](dev-docs/policies/security-policy.md) ·
+  [Vulnerability management](dev-docs/policies/vulnerability-management.md) ·
+  [Data retention & protection](dev-docs/policies/data-retention-and-protection.md) ·
+  [Incident response](dev-docs/policies/incident-response.md) ·
+  [Infrastructure & dependencies](dev-docs/policies/dependency-management.md).
+- **Public-facing:** [Security overview](https://thomasbcox.github.io/zoom-meeting-cost/security.html)
+  · [Privacy Policy](https://thomasbcox.github.io/zoom-meeting-cost/privacy.html).
 
 ## License
 

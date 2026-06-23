@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Security — Meeting Cost Meter</title>
+  <meta name="description" content="How the Meeting Cost Meter Zoom App is built and operated securely.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand" href="index.html">
+        <span class="brand-mark">Meeting Cost Meter</span>
+        <span class="brand-sub">by Transformative Leadership Lab</span>
+      </a>
+      <nav class="site-nav">
+        <a href="documentation.html">Docs</a>
+        <a href="privacy.html">Privacy</a>
+        <a href="terms.html">Terms</a>
+        <a href="support.html">Support</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap">
+      <p class="eyebrow">Trust</p>
+      <h1>Security overview</h1>
+      <p class="meta">Effective date: 1 June 2026 · Meeting Cost Meter</p>
+
+      <p class="lede">Meeting Cost Meter is built to handle the little data it touches
+        carefully — encrypted, minimal, and never shared. This page summarizes how the app
+        is developed and operated.</p>
+
+      <h2>Secure development</h2>
+      <ul>
+        <li>Every change ships through a reviewed pull request with an independent code
+          review and a passing automated test suite before it can merge.</li>
+        <li>The code is scanned on every change by <strong>GitHub CodeQL</strong> (static
+          application security testing).</li>
+        <li>Dependencies are kept current and monitored for known vulnerabilities
+          (Dependabot + dependency alerts).</li>
+        <li>A pre-commit secret-scanning check prevents credentials from ever entering the
+          source. Secrets are configured as environment variables, never committed.</li>
+        <li>The release branch is protected: changes merge only via reviewed pull request
+          with automated checks passing.</li>
+      </ul>
+
+      <h2>Encryption &amp; data handling</h2>
+      <ul>
+        <li>All traffic is served over <strong>HTTPS/TLS</strong> (HSTS enforced).</li>
+        <li>The presenter's configuration is stored <strong>AES-256-GCM encrypted at
+          rest</strong>, with a per-user key tied to their Zoom account; plaintext never
+          touches disk.</li>
+        <li>The live on-camera total is an aggregate computed inside the Zoom client and is
+          <strong>never sent to our server</strong>.</li>
+        <li>Responses set Content-Security-Policy, <code>nosniff</code>, and no-store cache
+          headers.</li>
+      </ul>
+
+      <h2>Data, retention &amp; privacy</h2>
+      <p>We hold only the presenter's own opportunity-cost estimates and the Zoom-provided
+        context needed to run — never wages or salaries, and no HR, payroll, SSO, or
+        directory data. Stored configuration is kept (encrypted) until you delete it or ask
+        us to. For the full details, see our
+        <a href="privacy.html">Privacy Policy</a>.</p>
+
+      <h2>Transparency</h2>
+      <p>We do not currently hold SOC 2 or ISO 27001 certification, and we do not perform
+        third-party penetration testing. We describe only the controls that are actually in
+        place, and we will update this page if that changes.</p>
+
+      <h2>Reporting a vulnerability</h2>
+      <p>Found a security issue? Please email
+        <a href="mailto:thomas+mcsupport@txl-lab.com">thomas+mcsupport@txl-lab.com</a> with
+        the subject <code>SECURITY</code>, rather than posting publicly. We aim to
+        acknowledge within two business days and will coordinate a fix with you.</p>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p>Meeting Cost Meter is provided by <strong>Transformative Leadership Lab LLC</strong>.</p>
+      <p><a href="index.html">← All documents</a> ·
+         <a href="mailto:thomas+mcsupport@txl-lab.com">thomas+mcsupport@txl-lab.com</a></p>
+      <p class="fineprint">Effective date: 1 June 2026</p>
+    </div>
+  </footer>
+</body>
+</html>

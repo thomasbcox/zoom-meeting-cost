@@ -1,0 +1,17 @@
+version: 2
+updates:
+  # npm — one entry for the workspace root, which owns the workspace manifests and the
+  # single root package-lock.json (client/ and server/ have no separate lockfile).
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      dev-dependencies:
+        dependency-type: development
+  # Keep GitHub Actions (CodeQL, CI) versions current.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly

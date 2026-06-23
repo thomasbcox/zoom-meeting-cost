@@ -3,6 +3,45 @@
 Deferred work, tracked so it isn't lost. Each item becomes its own `/frame`
 story when picked up.
 
+## Server header test depends on a built client (order-fragile gate)
+- **Requested:** 2026-06-21 (Thomas), surfaced by the new CI workflow.
+- **What:** `server/test/headers.test.js` (test "CSP allows the app bundle … connect-src
+  pinned") fetches `GET /`. With no `client/dist`, the SPA fallback `sendFile` errors and
+  Express's finalhandler overwrites the CSP with `default-src 'none'`, so the assertion
+  fails. The test's own comment wrongly claims it passes without a build, and the gate
+  `npm test && npm run build` passes locally only because a stale `dist` exists.
+- **Why:** order-independence is the honest expectation. Fix the test to not depend on a
+  built client (e.g. assert headers on a route that doesn't hit the SPA fallback, like
+  `/api/health`), or have the SPA fallback preserve the security headers on a missing-file
+  error. CI now builds before test as a stopgap.
+- **Note:** app/test logic was intentionally NOT changed in the security-program story
+  (docs-only scope); this is the proper follow-up.
+
+## Ruleset-as-code (single source of truth for branch protection)
+- **Requested:** 2026-06-21 (Thomas), from `reviews/security-program.md` re-review (DRY fix).
+- **What:** Export the GitHub `main` ruleset to a committed `.github/rulesets/main.json` and
+  add a CI drift-check that fails if the live ruleset diverges from the committed file.
+- **Why:** Today the merge gate's required checks live canonically in `ssdlc.md` prose; the
+  *enforced* authority is the GitHub ruleset config. Config-as-code makes that config
+  version-controlled and reviewable, and the drift-check prevents "docs say X / GitHub
+  enforces Y" — the more dangerous form of the duplication that the DRY fix only addressed
+  in prose.
+- **Design notes:** `gh api repos/{owner}/{repo}/rulesets/<id>` to export; a small workflow
+  step diffs live-vs-committed. Docs then reference the JSON instead of restating specifics.
+
+## Redact `/api/log` payloads server-side
+- **Requested:** 2026-06-21 (Thomas), flagged from `reviews/security-program.md` review.
+- **What:** `server/src/app.js` `/api/log` currently logs the submitted JSON body verbatim
+  (`console.log("[client-log] " + JSON.stringify(req.body))`). Client diagnostics can include
+  Zoom-provided meeting context (participant / user-context data). Add a strict server-side
+  schema / field allowlist + redaction so logs cannot contain personal data, and trim the
+  client diagnostics to non-identifying fields.
+- **Why:** the data-retention/security policies now honestly state logs are *not* redacted
+  today; this closes that gap so the stronger "scrubbed" claim becomes true. Privacy + log
+  hygiene.
+- **Design notes:** allowlist event `kind` + a fixed set of scalar fields; drop raw
+  `getMeetingParticipants` / `getUserContext` dumps; keep error stacks but strip payloads.
+
 ## Remove the loaded-cost multiplier
 - **Requested:** 2026-06-21 (Thomas), flagged from `reviews/opportunity-cost-framing.md`.
 - **What:** Remove the `multiplier` / `simpleMultiplier` field, its UI, and its use in
