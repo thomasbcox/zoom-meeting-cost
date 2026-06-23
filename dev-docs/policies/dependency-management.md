@@ -19,9 +19,9 @@
 - **Hosting:** Railway runs the Node/Express service and provides the encrypted persistent
   volume. Deploys are automatic on merge to `main` and gated by a `/api/health` check.
 - **Source & CI:** GitHub hosts the repository and runs CI on every push/PR to `main` —
-  CodeQL (SAST) and a test/build workflow (`npm test` + `npm run build`). `main` is
-  protected by a ruleset (PR + passing CodeQL and CI checks required; force-push/deletion
-  blocked).
+  CodeQL (SAST) and a test/build workflow (`npm test` + `npm run build`). `main` is a
+  protected branch whose merge gate (required checks, PR, no force-push/deletion) is defined
+  in [SSDLC](ssdlc.md) § Merge control.
 - **Configuration & secrets:** all environment-specific configuration and secrets are set as
   environment variables per environment, never committed to the repository.
 - **Runtime hardening:** HTTPS/HSTS and security headers on all responses; least-privilege

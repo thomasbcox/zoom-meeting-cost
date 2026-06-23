@@ -3,6 +3,18 @@
 Deferred work, tracked so it isn't lost. Each item becomes its own `/frame`
 story when picked up.
 
+## Ruleset-as-code (single source of truth for branch protection)
+- **Requested:** 2026-06-21 (Thomas), from `reviews/security-program.md` re-review (DRY fix).
+- **What:** Export the GitHub `main` ruleset to a committed `.github/rulesets/main.json` and
+  add a CI drift-check that fails if the live ruleset diverges from the committed file.
+- **Why:** Today the merge gate's required checks live canonically in `ssdlc.md` prose; the
+  *enforced* authority is the GitHub ruleset config. Config-as-code makes that config
+  version-controlled and reviewable, and the drift-check prevents "docs say X / GitHub
+  enforces Y" — the more dangerous form of the duplication that the DRY fix only addressed
+  in prose.
+- **Design notes:** `gh api repos/{owner}/{repo}/rulesets/<id>` to export; a small workflow
+  step diffs live-vs-committed. Docs then reference the JSON instead of restating specifics.
+
 ## Redact `/api/log` payloads server-side
 - **Requested:** 2026-06-21 (Thomas), flagged from `reviews/security-program.md` review.
 - **What:** `server/src/app.js` `/api/log` currently logs the submitted JSON body verbatim

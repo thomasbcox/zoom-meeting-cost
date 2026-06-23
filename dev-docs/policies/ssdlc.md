@@ -40,9 +40,10 @@ is addressed at each stage rather than bolted on afterward.
 6. **Dependency review.** **Dependabot** (`.github/dependabot.yml`) opens weekly PRs for
    vulnerable/outdated npm and GitHub-Actions dependencies; GitHub dependency alerts are
    enabled. See `dependency-management.md`.
-7. **Merge control.** `main` is protected by a repository **ruleset**: a pull request is
-   required, the CodeQL and CI checks must pass, and force-pushes and branch deletion are
-   blocked.
+7. **Merge control (authoritative).** `main` is protected by a repository **ruleset**: a
+   pull request is required, the **CodeQL** and **CI** status checks must pass, and
+   force-pushes and branch deletion are blocked. This section is the single source of truth
+   for the required checks; other documents reference it rather than restating the list.
 8. **Release / deploy.** Merging to `main` triggers an automatic deploy to Railway, gated by
    a `/api/health` check. Configuration and secrets are environment variables, set per
    environment, never in the repository.

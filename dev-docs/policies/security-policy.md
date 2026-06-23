@@ -29,7 +29,8 @@ entrusted to it.
   environment; never committed. A pre-commit secret-scanning hook blocks credential commits.
 - **Access control:** the source repository (GitHub) and hosting (Railway) are accessed
   through individual accounts; account owners are expected to enable multi-factor
-  authentication. `main` is protected by a ruleset (PR + passing CodeQL required).
+  authentication. `main` is a protected branch: changes merge only via reviewed pull request
+  with all required status checks passing (see [SSDLC](ssdlc.md) § Merge control).
 - **Secure headers:** CSP, `nosniff`, `Referrer-Policy`, and `no-store` on all responses.
 - **Input validation:** stored configuration is strictly validated server-side before
   persistence (rejects malformed/oversized/negative input).

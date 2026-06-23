@@ -217,3 +217,16 @@ required checks were duplicated across six docs with no source of truth (one dri
   (passing mention) left as-is.
 - **Backlog:** ruleset-as-code (`.github/rulesets/main.json` + a drift check) so the enforced
   config becomes the real single source of truth — filed, not done now.
+
+## Fixes (2026-06-21, re-review round)
+Applied the **proper DRY fix** for the duplicated merge-gate required-checks (the root cause
+of the re-review IMPORTANT):
+- **Canonical:** `ssdlc.md` § Merge control now enumerates the exact required checks (CodeQL
+  + CI) once and is marked the single source of truth.
+- **Generalized** (no longer restate the check list): `security-policy.md`,
+  `dependency-management.md`, `README.md` now state the stable intent ("PR + all required
+  status checks must pass") and link to SSDLC § Merge control; `docs/security.html` says
+  "automated checks passing" (was the inaccurate "security scan").
+- **Verified:** the enumerated check list no longer appears outside `ssdlc.md`.
+- **Backlog:** ruleset-as-code (`.github/rulesets/main.json` + drift check) filed in
+  `reviews/backlog.md` as the durable end-state (config becomes the real source of truth).

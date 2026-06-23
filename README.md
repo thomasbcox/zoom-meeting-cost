@@ -202,8 +202,9 @@ non-provider patterns"** under repo *Settings → Code security → Secret scann
   ([`.github/dependabot.yml`](.github/dependabot.yml)).
 - **CI:** test + build runs in GitHub Actions on every push/PR
   ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
-- **Branch protection:** `main` is governed by a repository ruleset (PR required, CodeQL +
-  CI checks required, force-push/deletion blocked).
+- **Branch protection:** `main` is a protected branch — PR required, required status checks
+  must pass, force-push/deletion blocked. The exact required checks are defined in
+  [SSDLC § Merge control](dev-docs/policies/ssdlc.md).
 - **Policy set** (operational detail) in [`dev-docs/policies/`](dev-docs/policies/):
   [SSDLC](dev-docs/policies/ssdlc.md) ·
   [Security](dev-docs/policies/security-policy.md) ·
