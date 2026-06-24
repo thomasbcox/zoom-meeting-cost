@@ -87,3 +87,11 @@ to hold and why holding is safe.
    security updates. The report will justify each. Agree, or upgrade any of the held ones?
 3. **Report location/lifespan.** `dev-docs/dependency-review.md` as a dated snapshot we
    refresh periodically — OK, or prefer a different home?
+
+## Build note (2026-06-21)
+AC → file map:
+- AC1 dependabot config → `.github/dependabot.yml`
+- AC2 dependency review report → `dev-docs/dependency-review.md`
+- AC3 close #42/#43 (react/react-dom 19) → action (verified CLOSED)
+- AC4/AC6 no version bumps / scope → config + docs only (no package.json/lockfile changes)
+- AC5 gate
