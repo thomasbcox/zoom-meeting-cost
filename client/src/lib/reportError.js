@@ -7,16 +7,46 @@
 
 import { postLog } from './postLog.js';
 
+// Data minimization: a client-error report carries ONLY this fixed set of technical fields —
+// never an arbitrary caller-supplied bag — so participant PII can't ride along into the logs.
+// `url` is reduced to its pathname (the query string can carry tokens / context, like the
+// server's request log) and the free-text fields are length-capped to bound the log line.
+const ALLOWED_FIELDS = ['source', 'message', 'stack', 'filename', 'lineno', 'colno', 'componentStack'];
+const TEXT_FIELDS = new Set(['message', 'stack', 'componentStack']);
+const MAX_TEXT = 4000;
+
+function pathnameOnly(href) {
+  try {
+    return new URL(href).pathname;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Build the minimal, allowlisted client-error payload. Pure; never throws. Copies only the
+ * known technical fields from `detail` (length-capping the free-text ones), reduces the current
+ * url to its pathname, and adds the userAgent — nothing else from `detail` survives.
+ */
+export function buildClientErrorPayload(detail = {}) {
+  const payload = { kind: 'client-error' };
+  for (const key of ALLOWED_FIELDS) {
+    const v = detail?.[key];
+    if (v == null) continue;
+    payload[key] = TEXT_FIELDS.has(key) && typeof v === 'string' ? v.slice(0, MAX_TEXT) : v;
+  }
+  if (typeof location !== 'undefined') {
+    const p = pathnameOnly(location.href);
+    if (p !== undefined) payload.url = p;
+  }
+  if (typeof navigator !== 'undefined') payload.userAgent = navigator.userAgent;
+  return payload;
+}
+
 /** Report a single client-side error to the server. Never throws. */
 export function reportClientError(detail, { log = postLog } = {}) {
   try {
-    return log({
-      kind: 'client-error',
-      ...detail,
-      // Best-effort context; guarded so this works outside a browser too.
-      url: typeof location !== 'undefined' ? location.href : undefined,
-      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
-    });
+    return log(buildClientErrorPayload(detail));
   } catch {
     /* reporting must never break the app */
     return undefined;

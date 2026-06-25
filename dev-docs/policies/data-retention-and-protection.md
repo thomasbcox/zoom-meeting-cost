@@ -1,7 +1,7 @@
 # Data Retention & Protection Policy
 
 **Owner:** Transformative Leadership Lab LLC · **Applies to:** Meeting Cost Meter (Zoom App)
-**Contact:** thomas+mcsupport@txl-lab.com · **Effective:** 1 June 2026 · **Review:** annually or on material change
+**Contact:** thomas+mcsupport@txl-lab.com · **Effective:** 25 June 2026 · **Review:** annually or on material change
 
 This policy complements the public Privacy Policy
 (https://thomasbcox.github.io/zoom-meeting-cost/privacy.html) with operational detail.
@@ -11,7 +11,7 @@ This policy complements the public Privacy Policy
 |---|---|---|---|
 | Presenter configuration — names entered + per-person hourly **opportunity-cost** values, defaults | Confidential | Railway persistent volume, one file per user | AES-256-GCM at rest |
 | Zoom OAuth tokens / app-context material | Secret | Server memory / environment | In transit (TLS); not persisted in plaintext |
-| Operational logs + client diagnostics (via `/api/log`) | Low–Medium (may include Zoom meeting context) | Hosting platform logs | In transit (TLS) |
+| Operational logs + client diagnostics (via `/api/log`) | Low — minimized to exclude participant PII (data-shape + technical fields only) | Hosting platform logs | In transit (TLS) |
 
 We do **not** collect wages or salaries, audio/video/chat, or any HR/payroll/directory data.
 The live on-camera cost total is aggregate-only and is computed in the Zoom client — it is
@@ -32,12 +32,13 @@ never sent to or stored by our server.
 - **Aggregate meeting totals:** not retained — they exist only during the active meeting,
   in-client.
 - **Operational logs:** the app logs runtime errors and client-reported diagnostics (via
-  `/api/log`) to the hosting platform's logs. These are **not separately redacted today** and
-  may include diagnostic payloads such as Zoom-provided meeting context (e.g. participant or
-  user-context data) sent for troubleshooting; they do **not** include the encrypted
-  rate-store contents or secrets. Logs follow the hosting platform's standard retention and
-  are accessible only to the operator. (Server-side log redaction is tracked as a future
-  change — see `reviews/backlog.md`.)
+  `/api/log`) to the hosting platform's logs. **Client diagnostics are minimized at the source
+  so they exclude participant personal data:** the in-Zoom diagnostics probe transmits only the
+  *shape* of Zoom SDK responses (field names, lengths, counts) — never participant names or
+  other values — and error reports carry only error text plus a fixed set of technical fields
+  (no arbitrary payloads; the request URL is reduced to its path). Logs do **not** include the
+  encrypted rate-store contents or secrets. They follow the hosting platform's standard
+  retention and are accessible only to the operator.
 
 ## Deletion / data-subject requests
 A user can remove the app from the Zoom Marketplace and email the contact above to have the

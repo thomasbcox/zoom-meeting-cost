@@ -54,17 +54,37 @@ story when picked up.
   step diffs live-vs-committed. Docs then reference the JSON instead of restating specifics.
 
 ## Redact `/api/log` payloads server-side
+- **Approach chosen (2026-06-25):** addressed via **prevent-at-source / data minimization**
+  rather than server-side redaction — see `reviews/api-log-redaction.md`. The client no longer
+  *sends* participant PII (the diagnostics probe transmits only data shape; error reports use a
+  fixed allowlist), so there is nothing to redact and no per-field server allowlist to maintain.
+  A server-side structural sink-guard was deliberately deferred as a noted, unscheduled option.
 - **Requested:** 2026-06-21 (Thomas), flagged from `reviews/security-program.md` review.
-- **What:** `server/src/app.js` `/api/log` currently logs the submitted JSON body verbatim
-  (`console.log("[client-log] " + JSON.stringify(req.body))`). Client diagnostics can include
-  Zoom-provided meeting context (participant / user-context data). Add a strict server-side
-  schema / field allowlist + redaction so logs cannot contain personal data, and trim the
-  client diagnostics to non-identifying fields.
+- **What (original framing):** `server/src/app.js` `/api/log` currently logs the submitted JSON
+  body verbatim (`console.log("[client-log] " + JSON.stringify(req.body))`). Client diagnostics
+  can include Zoom-provided meeting context (participant / user-context data). Add a strict
+  server-side schema / field allowlist + redaction so logs cannot contain personal data, and
+  trim the client diagnostics to non-identifying fields.
 - **Why:** the data-retention/security policies now honestly state logs are *not* redacted
   today; this closes that gap so the stronger "scrubbed" claim becomes true. Privacy + log
   hygiene.
 - **Design notes:** allowlist event `kind` + a fixed set of scalar fields; drop raw
   `getMeetingParticipants` / `getUserContext` dumps; keep error stacks but strip payloads.
+
+## Retire the shape-only diagnostics probe once stable
+- **Requested:** 2026-06-25 (Thomas), from `reviews/api-log-redaction.md`.
+- **What:** Delete the in-Zoom recon probe (`client/src/zoom/zoomDiagnostics.js` —
+  `runZoomDiagnostics` / `maybeRunZoomDiagnostics` / `PROBE_METHODS`, its `?diag=1` wiring, and
+  its test) once the camera-overlay / in-Zoom work no longer needs ground-truth SDK shape data.
+- **Why:** The probe was made **shape-only** (no participant values) in the api-log-redaction
+  story, which removes the privacy concern — but it remains recon scaffolding that exists only
+  to learn Zoom's data shapes. Once the overlay is stable and the shapes are settled, the probe
+  has no ongoing purpose and is dead weight; removing it shrinks the client and the `/api/log`
+  surface.
+- **When to do:** after the overlay live-test matrix work concludes (it relies on in-Zoom
+  diagnostics today — don't remove the tool while that is still in flight).
+- **Done looks like:** the diagnostics probe + its flag/wiring/tests are gone; the gate stays
+  green; no other code referenced it.
 
 ## ~~Remove the loaded-cost multiplier~~ — DONE
 - **Shipped 2026-06-25** (PR #49 / merge: remove-cost-multiplier). Removed `multiplier` /
