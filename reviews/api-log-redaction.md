@@ -241,3 +241,11 @@ Applied both approved Codex findings:
   claims telemetry "never includes … individual values." It now distinguishes diagnostics
   (shape only, no values) from error reports (error text + a fixed set of technical details, no
   participant data) — accurate now that ① removes the nested-payload path.
+
+## Build note (2026-06-25, re-review)
+
+Re-review of the fix delta only (base = last-reviewed SHA 726d919). Files changed since:
+
+- **① fix** → `client/src/lib/reportError.js` (scalar-only normalization) +
+  `client/src/lib/reportError.test.js` (added scalar-only / finite-number tests)
+- **② fix** → `docs/privacy.html` (qualified Operational-logging note)
