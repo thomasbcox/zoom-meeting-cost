@@ -169,3 +169,17 @@ allowlist.)
 2. **Dates** — **bump in all relevant docs** (Thomas), not just privacy.html: the two policy
    docs and the public privacy page all get a 2026-06-25 date. Shipping the public-page edit
    with this story is approved.
+
+## Build note (2026-06-25)
+
+AC → file map:
+
+- **AC1 / AC2** (shape-only probe; pure `describeShape`, value-blind, depth-bounded) →
+  `client/src/zoom/zoomDiagnostics.js`
+- **AC3 / AC4** (allowlisted `buildClientErrorPayload`; `reportClientError` uses it) →
+  `client/src/lib/reportError.js`
+- **AC5** (server untouched) → no change to `server/src/app.js` (verified by `git diff`)
+- **AC6** (docs accurate; dates 2026-06-25) →
+  `dev-docs/policies/data-retention-and-protection.md`,
+  `dev-docs/policies/security-policy.md`, `docs/privacy.html`, `reviews/backlog.md`
+- **Tests** → `client/src/zoom/zoomDiagnostics.test.js`, `client/src/lib/reportError.test.js`
