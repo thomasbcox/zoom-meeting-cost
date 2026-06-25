@@ -31,11 +31,23 @@ function bootThenSignal(signal) {
       out += d.toString();
       if (!signalled && out.includes('server on')) {
         signalled = true;
-        child.kill(signal);
+        // kill() returns false if the signal wasn't delivered — fail loudly rather than
+        // letting the test "pass" without actually signalling the process.
+        if (!child.kill(signal)) {
+          clearTimeout(timer);
+          reject(new Error(`failed to deliver ${signal} to the server process`));
+        }
       }
     });
     child.on('exit', (code) => {
       clearTimeout(timer);
+      // Guard against a false pass: if the child exited before it listened and we signalled
+      // it (e.g. a boot regression that exits 0 immediately), the boot→listen→signal→exit
+      // path was never exercised. Require that we saw 'server on' and sent the signal.
+      if (!signalled) {
+        reject(new Error('server exited before listening / being signalled — boot path not exercised'));
+        return;
+      }
       resolve(code);
     });
     child.on('error', reject);

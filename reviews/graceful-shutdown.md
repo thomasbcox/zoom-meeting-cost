@@ -100,3 +100,9 @@ Thomas: "fix then /close."
 - **IMPORTANT 1** (shutdown test can false-pass) — **FIX**: require the `server on` log was
   seen and `child.kill(signal)` succeeded; reject in the exit handler if the signal was never
   sent, so a boot regression fails the test instead of slipping through.
+
+## Fixes (2026-06-21)
+- **IMPORTANT 1:** `server/test/shutdown.test.js` now fails a false-pass — it rejects if
+  `child.kill(signal)` doesn't deliver, and rejects in the `exit` handler when `signalled`
+  is false (server exited before listening/being signalled). A boot regression that exits 0
+  early now fails the test instead of slipping through.
