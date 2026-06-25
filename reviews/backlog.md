@@ -66,7 +66,14 @@ story when picked up.
 - **Design notes:** allowlist event `kind` + a fixed set of scalar fields; drop raw
   `getMeetingParticipants` / `getUserContext` dumps; keep error stacks but strip payloads.
 
-## Remove the loaded-cost multiplier
+## ~~Remove the loaded-cost multiplier~~ — DONE
+- **Shipped 2026-06-25** (PR #49 / merge: remove-cost-multiplier). Removed `multiplier` /
+  `simpleMultiplier` from cost math, UI, and client state — the meter now uses
+  `rate === baseRate` (per-participant) and `N × averageRate` (simple). Server
+  `validateConfig` makes multiplier **optional-when-present**: legacy blobs round-trip and
+  are ignored client-side, malformed values are still rejected; no data migration. Scaling
+  dropped entirely, no replacement control (Thomas). Full story:
+  `reviews/remove-cost-multiplier.md`.
 - **Requested:** 2026-06-21 (Thomas), flagged from `reviews/opportunity-cost-framing.md`.
 - **What:** Remove the `multiplier` / `simpleMultiplier` field, its UI, and its use in
   `computeTotals` / `computeSimpleTotals`, plus the stored-config schema field.
