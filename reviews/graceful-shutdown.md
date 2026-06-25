@@ -73,3 +73,10 @@ backlogged** (per Thomas — "backlog the hardening"):
    exit cleanly before a force-kill). OK, or prefer a different value?
 2. **Shutdown log line.** Default: log one line (e.g. `received SIGTERM, shutting down`) for
    observability. OK, or stay silent?
+
+## Build note (2026-06-21)
+AC → file map:
+- AC1/AC2 graceful shutdown + force-exit + double-run guard → `server/src/index.js`; subprocess test → `server/test/shutdown.test.js`
+- AC3 boot behavior preserved (EADDRINUSE, logs) → `server/src/index.js`
+- AC4 backlog (process-level crash guards; in-Zoom client-error hardening) → `reviews/backlog.md`
+- AC5/AC6 scope + gate
