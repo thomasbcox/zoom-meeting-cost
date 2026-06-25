@@ -249,3 +249,25 @@ Re-review of the fix delta only (base = last-reviewed SHA 726d919). Files change
 - **① fix** → `client/src/lib/reportError.js` (scalar-only normalization) +
   `client/src/lib/reportError.test.js` (added scalar-only / finite-number tests)
 - **② fix** → `docs/privacy.html` (qualified Operational-logging note)
+
+## Codex re-review (2026-06-25, base 726d919, HEAD 8039c39)
+
+**Summary:** Re-reviewed only the fix delta (`git diff 726d919...HEAD`). **Finding ① is
+correctly resolved** — the scalar-only `buildClientErrorPayload` drops nested
+objects/arrays/functions under allowlisted keys and keeps only finite numeric line/column
+values, with focused tests. **Finding ② is improved but not fully resolved** — one new
+IMPORTANT below.
+
+**Findings:**
+
+- **IMPORTANT — Privacy note still overstates the error-report guarantee** (`docs/privacy.html`).
+  The revised note says error reports "do not include participant names or other meeting data,"
+  but the fix intentionally still forwards string `message`/`stack`/`componentStack` (length-
+  capped only). A thrown error's own text could still contain a participant name — the spec
+  accepts this as residual risk — so the public note should not promise it's impossible.
+  *Suggestion:* keep the diagnostics/no-values claim, but qualify the error-report sentence:
+  error reports are limited to error text plus fixed technical fields and do not **attach**
+  arbitrary participant payloads or meeting-data fields.
+
+- BLOCKER: 0 · IMPORTANT: 1 · QUESTION: 0 · NIT: 0
+  (Prior ① — scalar-only client-error — verified resolved; not re-raised.)
