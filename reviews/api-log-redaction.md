@@ -281,3 +281,12 @@ IMPORTANT below.
   plus a fixed set of technical details and do not **attach** participant or meeting-data fields
   (we don't promise the free-form error text can never contain a value — the accepted residual).
 - (Prior ① scalar-only client-error fix: verified resolved last round; no further action.)
+
+## Fixes (2026-06-25, re-review round)
+
+- **Privacy note (②) wording qualified:** `docs/privacy.html` error-report sentence changed from
+  "they do not include participant names or other meeting data" to "they do not **attach**
+  participant lists, names, or other meeting-data fields." This promises only what the
+  implementation backs (no participant payloads are attached) without claiming the free-form
+  error text can never contain a value (the accepted residual). Diagnostics "shape only / no
+  values" claim unchanged.
