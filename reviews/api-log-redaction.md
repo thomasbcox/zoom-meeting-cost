@@ -212,3 +212,18 @@ EPERM; the gate was run here and is green, and PR #50 CI is green on this HEAD.)
   payloads.
 
 - BLOCKER: 0 · IMPORTANT: 2 · QUESTION: 0 · NIT: 0
+
+## Decisions (2026-06-25)
+
+- **Finding ① — Allowlisted fields can carry nested payloads — FIX** (Thomas, after confirming
+  low risk/cost). Type-normalize each allowlisted field in `buildClientErrorPayload`: text
+  fields (`source`, `message`, `stack`, `filename`, `componentStack`) kept only as
+  length-capped strings; `lineno`/`colno` kept only as finite numbers; objects/arrays/functions
+  dropped. Tightens the prevent-at-source invariant from "top-level keys" to "scalars only," so
+  no nested participant payload can ride an allowed key.
+- **Finding ② — Privacy note overstates the guarantee — FIX, contingent on ①** (Thomas: "if we
+  go with your suggestion then 2 is ok, but only then"). With ① fixed, the only residual is
+  error *text*, so the note is accurate when qualified: diagnostics record only shapes (no
+  values); error reports are minimized to error text plus a fixed set of technical fields, with
+  no arbitrary participant payloads. ② is accurate ONLY because ① removes the nested-payload
+  path — they ship together.
