@@ -53,7 +53,9 @@ story when picked up.
 - **Design notes:** `gh api repos/{owner}/{repo}/rulesets/<id>` to export; a small workflow
   step diffs live-vs-committed. Docs then reference the JSON instead of restating specifics.
 
-## Redact `/api/log` payloads server-side
+## ~~Redact `/api/log` payloads server-side~~ — DONE
+- **Shipped 2026-06-25** (PR #50 / merge: api-log-redaction) via prevent-at-source minimization
+  — not server-side redaction. Full story: `reviews/api-log-redaction.md`.
 - **Approach chosen (2026-06-25):** addressed via **prevent-at-source / data minimization**
   rather than server-side redaction — see `reviews/api-log-redaction.md`. The client no longer
   *sends* participant PII (the diagnostics probe transmits only data shape; error reports use a
