@@ -94,3 +94,9 @@ gap: the test can pass without proving the signal path ran.
    `child.kill()` return value.
 
 Last-reviewed SHA: 7ce422c
+
+## Decisions (2026-06-21)
+Thomas: "fix then /close."
+- **IMPORTANT 1** (shutdown test can false-pass) — **FIX**: require the `server on` log was
+  seen and `child.kill(signal)` succeeded; reject in the exit handler if the signal was never
+  sent, so a boot regression fails the test instead of slipping through.
