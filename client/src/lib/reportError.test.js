@@ -70,6 +70,25 @@ describe('buildClientErrorPayload (data minimization)', () => {
     expect(payload).not.toHaveProperty('uid');
   });
 
+  it('drops non-scalar values under allowed keys (no nested payload can ride through)', () => {
+    const payload = buildClientErrorPayload({
+      message: { participants: [{ screenName: 'Jane Q. Participant' }] }, // object under an allowed key
+      stack: ['frame-a', 'frame-b'], // array under an allowed key
+      lineno: { evil: 1 },
+    });
+    expect(payload).not.toHaveProperty('message'); // dropped, not copied verbatim
+    expect(payload).not.toHaveProperty('stack');
+    expect(payload).not.toHaveProperty('lineno');
+    expect(JSON.stringify(payload)).not.toContain('Jane Q. Participant');
+  });
+
+  it('keeps lineno/colno only when finite numbers', () => {
+    expect(buildClientErrorPayload({ lineno: 12, colno: 3 })).toMatchObject({ lineno: 12, colno: 3 });
+    const dropped = buildClientErrorPayload({ lineno: NaN, colno: '3' });
+    expect(dropped).not.toHaveProperty('lineno'); // NaN is not finite
+    expect(dropped).not.toHaveProperty('colno'); // string is not a number
+  });
+
   it('reduces url to its pathname (strips the query string)', () => {
     vi.stubGlobal('location', { href: 'https://app.example.com/panel?token=secret-token' });
     const payload = buildClientErrorPayload({ message: 'x' });

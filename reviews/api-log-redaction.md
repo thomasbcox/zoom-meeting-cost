@@ -227,3 +227,17 @@ EPERM; the gate was run here and is green, and PR #50 CI is green on this HEAD.)
   values); error reports are minimized to error text plus a fixed set of technical fields, with
   no arbitrary participant payloads. ② is accurate ONLY because ① removes the nested-payload
   path — they ship together.
+
+## Fixes (2026-06-25)
+
+Applied both approved Codex findings:
+
+- **① (nested payloads under allowed keys):** `client/src/lib/reportError.js` —
+  `buildClientErrorPayload` now normalizes each field by expected type: string fields kept only
+  if a string (length-capped), `lineno`/`colno` only if a finite number; objects/arrays/
+  functions are dropped, not copied. The invariant is now "scalars only," so no nested
+  participant payload can ride an allowed key. Added tests in `reportError.test.js`.
+- **② (privacy note overstated):** `docs/privacy.html` — the Operational-logging note no longer
+  claims telemetry "never includes … individual values." It now distinguishes diagnostics
+  (shape only, no values) from error reports (error text + a fixed set of technical details, no
+  participant data) — accurate now that ① removes the nested-payload path.

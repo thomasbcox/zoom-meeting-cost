@@ -112,10 +112,11 @@
 
       <h2>Operational logging</h2>
       <p>To keep the app working reliably, we record minimal technical telemetry — runtime
-        errors and diagnostic events. This telemetry is designed to <strong>exclude personal
-        data</strong>: it never includes participant names or individual values. Where the app
-        inspects the structure of Zoom data for troubleshooting, it records only the
-        <em>shape</em> of that data (such as field names and counts), not its contents.</p>
+        errors and diagnostic events — designed to <strong>exclude participant personal
+        data</strong>. Diagnostic events record only the <em>shape</em> of Zoom data (such as
+        field names and counts), never its values. Error reports are limited to the error text
+        and a fixed set of technical details (such as the source file and line number); they do
+        not include participant names or other meeting data.</p>
 
       <h2 id="removing">Removing the app and your data</h2>
       <p>You can remove Meeting Cost Meter at any time from the Zoom App Marketplace. To

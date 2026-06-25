@@ -7,12 +7,13 @@
 
 import { postLog } from './postLog.js';
 
-// Data minimization: a client-error report carries ONLY this fixed set of technical fields —
-// never an arbitrary caller-supplied bag — so participant PII can't ride along into the logs.
-// `url` is reduced to its pathname (the query string can carry tokens / context, like the
-// server's request log) and the free-text fields are length-capped to bound the log line.
-const ALLOWED_FIELDS = ['source', 'message', 'stack', 'filename', 'lineno', 'colno', 'componentStack'];
-const TEXT_FIELDS = new Set(['message', 'stack', 'componentStack']);
+// Data minimization: a client-error report carries ONLY this fixed set of technical fields,
+// and ONLY as scalars of the expected type — never an arbitrary caller-supplied bag, and never
+// a nested object/array under an allowed key — so participant PII can't ride along into the
+// logs. `url` is reduced to its pathname (the query string can carry tokens / context, like the
+// server's request log) and the string fields are length-capped to bound the log line.
+const STRING_FIELDS = ['source', 'message', 'stack', 'filename', 'componentStack'];
+const NUMBER_FIELDS = ['lineno', 'colno'];
 const MAX_TEXT = 4000;
 
 function pathnameOnly(href) {
@@ -25,15 +26,20 @@ function pathnameOnly(href) {
 
 /**
  * Build the minimal, allowlisted client-error payload. Pure; never throws. Copies only the
- * known technical fields from `detail` (length-capping the free-text ones), reduces the current
- * url to its pathname, and adds the userAgent — nothing else from `detail` survives.
+ * known technical fields from `detail`, each normalized to its expected scalar type — string
+ * fields kept only if a string (length-capped), `lineno`/`colno` only if a finite number;
+ * anything else (objects, arrays, functions) is DROPPED, not copied. Reduces the current url to
+ * its pathname and adds the userAgent — nothing else from `detail` survives.
  */
 export function buildClientErrorPayload(detail = {}) {
   const payload = { kind: 'client-error' };
-  for (const key of ALLOWED_FIELDS) {
+  for (const key of STRING_FIELDS) {
     const v = detail?.[key];
-    if (v == null) continue;
-    payload[key] = TEXT_FIELDS.has(key) && typeof v === 'string' ? v.slice(0, MAX_TEXT) : v;
+    if (typeof v === 'string') payload[key] = v.slice(0, MAX_TEXT);
+  }
+  for (const key of NUMBER_FIELDS) {
+    const v = detail?.[key];
+    if (typeof v === 'number' && Number.isFinite(v)) payload[key] = v;
   }
   if (typeof location !== 'undefined') {
     const p = pathnameOnly(location.href);
