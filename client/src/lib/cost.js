@@ -4,7 +4,7 @@
 // work they could be doing instead of being in the meeting. See
 // dev-docs/opportunity-cost-rate.md. (Identifiers keep the historical `rate` name.)
 
-/** Sum the (multiplier-applied) hourly opportunity-cost values and derive per-minute/second. */
+/** Sum the hourly opportunity-cost values and derive per-minute/second. */
 export function computeTotals(resolvedParticipants = []) {
   const combinedHourly = resolvedParticipants.reduce(
     (sum, p) => sum + (Number(p.rate) || 0),
@@ -19,15 +19,14 @@ export function computeTotals(resolvedParticipants = []) {
 }
 
 /**
- * Simple cost model: a flat estimate of N people × average opportunity cost × multiplier.
+ * Simple cost model: a flat estimate of N people × average opportunity cost.
  * Returns the SAME shape as computeTotals so everything downstream is unchanged.
  * Negative / non-numeric inputs clamp to 0.
  */
-export function computeSimpleTotals({ userCount, averageRate, multiplier } = {}) {
+export function computeSimpleTotals({ userCount, averageRate } = {}) {
   const n = clampNonNeg(userCount);
   const rate = clampNonNeg(averageRate);
-  const mult = clampNonNeg(multiplier);
-  const combinedHourly = n * rate * mult;
+  const combinedHourly = n * rate;
   return {
     attendeeCount: n,
     combinedHourly,
@@ -45,7 +44,6 @@ export function selectActiveTotals({
   costModel,
   resolved = [],
   simpleAverageRate,
-  simpleMultiplier,
   simpleUserCount,
   liveCount,
 } = {}) {
@@ -56,7 +54,6 @@ export function selectActiveTotals({
     return computeSimpleTotals({
       userCount: blankN ? liveCount : simpleUserCount,
       averageRate: simpleAverageRate,
-      multiplier: simpleMultiplier,
     });
   }
   return computeTotals(resolved);

@@ -47,20 +47,24 @@ describe('cost calculations and formatting', () => {
   });
 
   describe('computeSimpleTotals', () => {
-    it('computes N × rate × multiplier in the computeTotals shape', () => {
-      const result = computeSimpleTotals({ userCount: 5, averageRate: 100, multiplier: 1.2 });
+    it('computes N × rate in the computeTotals shape', () => {
+      const result = computeSimpleTotals({ userCount: 5, averageRate: 100 });
       expect(result).toEqual({
         attendeeCount: 5,
-        combinedHourly: 600,
-        costPerMinute: 600 / 60,
-        costPerSecond: 600 / 3600,
+        combinedHourly: 500,
+        costPerMinute: 500 / 60,
+        costPerSecond: 500 / 3600,
       });
     });
 
+    it('ignores a stray legacy multiplier (the loaded-cost multiplier was removed)', () => {
+      const result = computeSimpleTotals({ userCount: 5, averageRate: 100, multiplier: 99 });
+      expect(result.combinedHourly).toBe(500);
+    });
+
     it('clamps negative / non-numeric inputs to 0', () => {
-      expect(computeSimpleTotals({ userCount: -3, averageRate: 100, multiplier: 1 }).combinedHourly).toBe(0);
-      expect(computeSimpleTotals({ userCount: 4, averageRate: 'x', multiplier: 1 }).combinedHourly).toBe(0);
-      expect(computeSimpleTotals({ userCount: 4, averageRate: 100, multiplier: -1 }).combinedHourly).toBe(0);
+      expect(computeSimpleTotals({ userCount: -3, averageRate: 100 }).combinedHourly).toBe(0);
+      expect(computeSimpleTotals({ userCount: 4, averageRate: 'x' }).combinedHourly).toBe(0);
       expect(computeSimpleTotals({}).combinedHourly).toBe(0);
     });
   });
@@ -79,11 +83,22 @@ describe('cost calculations and formatting', () => {
         costModel: 'simple',
         resolved,
         simpleAverageRate: 100,
-        simpleMultiplier: 1,
         simpleUserCount: 8,
         liveCount: 3,
       });
       expect(t.attendeeCount).toBe(8);
+      expect(t.combinedHourly).toBe(800);
+    });
+
+    it("ignores a stray legacy simpleMultiplier in 'simple' mode", () => {
+      const t = selectActiveTotals({
+        costModel: 'simple',
+        resolved,
+        simpleAverageRate: 100,
+        simpleMultiplier: 99,
+        simpleUserCount: 8,
+        liveCount: 3,
+      });
       expect(t.combinedHourly).toBe(800);
     });
 
@@ -92,7 +107,6 @@ describe('cost calculations and formatting', () => {
         costModel: 'simple',
         resolved,
         simpleAverageRate: 100,
-        simpleMultiplier: 1,
         simpleUserCount: null,
         liveCount: 3,
       });
@@ -105,7 +119,6 @@ describe('cost calculations and formatting', () => {
         costModel: 'simple',
         resolved,
         simpleAverageRate: 100,
-        simpleMultiplier: 1,
         simpleUserCount: 0,
         liveCount: 3,
       });
@@ -118,7 +131,6 @@ describe('cost calculations and formatting', () => {
         costModel: 'simple',
         resolved,
         simpleAverageRate: 100,
-        simpleMultiplier: 1,
         simpleUserCount: '',
         liveCount: 4,
       });

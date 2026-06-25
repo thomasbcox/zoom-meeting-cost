@@ -54,11 +54,16 @@ export function validateConfig(cfg) {
   }
 
   // Settings: required numbers must be valid; the simple-model fields are optional.
-  if (!numNonNeg(c.defaultRate) || !numNonNeg(c.multiplier)) return null;
+  if (!numNonNeg(c.defaultRate)) return null;
   if (c.costModel != null && c.costModel !== 'simple' && c.costModel !== 'perParticipant') return null;
   if (c.simpleAverageRate != null && !numNonNeg(c.simpleAverageRate)) return null;
-  if (c.simpleMultiplier != null && !numNonNeg(c.simpleMultiplier)) return null;
   if (c.simpleUserCount != null && !numNonNeg(c.simpleUserCount)) return null;
+  // multiplier / simpleMultiplier are REMOVED fields (the loaded-cost multiplier was
+  // dropped — see reviews/remove-cost-multiplier.md). New clients omit them; tolerate a
+  // legacy blob that still carries them (the client ignores them in cost math), but if
+  // present they must still be well-formed so a malformed legacy value is rejected.
+  if (c.multiplier != null && !numNonNeg(c.multiplier)) return null;
+  if (c.simpleMultiplier != null && !numNonNeg(c.simpleMultiplier)) return null;
 
   return c;
 }

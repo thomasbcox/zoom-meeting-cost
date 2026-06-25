@@ -75,6 +75,29 @@ test('validateConfig accepts a well-formed config and rejects malformed ones', (
   for (const b of bad) assert.equal(rateStore.validateConfig(b), null, JSON.stringify(b));
 });
 
+test('validateConfig: multiplier/simpleMultiplier are optional (removed field) yet rejected when malformed', () => {
+  // The loaded-cost multiplier was removed (reviews/remove-cost-multiplier.md). A NEW
+  // client omits both fields entirely — that must still validate.
+  const noMult = {
+    rateTable: [{ id: 'r1', name: 'Jane', rate: 95 }],
+    aliases: [],
+    defaultRate: 125,
+    costModel: 'perParticipant',
+    simpleAverageRate: 100,
+    simpleUserCount: null,
+  };
+  assert.equal(rateStore.validateConfig(noMult), noMult);
+
+  // A LEGACY blob still carrying valid values is tolerated (the client ignores them).
+  assert.ok(rateStore.validateConfig({ ...noMult, multiplier: 1.25, simpleMultiplier: 1.1 }));
+
+  // But a malformed legacy value is still rejected (→ null).
+  assert.equal(rateStore.validateConfig({ ...noMult, multiplier: -1 }), null);
+  assert.equal(rateStore.validateConfig({ ...noMult, multiplier: 'x' }), null);
+  assert.equal(rateStore.validateConfig({ ...noMult, simpleMultiplier: -1 }), null);
+  assert.equal(rateStore.validateConfig({ ...noMult, simpleMultiplier: NaN }), null);
+});
+
 test('the on-disk file is ciphertext, not plaintext', async () => {
   await rateStore.save('uid-secret', {
     rateTable: [{ id: 'r1', name: 'Acme CFO', rate: 220 }],

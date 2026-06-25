@@ -14,7 +14,7 @@ import { DEFAULT_DISPLAY_INTERVAL, normalizeDisplayInterval } from '../lib/displ
 //
 //   rateTable : [{ id, name, rate }]      best-guess hourly opportunity cost (server-persisted)
 //   aliases   : [{ id, alias, canonical }] name aliases (server-persisted)
-//   defaultRate, multiplier, costModel, simple*  settings (server-persisted)
+//   defaultRate, costModel, simple*  settings (server-persisted)
 //   overrides : { [participantId]: rate } CURRENT MEETING ONLY (never persisted)
 
 const DEFAULT_CONFIG = {
@@ -25,14 +25,12 @@ const DEFAULT_CONFIG = {
   ],
   aliases: [{ id: 'a1', alias: 'Tom Cox', canonical: 'Thomas Cox' }],
   defaultRate: 75,
-  multiplier: 1.0,
   // Cost model: which source drives the live meter. 'simple' uses a flat
-  // N × simpleAverageRate × simpleMultiplier estimate, independent of the
-  // per-participant defaultRate / multiplier above. simpleUserCount === null
-  // means "track the live attendee count".
+  // N × simpleAverageRate estimate, independent of the per-participant
+  // defaultRate above. simpleUserCount === null means "track the live
+  // attendee count".
   costModel: 'perParticipant',
   simpleAverageRate: 75,
-  simpleMultiplier: 1.0,
   simpleUserCount: null,
   // How often the ON-CAMERA cost number is allowed to change (seconds). Only
   // affects what viewers see / the preview — never the internal accrual.
@@ -75,10 +73,6 @@ export function usePresenterStore(adapter) {
     setPersisted((c) => ({ ...c, defaultRate: clampNum(rate, 0) }));
   }, []);
 
-  const setMultiplier = useCallback((mult) => {
-    setPersisted((c) => ({ ...c, multiplier: clampNum(mult, 0) }));
-  }, []);
-
   // --- Simple cost model (independent of the per-participant settings) ------
   const setCostModel = useCallback((model) => {
     setPersisted((c) => ({ ...c, costModel: model === 'simple' ? 'simple' : 'perParticipant' }));
@@ -86,10 +80,6 @@ export function usePresenterStore(adapter) {
 
   const setSimpleAverageRate = useCallback((rate) => {
     setPersisted((c) => ({ ...c, simpleAverageRate: clampNum(rate, 0) }));
-  }, []);
-
-  const setSimpleMultiplier = useCallback((mult) => {
-    setPersisted((c) => ({ ...c, simpleMultiplier: clampNum(mult, 0) }));
   }, []);
 
   const setDisplayInterval = useCallback((seconds) => {
@@ -161,10 +151,8 @@ export function usePresenterStore(adapter) {
     overrides,
     actions: {
       setDefaultRate,
-      setMultiplier,
       setCostModel,
       setSimpleAverageRate,
-      setSimpleMultiplier,
       setSimpleUserCount,
       setDisplayInterval,
       addRule,

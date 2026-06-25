@@ -9,8 +9,6 @@ import { normalizeName } from './normalize.js';
 //   2. exact match on normalized display name                      -> "matched"
 //   3. alias -> canonical name, then exact match                   -> "matched"
 //   4. fall back to the configurable default value                 -> "default"
-//
-// The multiplier is applied on top of whatever base value is chosen.
 
 export const SOURCE = {
   MANUAL: 'manual',
@@ -70,13 +68,12 @@ export function resolveParticipant(participant, ctx) {
 }
 
 /**
- * Resolve every participant, applying the multiplier.
+ * Resolve every participant to its hourly opportunity-cost value.
  * Returns rows: { id, displayName, baseRate, rate, source, matchedName }.
  */
 export function resolveAll(participants = [], config) {
   const rateIndex = buildRateIndex(config.rateTable);
   const aliasIndex = buildAliasIndex(config.aliases);
-  const multiplier = Number(config.multiplier) || 1;
 
   return participants.map((p) => {
     const r = resolveParticipant(p, {
@@ -89,7 +86,7 @@ export function resolveAll(participants = [], config) {
       id: p.id,
       displayName: p.displayName,
       baseRate: r.baseRate,
-      rate: r.baseRate * multiplier,
+      rate: r.baseRate,
       source: r.source,
       matchedName: r.matchedName,
     };

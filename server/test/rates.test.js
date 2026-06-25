@@ -59,7 +59,8 @@ test('GET → defaults, then PUT → GET round-trips for the authenticated prese
     const empty = await (await fetch(base, { headers })).json();
     assert.equal(empty, null); // no stored config yet → null; client uses its defaults
 
-    const cfg = { rateTable: [{ id: 'r1', name: 'Jane', rate: 95 }], aliases: [], defaultRate: 125, multiplier: 1, costModel: 'perParticipant' };
+    // New client omits the removed loaded-cost multiplier — PUT must still succeed.
+    const cfg = { rateTable: [{ id: 'r1', name: 'Jane', rate: 95 }], aliases: [], defaultRate: 125, costModel: 'perParticipant' };
     const putRes = await fetch(base, { method: 'PUT', headers, body: JSON.stringify(cfg) });
     assert.equal(putRes.status, 200);
 
@@ -74,7 +75,7 @@ test('GET → defaults, then PUT → GET round-trips for the authenticated prese
     const malformed = await fetch(base, {
       method: 'PUT',
       headers,
-      body: JSON.stringify({ rateTable: 'oops', aliases: [], defaultRate: 0, multiplier: 1 }),
+      body: JSON.stringify({ rateTable: 'oops', aliases: [], defaultRate: 0 }),
     });
     assert.equal(malformed.status, 400);
   } finally {

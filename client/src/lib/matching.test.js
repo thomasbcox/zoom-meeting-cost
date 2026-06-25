@@ -71,7 +71,7 @@ describe('rate matching logic', () => {
   });
 
   describe('resolveAll', () => {
-    it('should resolve multiple participants and apply the multiplier', () => {
+    it('resolves multiple participants with rate === baseRate (no multiplier)', () => {
       const participants = [
         { id: 'p1', displayName: 'Thomas Cox' },
         { id: 'p2', displayName: 'Unknown User' },
@@ -81,28 +81,29 @@ describe('rate matching logic', () => {
         aliases,
         overrides: { p1: 100 }, // overrides Thomas Cox to $100 base
         defaultRate: 50,
-        multiplier: 1.25, // 25% scaling factor
+        // A stray legacy multiplier must be ignored — the loaded-cost multiplier was removed.
+        multiplier: 1.25,
       };
 
       const resolved = resolveAll(participants, config);
       expect(resolved).toHaveLength(2);
 
-      // p1 (Thomas Cox) has an override of 100 base rate. With 1.25 multiplier, rate is 125.
+      // p1 (Thomas Cox) has an override of 100; rate equals the base, multiplier ignored.
       expect(resolved[0]).toEqual({
         id: 'p1',
         displayName: 'Thomas Cox',
         baseRate: 100,
-        rate: 125,
+        rate: 100,
         source: SOURCE.MANUAL,
         matchedName: null,
       });
 
-      // p2 (Unknown User) falls back to default 50. With 1.25 multiplier, rate is 62.5.
+      // p2 (Unknown User) falls back to default 50; rate equals the base.
       expect(resolved[1]).toEqual({
         id: 'p2',
         displayName: 'Unknown User',
         baseRate: 50,
-        rate: 62.5,
+        rate: 50,
         source: SOURCE.DEFAULT,
         matchedName: null,
       });
