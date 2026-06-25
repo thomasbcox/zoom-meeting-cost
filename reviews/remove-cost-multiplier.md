@@ -110,3 +110,19 @@ Tracked in [`reviews/backlog.md`](backlog.md) ("Remove the loaded-cost multiplie
    would re-introduce the "is this the real value or a fudged one?" ambiguity the
    opportunity-cost framing removed; presenters who want higher estimates raise the
    opportunity-cost values directly.
+
+## Build note (2026-06-25)
+
+AC → file map:
+
+- **AC1** (per-participant `rate === baseRate`, no multiplier) → `client/src/lib/matching.js`
+- **AC2** (`computeSimpleTotals` = N × rate; `selectActiveTotals` drops `simpleMultiplier`) →
+  `client/src/lib/cost.js`
+- **AC3** (both Multiplier inputs removed; simple-model copy fixed) →
+  `client/src/components/PresenterControls.jsx`
+- **AC4** (defaults + `setMultiplier`/`setSimpleMultiplier` removed; wiring updated) →
+  `client/src/state/usePresenterStore.js`, `client/src/App.jsx`
+- **AC5 / AC6** (validation: multiplier optional-when-present; malformed rejected;
+  legacy round-trips) → `server/src/store/rateStore.js`
+- **Tests** → `client/src/lib/cost.test.js`, `client/src/lib/matching.test.js`,
+  `server/test/rateStore.test.js`, `server/test/rates.test.js`
