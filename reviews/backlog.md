@@ -3,6 +3,30 @@
 Deferred work, tracked so it isn't lost. Each item becomes its own `/frame`
 story when picked up.
 
+## Server process-level crash guards
+- **Requested:** 2026-06-21 (Thomas), from `reviews/graceful-shutdown.md`.
+- **What:** Add `process.on('unhandledRejection')` + `process.on('uncaughtException')` handlers
+  (log the error; for uncaughtException, exit so the platform restarts a known-bad state) and
+  a global Express error-handling middleware (4-arg) in `server/src/app.js`.
+- **Why:** Today the request handlers are individually guarded, but there's no safety net.
+  Any stray unhandled rejection would hard-kill the process (Node 22), and the `ON_FAILURE`
+  restart policy (max 10) would amplify one bug into a notification flood. Belt-and-suspenders
+  on top of the graceful-shutdown fix.
+
+## In-Zoom client-error hardening (camera-overlay flow)
+- **Requested:** 2026-06-21 (Thomas), from the Railway log in `reviews/graceful-shutdown.md`.
+- **What:** Reduce the unhandled rejections the client reports via `/api/log` during the
+  camera-overlay flow:
+  - `"must call zoomSdk.config before using other API methods"` — ensure `zoomSdk.config()`
+    has resolved before any other SDK call (`runRenderingContext`, etc.).
+  - `"Video is not sending."` — handle starting the overlay when the camera is off (prompt /
+    no-op instead of throwing).
+  - `"The object does not support the operation or argument."` — guard the
+    `postMessage`/`getVideoState` path.
+- **Why:** Real (non-fatal) in-Zoom UX rough edges seen in production logs; they don't crash
+  the server but pollute the error log and likely degrade the overlay experience. Needs an
+  in-Zoom verification run.
+
 ## Server header test depends on a built client (order-fragile gate)
 - **Requested:** 2026-06-21 (Thomas), surfaced by the new CI workflow.
 - **What:** `server/test/headers.test.js` (test "CSP allows the app bundle … connect-src

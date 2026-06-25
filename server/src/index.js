@@ -31,3 +31,23 @@ server.on('error', (err) => {
   }
   throw err;
 });
+
+// Graceful shutdown. On a redeploy/stop, the platform (e.g. Railway) sends SIGTERM. Without
+// a handler, Node is killed by the signal and exits non-zero (143) — npm then logs
+// `signal SIGTERM` and the platform reports a false "crash". Instead, stop accepting new
+// connections, let in-flight requests finish, and exit 0. A force-exit fallback guarantees we
+// still exit cleanly if close() hangs, well before the platform's force-kill window.
+let shuttingDown = false;
+function shutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  console.log(`[meeting-cost] received ${signal}, shutting down`);
+  const force = setTimeout(() => process.exit(0), 10_000);
+  force.unref(); // don't keep the event loop alive just for the timer
+  server.close(() => {
+    clearTimeout(force);
+    process.exit(0);
+  });
+}
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
