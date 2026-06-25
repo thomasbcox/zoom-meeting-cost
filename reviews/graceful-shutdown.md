@@ -80,3 +80,17 @@ AC → file map:
 - AC3 boot behavior preserved (EADDRINUSE, logs) → `server/src/index.js`
 - AC4 backlog (process-level crash guards; in-Zoom client-error hardening) → `reviews/backlog.md`
 - AC5/AC6 scope + gate
+
+## Codex review (2026-06-21, base main, HEAD 7ce422c)
+**Summary:** The shutdown implementation is scoped and matches the spec. One acceptance-test
+gap: the test can pass without proving the signal path ran.
+
+### IMPORTANT
+1. **Shutdown test can false-pass without sending a signal** — `server/test/shutdown.test.js`.
+   `bootThenSignal` resolves with the child exit code regardless of whether the `server on`
+   log was seen or `child.kill(signal)` was called. A child that exits 0 before listening
+   would pass both tests without verifying boot → listen → signal → exit 0. Fix: track that
+   the listen log was seen, reject in the exit handler if `signalled` is false, and check the
+   `child.kill()` return value.
+
+Last-reviewed SHA: 7ce422c
