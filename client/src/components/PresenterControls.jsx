@@ -127,7 +127,7 @@ export default function PresenterControls({
         </div>
         <p className="muted small">
           {config.costModel === 'simple'
-            ? 'Flat estimate: attendees × average opportunity cost × multiplier.'
+            ? 'Flat estimate: attendees × average opportunity cost.'
             : 'Per-person opportunity cost from your private table.'}
         </p>
       </section>
@@ -149,19 +149,7 @@ export default function PresenterControls({
                   prefix="$"
                 />
               </label>
-              <label>
-                Multiplier
-                <NumberInput
-                  value={config.multiplier}
-                  step="0.05"
-                  onCommit={(v) => actions.setMultiplier(v)}
-                  suffix="×"
-                />
-              </label>
             </div>
-            <p className="muted small">
-              Multiplier scales every value (e.g. 1.25 to nudge estimates up).
-            </p>
           </section>
 
           {/* --- Private rate table ------------------------------------- */}
@@ -200,15 +188,6 @@ function SimpleCostPanel({ config, actions, liveCount }) {
           <NumberInput
             value={config.simpleUserCount ?? liveCount}
             onCommit={(v) => actions.setSimpleUserCount(simpleCountCommit(v, liveCount))}
-          />
-        </label>
-        <label>
-          Multiplier
-          <NumberInput
-            value={config.simpleMultiplier}
-            step="0.05"
-            onCommit={(v) => actions.setSimpleMultiplier(v)}
-            suffix="×"
           />
         </label>
       </div>
