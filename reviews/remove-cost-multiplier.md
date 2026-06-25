@@ -142,3 +142,8 @@ PR #49 CI — test + build, CodeQL — is green on this HEAD.)
 - IMPORTANT: 0
 - QUESTION: 0
 - NIT: 0
+
+## Fixes (2026-06-25)
+
+Clean review — Codex returned 0 findings, so there were **no fixes to apply**. No code
+changed in this step; proceeding to the re-review/merge fork.
