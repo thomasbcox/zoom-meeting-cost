@@ -271,3 +271,13 @@ IMPORTANT below.
 
 - BLOCKER: 0 · IMPORTANT: 1 · QUESTION: 0 · NIT: 0
   (Prior ① — scalar-only client-error — verified resolved; not re-raised.)
+
+## Decisions (2026-06-25, re-review round)
+
+- **Privacy note still overstates error-report guarantee — FIX** (Thomas). Qualify the
+  `docs/privacy.html` error-report sentence: keep the diagnostics "shape only / no values" claim,
+  but change the error-report wording from "do not include participant names or other meeting
+  data" to a promise the implementation actually backs — error reports are limited to error text
+  plus a fixed set of technical details and do not **attach** participant or meeting-data fields
+  (we don't promise the free-form error text can never contain a value — the accepted residual).
+- (Prior ① scalar-only client-error fix: verified resolved last round; no further action.)
