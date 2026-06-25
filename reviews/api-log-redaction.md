@@ -183,3 +183,32 @@ AC → file map:
   `dev-docs/policies/data-retention-and-protection.md`,
   `dev-docs/policies/security-policy.md`, `docs/privacy.html`, `reviews/backlog.md`
 - **Tests** → `client/src/zoom/zoomDiagnostics.test.js`, `client/src/lib/reportError.test.js`
+
+## Codex review (2026-06-25, base main, HEAD 726d919)
+
+**Summary:** Reviewed the diff, log, and spec. Branch is scoped to the expected files and
+leaves the server log sink untouched. Two IMPORTANT findings on the minimization/docs
+guarantees. (Codex couldn't run `npm test` in its read-only sandbox — Vite `.vite-temp` write
+EPERM; the gate was run here and is green, and PR #50 CI is green on this HEAD.)
+
+**Findings:**
+
+- **IMPORTANT — Allowlisted fields can still carry arbitrary nested payloads**
+  (`client/src/lib/reportError.js:36`). `buildClientErrorPayload` allowlists top-level *keys*
+  but copies any non-string value for an allowed key verbatim. A caller-supplied object/array
+  under `message`/`stack`/`filename`/`lineno`/`colno`/`componentStack` would still be serialized
+  to `/api/log`; since the server logs verbatim, this leaves a path for participant PII to ride
+  through an allowed key and weakens the prevent-at-source invariant. *Suggestion:* normalize by
+  expected type — cap/coerce string fields, keep only finite numbers for `lineno`/`colno`, drop
+  arrays/objects/functions rather than copying them.
+
+- **IMPORTANT — Privacy note overstates the telemetry guarantee** (`docs/privacy.html:115`).
+  The new public note says telemetry "never includes participant names or individual values,"
+  but the implementation intentionally preserves runtime error text (`message`, `stack`,
+  `componentStack`); the spec accepts the residual risk that a thrown exception's text may
+  contain a value, so the absolute public claim is inaccurate for `client-error` telemetry.
+  *Suggestion:* qualify — diagnostics record only shapes/no values, while error reports are
+  minimized to error text plus fixed technical fields and do not include arbitrary participant
+  payloads.
+
+- BLOCKER: 0 · IMPORTANT: 2 · QUESTION: 0 · NIT: 0
