@@ -2,10 +2,10 @@
 //
 // RealZoom (zoomAdapter.js) swallows SDK errors so the app can degrade
 // gracefully — which makes it useless for diagnosis. This module does the
-// OPPOSITE: it calls each SDK method, records the raw result OR error per call
-// without ever throwing, and ships the bundle to the server's /api/log sink so
-// a single in-Zoom run gives us ground-truth output (including the real
-// participant data shape).
+// OPPOSITE: it calls each SDK method, records the result's data SHAPE (key names,
+// lengths, counts — never the raw values) OR the error per call without ever
+// throwing, and ships the bundle to the server's /api/log sink so a single in-Zoom
+// run reveals the real participant/user-context data shape with no PII.
 //
 // This is recon-only. It does not configure the app for normal use and is wired
 // to run exclusively inside Zoom behind a URL flag (see shouldRunDiagnostics).
@@ -48,15 +48,47 @@ function errToString(err) {
 }
 
 /**
+ * PII-safe STRUCTURAL summary of an SDK result. The whole point of the probe is to learn the
+ * *shape* of Zoom's responses (e.g. getMeetingParticipants → an array of
+ * `{ screenName, participantId, role }`), NOT their contents. The invariant that makes a
+ * participant name / email structurally impossible to leak: a string is described by its
+ * LENGTH ONLY — its value is never emitted. Objects expose key NAMES (not values), arrays
+ * expose length + the shape of their first element, and numbers/booleans (non-PII) keep their
+ * value. Depth-bounded and never throws.
+ */
+export function describeShape(value, depth = 0) {
+  if (value === null) return { type: 'null' };
+  if (value === undefined) return { type: 'undefined' };
+  const t = typeof value;
+  if (t === 'string') return { type: 'string', length: value.length };
+  if (t === 'number' || t === 'boolean') return { type: t, value };
+  if (t !== 'object') return { type: t }; // function / symbol / bigint — no value
+  if (depth >= 3) return { type: Array.isArray(value) ? 'array' : 'object', truncated: true };
+  if (Array.isArray(value)) {
+    return {
+      type: 'array',
+      length: value.length,
+      ...(value.length ? { of: describeShape(value[0], depth + 1) } : {}),
+    };
+  }
+  return { type: 'object', keys: Object.keys(value) };
+}
+
+/**
  * Probe each SDK method in order. NEVER throws: a method that rejects, throws
  * synchronously, or is missing yields { method, ok:false, error }. Returns the
  * per-call entries (in call order) and emits the bundle via the injected `log`.
+ *
+ * PRIVACY: a successful call records only the data *shape* of the result
+ * (`describeShape` — key names, lengths, counts), NEVER the raw result. So a real run
+ * reveals the participant/user-context structure without ever transmitting names or
+ * other values to the server or the browser console.
  *
  * @param {object} sdk   the Zoom Apps SDK (or any object exposing the methods)
  * @param {object} [opts]
  * @param {(bundle:object)=>any} [opts.log]      sink for the diagnostics bundle
  * @param {Array}  [opts.methods]                override probe list (tests)
- * @returns {Promise<Array<{method,ok,result?,error?}>>}
+ * @returns {Promise<Array<{method,ok,shape?,error?}>>}
  */
 export async function runZoomDiagnostics(sdk, { log = defaultLog, methods = PROBE_METHODS } = {}) {
   const entries = [];
@@ -67,7 +99,7 @@ export async function runZoomDiagnostics(sdk, { log = defaultLog, methods = PROB
     }
     try {
       const result = await sdk[method](...args);
-      entries.push({ method, ok: true, result });
+      entries.push({ method, ok: true, shape: describeShape(result) });
     } catch (err) {
       entries.push({ method, ok: false, error: errToString(err) });
     }

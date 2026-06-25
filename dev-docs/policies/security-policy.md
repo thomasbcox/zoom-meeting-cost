@@ -1,7 +1,7 @@
 # Security Policy
 
 **Owner:** Transformative Leadership Lab LLC · **Applies to:** Meeting Cost Meter (Zoom App)
-**Contact:** thomas+mcsupport@txl-lab.com · **Effective:** 1 June 2026 · **Review:** annually or on material change
+**Contact:** thomas+mcsupport@txl-lab.com · **Effective:** 25 June 2026 · **Review:** annually or on material change
 
 > This policy describes controls actually in place for a small-team operation. It claims no
 > SOC 2 / ISO 27001 certification and no third-party penetration testing.
@@ -16,10 +16,11 @@ entrusted to it.
   Zoom account. Never wages/salaries — we do not request or store pay data.
 - **Zoom OAuth tokens / app context:** secret; used only to authenticate and operate;
   not exposed to other users.
-- **Operational logs / client diagnostics:** low-to-moderate sensitivity; logged to the
-  hosting platform via `/api/log`. Not separately redacted today, so they may include
-  Zoom meeting context sent for troubleshooting; they exclude the encrypted rate-store
-  contents and secrets. See `data-retention-and-protection.md`.
+- **Operational logs / client diagnostics:** low sensitivity; logged to the hosting platform
+  via `/api/log`. **Minimized at the source to exclude participant PII** — the diagnostics
+  probe sends only the data *shape* of Zoom SDK responses (field names/lengths/counts, never
+  values) and error reports carry only error text plus fixed technical fields; they exclude the
+  encrypted rate-store contents and secrets. See `data-retention-and-protection.md`.
 
 ## Controls
 - **Encryption in transit:** HTTPS/TLS enforced (HSTS).

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   runZoomDiagnostics,
+  describeShape,
   postLog,
   shouldRunDiagnostics,
 } from './zoomDiagnostics.js';
@@ -37,7 +38,7 @@ describe('runZoomDiagnostics', () => {
     ]);
   });
 
-  it('records successes as ok:true with the raw result', async () => {
+  it('records successes as ok:true with the data SHAPE, never the raw result', async () => {
     const sdk = { resolves: async () => ({ runningContext: 'inMeeting' }) };
     const [entry] = await runZoomDiagnostics(sdk, {
       log: vi.fn(),
@@ -46,8 +47,43 @@ describe('runZoomDiagnostics', () => {
     expect(entry).toEqual({
       method: 'resolves',
       ok: true,
-      result: { runningContext: 'inMeeting' },
+      shape: { type: 'object', keys: ['runningContext'] },
     });
+    expect(entry).not.toHaveProperty('result');
+  });
+
+  it('never transmits participant PII — only the shape (key names, lengths, counts)', async () => {
+    const sdk = {
+      getUserContext: async () => ({ screenName: 'Jane Q. Participant', role: 'host' }),
+      getMeetingParticipants: async () => [
+        { screenName: 'Jane Q. Participant', participantId: 'p1' },
+        { screenName: 'Bob R. Attendee', participantId: 'p2' },
+      ],
+    };
+    const log = vi.fn();
+    const entries = await runZoomDiagnostics(sdk, {
+      log,
+      methods: [
+        { method: 'getUserContext', args: [] },
+        { method: 'getMeetingParticipants', args: [] },
+      ],
+    });
+
+    // No raw results anywhere; only shape.
+    expect(entries.every((e) => !('result' in e) && 'shape' in e)).toBe(true);
+    expect(entries[0].shape).toEqual({ type: 'object', keys: ['screenName', 'role'] });
+    expect(entries[1].shape).toEqual({
+      type: 'array',
+      length: 2,
+      of: { type: 'object', keys: ['screenName', 'participantId'] },
+    });
+
+    // The serialized bundle (what reaches the server / console) carries the structure
+    // but none of the names.
+    const serialized = JSON.stringify(log.mock.calls[0][0]);
+    expect(serialized).not.toContain('Jane Q. Participant');
+    expect(serialized).not.toContain('Bob R. Attendee');
+    expect(serialized).toContain('screenName'); // key names are safe recon
   });
 
   it('records rejections, sync throws, and missing methods as ok:false with an error', async () => {
@@ -109,6 +145,58 @@ describe('runZoomDiagnostics', () => {
         { log, methods: [{ method: 'resolves', args: [] }] }
       )
     ).resolves.toHaveLength(1);
+  });
+});
+
+describe('describeShape (PII-safe structural summary)', () => {
+  it('describes a string by LENGTH ONLY — never its value', () => {
+    expect(describeShape('Jane Q. Participant')).toEqual({ type: 'string', length: 19 });
+  });
+
+  it('describes an object by key NAMES, not values', () => {
+    expect(describeShape({ screenName: 'Jane', role: 'host' })).toEqual({
+      type: 'object',
+      keys: ['screenName', 'role'],
+    });
+  });
+
+  it('describes an array by length and the shape of its first element', () => {
+    expect(describeShape([{ screenName: 'Jane' }, { screenName: 'Bob' }])).toEqual({
+      type: 'array',
+      length: 2,
+      of: { type: 'object', keys: ['screenName'] },
+    });
+    expect(describeShape([])).toEqual({ type: 'array', length: 0 });
+  });
+
+  it('keeps non-PII number / boolean values', () => {
+    expect(describeShape(5)).toEqual({ type: 'number', value: 5 });
+    expect(describeShape(true)).toEqual({ type: 'boolean', value: true });
+  });
+
+  it('handles null / undefined', () => {
+    expect(describeShape(null)).toEqual({ type: 'null' });
+    expect(describeShape(undefined)).toEqual({ type: 'undefined' });
+  });
+
+  it('emits only key names for nested objects — a deep string value is never reached', () => {
+    // Objects never recurse into their values, so even a deeply-buried string is unreachable.
+    const deep = { a: { b: { c: { secret: 'Jane Q. Participant' } } } };
+    const out = describeShape(deep);
+    expect(out).toEqual({ type: 'object', keys: ['a'] });
+    expect(JSON.stringify(out)).not.toContain('Jane Q. Participant');
+  });
+
+  it('is depth-bounded on deeply nested arrays', () => {
+    const deep = [[[['Jane Q. Participant']]]];
+    const out = describeShape(deep);
+    expect(JSON.stringify(out)).not.toContain('Jane Q. Participant');
+    expect(JSON.stringify(out)).toContain('truncated');
+  });
+
+  it('never throws on odd input', () => {
+    expect(() => describeShape(() => {})).not.toThrow();
+    expect(() => describeShape(Symbol('x'))).not.toThrow();
   });
 });
 
