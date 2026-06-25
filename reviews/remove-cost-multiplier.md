@@ -126,3 +126,19 @@ AC → file map:
   legacy round-trips) → `server/src/store/rateStore.js`
 - **Tests** → `client/src/lib/cost.test.js`, `client/src/lib/matching.test.js`,
   `server/test/rateStore.test.js`, `server/test/rates.test.js`
+
+## Codex review (2026-06-25, base main, HEAD ce67d30)
+
+**Summary:** Reviewed `git log --oneline main..HEAD`, `git diff main...HEAD`, and the spec.
+The branch removes multiplier math, UI controls, client state/actions, and relaxes server
+validation as specified; **no spec-grounded issues found in the diff.** (Verification note:
+Codex could not run `npm test` in its read-only sandbox — Vitest's `.vite-temp` write and the
+server tests' socket-listen both hit sandbox EPERM. The gate was run here and is green, and
+PR #49 CI — test + build, CodeQL — is green on this HEAD.)
+
+**Findings:** none (empty array).
+
+- BLOCKER: 0
+- IMPORTANT: 0
+- QUESTION: 0
+- NIT: 0
