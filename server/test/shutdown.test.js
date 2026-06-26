@@ -5,9 +5,15 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 // Boots the real server entry (src/index.js) on an OS-assigned port, waits for it to
-// listen, then sends a stop signal and asserts the process exits 0 — i.e. it shuts down
-// gracefully instead of dying non-zero (143), which is what made Railway report false
-// "crash" notifications on every redeploy.
+// listen, then sends a stop signal and asserts the process exits 0 — i.e. the handler
+// shuts down gracefully instead of dying non-zero (143).
+//
+// SCOPE: this proves the handler is correct GIVEN node receives the signal directly (it
+// spawns `node ENTRY`, so node is the signalled process). It does NOT prove node receives
+// the signal in production — that is the *delivery* half, and it depends on node being PID 1.
+// On Railway the start command must run node directly (`exec node ...`) so the shell/npm
+// wrapper doesn't swallow SIGTERM; that contract is guarded by the startCommand assertion in
+// health.test.js. See reviews/railway-pid1-shutdown.md for why both halves are needed.
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ENTRY = path.resolve(__dirname, '../src/index.js');

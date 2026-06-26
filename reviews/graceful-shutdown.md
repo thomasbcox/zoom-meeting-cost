@@ -106,3 +106,13 @@ Thomas: "fix then /close."
   `child.kill(signal)` doesn't deliver, and rejects in the `exit` handler when `signalled`
   is false (server exited before listening/being signalled). A boot regression that exits 0
   early now fails the test instead of slipping through.
+
+## Follow-up (2026-06-26) — this fix was inert in production
+This story added a correct graceful-shutdown handler but its non-goal "No `railway.json`
+change" was the actual gap: with `startCommand: "npm start"`, PID 1 in the container is the
+shell/npm wrapper, not node, so Railway's SIGTERM never reaches the handler — it never ran in
+prod (the crash log shows `npm error signal SIGTERM` and no `received SIGTERM` line, even with
+this fix deployed). Reproduced in a `node:22`/npm-10 container via `docker stop`. The delivery
+half is fixed in **[railway-pid1-shutdown](railway-pid1-shutdown.md)** (startCommand →
+`exec node server/src/index.js`, making node PID 1); the handler here stays and becomes the
+load-bearing exit-0.

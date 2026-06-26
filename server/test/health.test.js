@@ -32,6 +32,11 @@ test('railway.json declares build, start, and the health-check path', () => {
   const url = new URL('../../railway.json', import.meta.url);
   const cfg = JSON.parse(readFileSync(fileURLToPath(url), 'utf8'));
   assert.equal(cfg.build.buildCommand, 'npm run build');
-  assert.equal(cfg.deploy.startCommand, 'npm start');
+  // Must run node DIRECTLY via `exec`, so node becomes PID 1 and receives Railway's
+  // SIGTERM — letting the graceful-shutdown handler in src/index.js exit 0. An npm-wrapped
+  // form (e.g. `npm start`) leaves the shell/npm as PID 1, which does NOT forward the signal:
+  // node never shuts down gracefully and the container is force-killed (exit 137), which
+  // Railway reports as a false "crash." See reviews/railway-pid1-shutdown.md.
+  assert.equal(cfg.deploy.startCommand, 'exec node server/src/index.js');
   assert.equal(cfg.deploy.healthcheckPath, '/api/health');
 });
