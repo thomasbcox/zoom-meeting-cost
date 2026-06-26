@@ -27,7 +27,11 @@ story when picked up.
   the server but pollute the error log and likely degrade the overlay experience. Needs an
   in-Zoom verification run.
 
-## Server header test depends on a built client (order-fragile gate)
+## ~~Server header test depends on a built client (order-fragile gate)~~ — DONE
+- **Shipped 2026-06-25** (PR #51 / merge: header-test-order-fix). The CSP-content test now
+  asserts the delivered header on `/api/health` (never hits the SPA fallback), so the server
+  suite passes whether or not `client/dist` exists; CI reordered to Test→Build and the
+  build-before-test stopgap removed. Full story: `reviews/header-test-order-fix.md`.
 - **Requested:** 2026-06-21 (Thomas), surfaced by the new CI workflow.
 - **What:** `server/test/headers.test.js` (test "CSP allows the app bundle … connect-src
   pinned") fetches `GET /`. With no `client/dist`, the SPA fallback `sendFile` errors and
