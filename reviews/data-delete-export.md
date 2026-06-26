@@ -233,3 +233,16 @@ nothing a dependency would simplify.
   regression test.
 
 - BLOCKER: 0 · IMPORTANT: 1 · QUESTION: 0 · NIT: 0
+
+## Decisions (2026-06-26)
+
+- **Approach pass:** clean — no findings, nothing to decide.
+- **IMPORTANT — `/api/rates` precedence flip — ACCEPT + clarify + regression test** (Thomas:
+  "I like your approach; do that"). The both-misconfigured edge (RATE_STORE_KEY unset + no/bad
+  context) returning 401 instead of 503 is a benign, arguably-more-correct result of decoupling
+  identity from crypto; re-coupling GET/PUT would reintroduce the ordering dependency we
+  deliberately removed and split GET/PUT vs DELETE gate orders. Disposition for `/close`:
+  (1) amend AC6 to record the benign edge-case flip (503→401 only when key unset **and** context
+  invalid); (2) add a regression test in `server/test/rates.test.js` pinning the new behavior —
+  `/api/rates` with key unset + no context → 401, and (still) valid context + key unset → 503.
+  No re-coupling of the middleware.
