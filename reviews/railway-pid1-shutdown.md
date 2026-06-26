@@ -174,3 +174,23 @@ own `npm test` was blocked by its read-only sandbox — not evidence against the
   `/review` commits `.approach.json`/`.codex.json` — these are the standard audit trail.
   Deleting it fights the workflow. Precedent `45240f0` resolved the identical issue by
   *clarifying AC6 wording to exempt review artifacts*. Recommend that over deletion.
+
+## Codex review (2026-06-26, base main, HEAD 79d03da)
+Summary: the product change matches the PID-1 spec — `railway.json` uses the exact
+`exec node server/src/index.js`, the config test asserts that exact value, the shutdown
+comment is corrected, and the prior-story note was appended. (Codex's own gate run was blocked
+by its read-only sandbox — not evidence against the branch; CI on PR #54 is green.)
+
+- **BLOCKER** — *Extra review artifacts violate AC6 scope* (`reviews/railway-pid1-shutdown.approach.json`,
+  `…design.json`). Same issue as the approach finding. *Suggestion:* remove them, **or** amend
+  AC6 to exempt committed review artifacts before merge.
+
+## Decisions (2026-06-26)
+Both passes surfaced one issue — the AC6 file-list wording vs. the committed Codex review
+artifacts (`design.json`, `approach.json`, `codex.json`). Thomas: **"1 clarify ac6 wording"**.
+- Approach BLOCKER (AC6 wording) → **fix in /close**: clarify AC6 to exempt the Codex review
+  artifacts (matches precedent `45240f0`); do NOT delete the artifacts.
+- Correctness BLOCKER (same issue, also naming `approach.json`) → **covered by the same AC6
+  wording fix**. No product-code change.
+- Product code (railway.json, health.test.js, shutdown.test.js, graceful-shutdown.md): clean,
+  no findings.
