@@ -192,3 +192,15 @@ binding on implementation:
   one adapter (`remove`/`load`). Account routes are `DELETE /api/me/data` + `GET /api/me/export`;
   `/api/rates` stays the rate-config resource. Renames the destructive path to match its blast
   radius before UI/docs lock it in.
+
+## Build note (2026-06-25)
+
+AC → file map:
+
+- **AC1 / AC2 / AC3** (registry: purgeUser/exportUser over one adapter list; single enumeration
+  point) → `server/src/userData.js`; adapter `remove` → `server/src/store/rateStore.js`
+- **AC4 / AC5 / AC6** (split middleware `requireIdentity` / `requireRateStore`; `DELETE /api/me/data`
+  identity-only; `GET /api/me/export` layered; GET/PUT rewired, behavior unchanged) →
+  `server/src/app.js`
+- **Tests** → `server/test/userData.test.js` (registry + endpoints incl. delete-without-crypto),
+  `server/test/rateStore.test.js` (`remove`); `server/test/rates.test.js` unchanged + green (AC6)
