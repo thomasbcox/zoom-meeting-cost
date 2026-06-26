@@ -158,3 +158,19 @@ AC → file map:
 - AC5 record corrected → `reviews/graceful-shutdown.md` (Follow-up note)
 - AC6 scope containment → git (no product files beyond the above)
 - AC7 gate → all
+
+## Codex approach review (2026-06-26, base main, HEAD 79d03da)
+Verdict: implementation shape is sound — uses Railway's declarative `startCommand` to make
+node PID 1, keeps the already-correct shutdown handler, reuses the existing config-contract
+test with exact equality, adds no init/process-manager dependency or Docker gate. (Codex's
+own `npm test` was blocked by its read-only sandbox — not evidence against the branch.)
+
+- **BLOCKER · two-way · nonstandard** — *Committed review artifact violates the scoped file set.*
+  `reviews/railway-pid1-shutdown.design.json` isn't in AC6's enumerated list, and duplicates
+  disposition state already in the story md.
+  *Alternative (Codex):* delete the design.json; keep the record only in the story md.
+  *Win:* restores AC6 exactly; one canonical review record.
+  *Claude note:* the `/frame` workflow (step 8) mandates committing `<slug>.design.json`, and
+  `/review` commits `.approach.json`/`.codex.json` — these are the standard audit trail.
+  Deleting it fights the workflow. Precedent `45240f0` resolved the identical issue by
+  *clarifying AC6 wording to exempt review artifacts*. Recommend that over deletion.
