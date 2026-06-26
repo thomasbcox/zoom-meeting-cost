@@ -132,3 +132,14 @@ AC → file map:
 - **AC2** (passes with no `client/dist`) — verified by running the server suite with
   `client/dist` removed; no file change
 - **AC5/AC6** — gate + scope containment (the two files above)
+
+## Codex approach review (2026-06-25, base main, HEAD 63491f2)
+
+**Verdict:** Sound approach — Codex would satisfy the ACs with exactly this shape (reroute only
+the fragile CSP-content delivered-header assertion to `/api/health`, leave app behavior
+untouched, keep presence coverage on a real response, reorder CI to Test→Build). Full-file
+review of the test, CI workflow, app, and manifests showed no hand-rolled replacement for a
+framework/dependency feature and no unnecessary new structure.
+
+**Findings:** none (empty array). No one-way doors → shape blessed; proceeding to the
+correctness pass in the same round.
