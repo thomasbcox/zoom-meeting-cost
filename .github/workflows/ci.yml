@@ -30,11 +30,11 @@ jobs:
       - name: Install
         run: npm ci
 
-      # Build before test: the server's secure-header test exercises GET / which serves
-      # the built client (client/dist). Without a prior build the SPA fallback errors and
-      # the CSP assertion fails — see reviews/backlog.md.
-      - name: Build
-        run: npm run build
-
+      # Mirror the local gate order (`npm test && npm run build`). The test suite is
+      # build-independent — the secure-header test asserts on /api/health, not the SPA
+      # fallback — so test runs first and build follows.
       - name: Test
         run: npm test
+
+      - name: Build
+        run: npm run build

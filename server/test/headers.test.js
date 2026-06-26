@@ -5,9 +5,14 @@ import { createApp, CSP } from '../src/app.js';
 
 // Regression guard for the Zoom OWASP secure-header requirement. If any of these
 // headers stops being sent, the Zoom client renders a blank white screen — so we
-// fail the build instead. Asserts header PRESENCE on GET / regardless of whether
-// a client build exists (the headers run as the first middleware, before static
-// and the SPA fallback), so this passes even when client/dist is absent.
+// fail the build instead.
+//
+// ORDER-INDEPENDENT BY CONSTRUCTION (no client build needed): `securityHeaders` is the
+// first global middleware, so every response carries the headers. The presence check uses
+// GET / (truthy even on the finalhandler 404 when client/dist is absent), and the CSP-CONTENT
+// check uses GET /api/health — a route that always returns 200 and never reaches the SPA
+// fallback, so res.sendFile can't error and finalhandler can't overwrite the CSP with
+// `default-src 'none'`. The exported CSP constant is also asserted directly.
 
 function startApp() {
   const app = createApp();
@@ -45,7 +50,9 @@ test('CSP allows the app bundle and Zoom embedding, with connect-src pinned', as
   const server = await startApp();
   const { port } = server.address();
   try {
-    const res = await fetch(`http://127.0.0.1:${port}/`);
+    // /api/health always returns 200 and never reaches the SPA fallback, so the CSP from
+    // securityHeaders is delivered intact regardless of whether client/dist was built.
+    const res = await fetch(`http://127.0.0.1:${port}/api/health`);
     const csp = res.headers.get('content-security-policy');
     assert.ok(csp.includes("default-src 'self'"), "default-src 'self'");
     assert.ok(csp.includes("script-src 'self'"), "script-src 'self'");
