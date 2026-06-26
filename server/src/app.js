@@ -6,6 +6,7 @@ import { createOAuthRouter, zoomConfigured } from './zoom/oauth.js';
 import { resolveUid } from './zoom/appContext.js';
 import { isConfigured as rateStoreConfigured } from './store/rateCrypto.js';
 import * as rateStore from './store/rateStore.js';
+import * as userData from './userData.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -105,16 +106,19 @@ export function createApp({
   // --- Server-backed rate store (encrypted, keyed to the Zoom presenter) -----
   // Identity: the client sends its Zoom app context (getAppContext()) in the
   // x-zoom-app-context header; we decrypt it → the presenter's stable uid.
-  //   503 → the store isn't configured (no RATE_STORE_KEY / client secret); the client
-  //         degrades to session-only state (no plaintext ever written).
+  //
+  // Two gates, deliberately split (see reviews/data-delete-export.md): identity verification
+  // (needs the Zoom client id/secret) is separate from rate-blob crypto readiness (needs
+  // RATE_STORE_KEY). So a privacy DELETE can succeed on identity alone even when the crypto
+  // key is lost/misconfigured — exactly when a user may most need to delete their data.
+
+  //   503 → Zoom identity config absent (no client id/secret) — can't verify the presenter.
   //   401 → no valid app context (can't identify the presenter).
-  function requirePresenter(req, res, next) {
+  function requireIdentity(req, res, next) {
     const clientSecret = process.env.ZOOM_CLIENT_SECRET;
     const clientId = process.env.ZOOM_CLIENT_ID;
-    // Missing key / secret / client id → the store can't run safely. Fail closed (503);
-    // the client degrades to session-only rather than accepting an unverifiable identity.
-    if (!rateStoreConfigured() || !clientSecret || !clientId) {
-      return res.status(503).json({ error: 'rate-store-unconfigured' });
+    if (!clientSecret || !clientId) {
+      return res.status(503).json({ error: 'identity-unconfigured' });
     }
     try {
       req.uid = resolveUid(req.get('x-zoom-app-context'), { clientId, clientSecret });
@@ -124,7 +128,17 @@ export function createApp({
     }
   }
 
-  app.get('/api/rates', requirePresenter, async (req, res, next) => {
+  //   503 → the rate-blob crypto key (RATE_STORE_KEY) isn't configured; the client degrades to
+  //         session-only state (no plaintext ever written). Layered AFTER requireIdentity on
+  //         paths that read/write or decrypt the encrypted config.
+  function requireRateStore(_req, res, next) {
+    if (!rateStoreConfigured()) {
+      return res.status(503).json({ error: 'rate-store-unconfigured' });
+    }
+    return next();
+  }
+
+  app.get('/api/rates', requireIdentity, requireRateStore, async (req, res, next) => {
     try {
       res.json(await rateStore.load(req.uid));
     } catch (err) {
@@ -132,12 +146,37 @@ export function createApp({
     }
   });
 
-  app.put('/api/rates', requirePresenter, async (req, res, next) => {
+  app.put('/api/rates', requireIdentity, requireRateStore, async (req, res, next) => {
     try {
       // Validate the config shape + numeric rates before persisting (don't trust the body).
       const cfg = rateStore.validateConfig(req.body);
       if (!cfg) return res.status(400).json({ error: 'invalid-config' });
       return res.json(await rateStore.save(req.uid, cfg));
+    } catch (err) {
+      return next(err);
+    }
+  });
+
+  // --- Account-scoped data rights (delete / export everything for this uid) --
+  // userData.js is the single enumeration point across all per-user stores.
+
+  // DELETE is identity-only (no requireRateStore): purging a file needs no decryption, so a
+  // user can delete their data even when the rate-blob crypto is unavailable.
+  app.delete('/api/me/data', requireIdentity, async (req, res, next) => {
+    try {
+      const stores = await userData.purgeUser(req.uid);
+      return res.json({ deleted: true, stores });
+    } catch (err) {
+      return next(err);
+    }
+  });
+
+  // Export DOES need crypto (it decrypts the stored config), so it layers requireRateStore.
+  app.get('/api/me/export', requireIdentity, requireRateStore, async (req, res, next) => {
+    try {
+      const data = await userData.exportUser(req.uid);
+      res.setHeader('Content-Disposition', 'attachment; filename="meeting-cost-data.json"');
+      return res.json({ exportedAt: new Date().toISOString(), data });
     } catch (err) {
       return next(err);
     }

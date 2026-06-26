@@ -89,3 +89,10 @@ export async function save(uid, config) {
   await fs.writeFile(fileFor(uid), JSON.stringify(envelope), 'utf8');
   return cfg;
 }
+
+// Delete this uid's stored config. Idempotent: a missing file is NOT an error (force), and no
+// decryption is needed — so deletion works even when RATE_STORE_KEY is absent. This is the
+// rateStore adapter's contribution to the uid-scoped "purge everything" registry (userData.js).
+export async function remove(uid) {
+  await fs.rm(fileFor(uid), { force: true });
+}

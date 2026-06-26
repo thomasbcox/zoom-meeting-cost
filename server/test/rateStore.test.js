@@ -115,6 +115,16 @@ test('an unknown uid loads null (caller falls back to client defaults)', async (
   assert.equal(await rateStore.load('never-saved'), null);
 });
 
+test('remove deletes the uid file and is idempotent (no throw on missing)', async () => {
+  await rateStore.save('uid-rm', { rateTable: [], aliases: [], defaultRate: 0 });
+  assert.notEqual(await rateStore.load('uid-rm'), null);
+  await rateStore.remove('uid-rm');
+  assert.equal(await rateStore.load('uid-rm'), null);
+  // Second remove on already-gone data must not throw.
+  await assert.doesNotReject(rateStore.remove('uid-rm'));
+  await assert.doesNotReject(rateStore.remove('uid-never-saved'));
+});
+
 test('a corrupt/undecryptable file loads null, never throws', async () => {
   await rateStore.save('uid-corrupt', { rateTable: [], aliases: [] });
   const files = await fs.readdir(dir);
