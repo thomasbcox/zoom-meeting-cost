@@ -159,3 +159,13 @@ QUESTION on a scope-containment ambiguity against AC6.
   review/spec artifacts are exempt; if so, clarify AC6 as implementation-file scope.
 
 - BLOCKER: 0 · IMPORTANT: 0 · QUESTION: 1 · NIT: 0
+
+## Decisions (2026-06-25)
+
+- **Approach pass:** clean — no findings, nothing to decide.
+- **QUESTION — AC6 scope wording vs. review artifacts — ANSWER + clarify** (Thomas: "clarify the
+  ac6 wording"). Review/spec artifacts under `reviews/` are exempt from scope-containment by the
+  workflow's design (the frame→review→close loop commits the story file + Codex JSONs to the
+  branch by construction; they ride in on the merge commit — same as PRs #49 and #50). AC6's
+  intent is **implementation-file** scope. Disposition: not a code defect; clarify AC6 wording in
+  `/close` to say implementation files, with `reviews/` artifacts excepted.
