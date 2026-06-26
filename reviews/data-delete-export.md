@@ -204,3 +204,13 @@ AC → file map:
   `server/src/app.js`
 - **Tests** → `server/test/userData.test.js` (registry + endpoints incl. delete-without-crypto),
   `server/test/rateStore.test.js` (`remove`); `server/test/rates.test.js` unchanged + green (AC6)
+
+## Codex approach review (2026-06-25, base main, HEAD 4463338)
+
+**Verdict:** Sound approach — Codex would satisfy the ACs with exactly this shape (one neutral
+`userData` adapter registry, `rateStore.remove` as the idempotent crypto-free delete, split
+identity/rate-store middleware, account-scoped `/api/me` routes). The implementation keeps it
+small and conventional, uses existing Express/Node primitives, adds no dependency, and hand-rolls
+nothing a dependency would simplify.
+
+**Findings:** none (empty array). Shape blessed → proceeding to the correctness pass.
