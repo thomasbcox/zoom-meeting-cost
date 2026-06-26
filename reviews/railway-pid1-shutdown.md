@@ -148,3 +148,13 @@ init/process-manager dependency. Two test-design findings (both **two-way**, bot
   over a runtime signal test because the bug only manifests under Linux PID 1 — an exact
   config-contract assertion is the portable thing that catches a revert.
 - **Comment-only** edit to `shutdown.test.js`; **append-only** note to the prior story.
+
+## Build note (2026-06-26)
+AC → file map:
+- AC1 startCommand makes node PID 1 → `railway.json` (`deploy.startCommand: "exec node server/src/index.js"`)
+- AC2 exact-equality contract test → `server/test/health.test.js` (railway.json assertion)
+- AC3 prod boot still works → verification only (no file): `node server/src/index.js` + `/api/health` 200
+- AC4 de-mislead handler test → `server/test/shutdown.test.js` (comment only)
+- AC5 record corrected → `reviews/graceful-shutdown.md` (Follow-up note)
+- AC6 scope containment → git (no product files beyond the above)
+- AC7 gate → all
