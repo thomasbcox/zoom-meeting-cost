@@ -214,3 +214,22 @@ small and conventional, uses existing Express/Node primitives, adds no dependenc
 nothing a dependency would simplify.
 
 **Findings:** none (empty array). Shape blessed → proceeding to the correctness pass.
+
+## Codex review (2026-06-26, base main, HEAD 2a62626)
+
+**Summary:** One IMPORTANT against AC6 — a precedence change in the existing `/api/rates` gating.
+
+**Findings:**
+
+- **IMPORTANT — Rate routes' missing-key signal now sits behind identity** (`server/src/app.js`).
+  In `main`, `requirePresenter` checked `rateStoreConfigured()` **before** resolving the app
+  context, so `GET/PUT /api/rates` with `RATE_STORE_KEY` unset **and** no/bad context returned
+  503. The split runs `requireIdentity` first, so that same edge now returns **401** (it never
+  reaches `requireRateStore`). AC6 claimed behavior is unchanged; in this both-misconfigured edge
+  it differs (503 → 401). Note: with a **valid** context + unset key it is still 503 (the existing
+  test), and the no-context-key-set case is still 401 — only the both-bad edge flips.
+  *Codex suggestion:* preserve the config-first gate for GET/PUT (a route wrapper checking
+  `rateStoreConfigured()` before `requireIdentity`), keep DELETE identity-only, and add a
+  regression test.
+
+- BLOCKER: 0 · IMPORTANT: 1 · QUESTION: 0 · NIT: 0
