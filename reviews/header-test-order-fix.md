@@ -121,3 +121,14 @@ dependency or hand-rolled-replacement issue found.
 Clean pass — Codex design review returned 0 findings and no one-way doors; Thomas gave a scope
 nod. The chosen shape (test-only reroute to `/api/health` + CI Test→Build reorder; no app
 change) is binding on implementation.
+
+## Build note (2026-06-25)
+
+AC → file map:
+
+- **AC1 / AC4** (CSP-content test rerouted to `/api/health`; presence + delivered-header
+  coverage preserved) → `server/test/headers.test.js`
+- **AC3** (CI reordered Test→Build; stopgap comment removed) → `.github/workflows/ci.yml`
+- **AC2** (passes with no `client/dist`) — verified by running the server suite with
+  `client/dist` removed; no file change
+- **AC5/AC6** — gate + scope containment (the two files above)
