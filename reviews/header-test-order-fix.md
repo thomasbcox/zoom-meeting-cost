@@ -59,8 +59,11 @@ Tracked in [`reviews/backlog.md`](backlog.md) ("Server header test depends on a 
    *content* is still asserted on a real (delivered) response header — not weakened to only the
    exported constant.
 5. **Gate green:** `npm test && npm run build` passes.
-6. **Scope containment:** the diff touches only `server/test/headers.test.js` and
-   `.github/workflows/ci.yml`.
+6. **Scope containment:** the **implementation** diff touches only
+   `server/test/headers.test.js` and `.github/workflows/ci.yml`. Review/spec artifacts under
+   `reviews/` (the story file and Codex `*.design.json` / `*.approach.json` / `*.codex.json`) are
+   **exempt** — the frame→review→close loop commits them to the branch by construction and they
+   ride in on the merge commit.
 
 ## Test notes
 
@@ -71,8 +74,8 @@ Tracked in [`reviews/backlog.md`](backlog.md) ("Server header test depends on a 
   implementation by temporarily removing `client/dist`.)
 - AC3 — read `ci.yml`: Test step precedes Build step; the stopgap comment is gone.
 - AC5 — run `npm test && npm run build` (the configured gate).
-- AC6 — run `git diff --name-only main...HEAD` and verify no files appear beyond the two listed
-  in AC6.
+- AC6 — run `git diff --name-only main...HEAD`; verify no **implementation** files appear beyond
+  the two listed in AC6 (review/spec artifacts under `reviews/` are exempt, per AC6).
 
 ## Open questions
 
@@ -169,3 +172,11 @@ QUESTION on a scope-containment ambiguity against AC6.
   branch by construction; they ride in on the merge commit — same as PRs #49 and #50). AC6's
   intent is **implementation-file** scope. Disposition: not a code defect; clarify AC6 wording in
   `/close` to say implementation files, with `reviews/` artifacts excepted.
+
+## Fixes (2026-06-25)
+
+- **AC6 wording clarified (answer to the QUESTION):** AC6 and its Test-notes entry now state that
+  scope-containment governs **implementation** files, with review/spec artifacts under `reviews/`
+  explicitly exempt (they ride in on the merge commit by the workflow's design). No code change —
+  the implementation diff remains exactly `server/test/headers.test.js` and
+  `.github/workflows/ci.yml`.
