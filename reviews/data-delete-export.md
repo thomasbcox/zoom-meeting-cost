@@ -93,9 +93,13 @@ encrypted rate blob (`server/src/store/rateStore.js`, one file per `uid`).
 5. **Export endpoint:** `GET /api/me/export` with a valid app context returns 200 with
    `Content-Disposition: attachment` and a body whose `data.rates` equals the saved config (or
    `null`). Without a valid context → 401; with `RATE_STORE_KEY` unset → 503.
-6. **Existing routes unchanged:** `GET/PUT /api/rates` keep their current behavior under the split
-   middleware — 503 when `RATE_STORE_KEY`/client id is unset, 401 on a bad context (existing
-   `server/test/rates.test.js` stays green).
+6. **Existing routes effectively unchanged (one benign edge flip):** `GET/PUT /api/rates` keep
+   their behavior under the split middleware — 503 when `RATE_STORE_KEY` is unset *with a valid
+   context*, 503 when client id is unset, 401 on a bad/absent context with the key set. The **one
+   intentional change**: when `RATE_STORE_KEY` is unset **and** the context is missing/invalid,
+   the response is now **401** (identity is resolved first) instead of the old **503** — a benign,
+   arguably-more-correct result of decoupling identity from crypto. Pinned by a regression test in
+   `server/test/rates.test.js`; the prior cases stay green.
 7. **Isolation:** purging/exporting one `uid` never touches another `uid`'s data.
 8. **Gate green:** `npm test && npm run build` passes.
 9. **Scope containment:** the **implementation** diff touches only `server/src/userData.js`,
@@ -246,3 +250,13 @@ nothing a dependency would simplify.
   invalid); (2) add a regression test in `server/test/rates.test.js` pinning the new behavior —
   `/api/rates` with key unset + no context → 401, and (still) valid context + key unset → 503.
   No re-coupling of the middleware.
+
+## Fixes (2026-06-26)
+
+Per the accepted disposition for the IMPORTANT finding (no middleware re-coupling):
+
+- **AC6 clarified** to record the one intentional, benign edge-case change: `/api/rates` with
+  `RATE_STORE_KEY` unset **and** no/bad context now returns 401 (identity-first) instead of 503.
+- **Regression test added** (`server/test/rates.test.js`): `/api/rates`, key unset + no context →
+  401; the existing valid-context + key-unset → 503 case is unchanged and still asserted. No code
+  change to `app.js` — the decoupled middleware stays as designed.

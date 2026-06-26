@@ -98,6 +98,23 @@ test('GET /api/rates is 503 when RATE_STORE_KEY is unset (fail closed)', async (
   }
 });
 
+// Regression (data-delete-export): the identity/rate-store middleware split changed precedence
+// for the BOTH-misconfigured edge. Identity is now resolved first, so an unset RATE_STORE_KEY
+// combined with NO app context returns 401 (can't identify the caller) rather than the old 503.
+// This is intentional — deletion/identity no longer depend on rate-blob crypto readiness.
+test('GET /api/rates with RATE_STORE_KEY unset AND no context is 401 (identity checked first)', async () => {
+  const prev = process.env.RATE_STORE_KEY;
+  delete process.env.RATE_STORE_KEY;
+  const server = await start();
+  try {
+    const res = await fetch(`http://127.0.0.1:${server.address().port}/api/rates`);
+    assert.equal(res.status, 401);
+  } finally {
+    server.close();
+    process.env.RATE_STORE_KEY = prev;
+  }
+});
+
 test('GET /api/rates is 503 when ZOOM_CLIENT_ID is unset (no aud-bypass)', async () => {
   const prev = process.env.ZOOM_CLIENT_ID;
   delete process.env.ZOOM_CLIENT_ID;
