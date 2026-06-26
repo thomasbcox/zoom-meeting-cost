@@ -143,3 +143,19 @@ framework/dependency feature and no unnecessary new structure.
 
 **Findings:** none (empty array). No one-way doors → shape blessed; proceeding to the
 correctness pass in the same round.
+
+## Codex review (2026-06-25, base main, HEAD 64cd3d8)
+
+**Summary:** The implementation files satisfy the test reroute and CI-order requirements. One
+QUESTION on a scope-containment ambiguity against AC6.
+
+**Findings:**
+
+- **QUESTION — Scope AC excludes review artifacts present in the diff** (`reviews/header-test-order-fix.md`,
+  AC6). AC6 says `git diff --name-only main...HEAD` should show only `server/test/headers.test.js`
+  and `.github/workflows/ci.yml`, but the branch diff also adds the review/spec artifacts
+  (`reviews/header-test-order-fix.md`, `.approach.json`, `.design.json`, `.codex.json`). If those
+  aren't intended exemptions, the branch fails the stated criterion. *Suggestion:* decide whether
+  review/spec artifacts are exempt; if so, clarify AC6 as implementation-file scope.
+
+- BLOCKER: 0 · IMPORTANT: 0 · QUESTION: 1 · NIT: 0
