@@ -3,6 +3,42 @@
 Deferred work, tracked so it isn't lost. Each item becomes its own `/frame`
 story when picked up.
 
+## Zoom deauthorization / data-compliance webhook
+- **Requested:** 2026-06-26 (Thomas), deferred from `reviews/data-delete-export.md`.
+- **What:** Implement the mandatory Zoom deauthorization endpoint. On app uninstall Zoom POSTs a
+  deauthorization event (with `user_data_retention`); if retention is `false` we must delete ALL
+  data for that user within 10 days and POST confirmation to Zoom's `/oauth/data/compliance`.
+  Reuses the **`userData.purgeUser(uid)`** primitive shipped in data-delete-export (PR #52).
+- **Why:** A **hard publishing gate** — a published app that stores per-user data cannot pass
+  Zoom Marketplace review without it (see `dev-docs/roadmap.md` Phase 6A and memory
+  `reference-zoom-prod-unknowns-research`).
+- **Design notes / open questions:**
+  - Different trust path from the app: Zoom authenticates the webhook with an HMAC **secret
+    token** (`x-zm-signature` + `x-zm-request-timestamp`) — a **new env var**, not the
+    `x-zoom-app-context` header. Verify the signature before acting.
+  - **⚠️ Identity mapping is unverified:** the event identifies the user by `payload.user_id`;
+    confirm it equals our app-context `uid` (the rate-store key) before purging, or we'll purge
+    the wrong/no records.
+  - Outbound compliance callback to `https://api.zoom.us/oauth/data/compliance` (Basic auth with
+    client id/secret), idempotent + signature-verified; set the "Deauthorization Notification
+    Endpoint URL" in the Marketplace app config.
+  - **Sequencing:** only needed at Marketplace submission, which is gated behind the overlay
+    live-test matrix (not yet run) + the store being turned on (not yet configured). Build it
+    close to submission.
+
+## Client UI for data delete / export (+ privacy-page update)
+- **Requested:** 2026-06-26 (Thomas), deferred from `reviews/data-delete-export.md`.
+- **What:** Add presenter-facing "Export my data" and "Delete my data" controls (React panel)
+  that call the shipped `GET /api/me/export` and `DELETE /api/me/data` endpoints (PR #52);
+  delete needs a confirm step. Then update `docs/privacy.html` to advertise **self-serve** delete
+  /export (today it still routes deletion via email) — bump the effective date with that change.
+- **Why:** The backend data-rights endpoints shipped but are not yet user-reachable; the public
+  privacy claim should only switch to "self-serve" once the UI actually exists (kept accurate
+  deliberately in data-delete-export).
+- **Design notes:** export is a download (the endpoint already sets `Content-Disposition`);
+  delete should confirm + then reflect the now-empty state. Gate the privacy-page wording change
+  to ship together with the UI so the claim stays true.
+
 ## Server process-level crash guards
 - **Requested:** 2026-06-21 (Thomas), from `reviews/graceful-shutdown.md`.
 - **What:** Add `process.on('unhandledRejection')` + `process.on('uncaughtException')` handlers
