@@ -89,10 +89,12 @@ The `handler ran? NO` row matches the production log's missing handler line exac
    signal path (it covers the handler given direct delivery).
 5. **Record corrected.** `reviews/graceful-shutdown.md` has a dated follow-up note linking
    here.
-6. **Scope containment.** `git diff --name-only main...HEAD` shows no files beyond:
-   `railway.json`, `server/test/health.test.js` (startCommand assertion),
+6. **Scope containment.** `git diff --name-only main...HEAD` shows no *product/test* files
+   beyond: `railway.json`, `server/test/health.test.js` (startCommand assertion),
    `server/test/shutdown.test.js` (comment only), `reviews/graceful-shutdown.md` (note),
-   and this story file.
+   and this story file. The Codex review artifacts this workflow commits by design
+   (`reviews/railway-pid1-shutdown.design.json` / `.approach.json` / `.codex.json`) are the
+   audit trail, not scope — they are exempt (matches precedent `45240f0`).
 7. **Gate green:** `npm test && npm run build`.
 
 ## Test notes
@@ -194,3 +196,10 @@ artifacts (`design.json`, `approach.json`, `codex.json`). Thomas: **"1 clarify a
   wording fix**. No product-code change.
 - Product code (railway.json, health.test.js, shutdown.test.js, graceful-shutdown.md): clean,
   no findings.
+
+## Fixes (2026-06-26)
+- **Approach/Correctness BLOCKER (AC6 wording vs review artifacts)** → AC6 clarified to exempt
+  the Codex review artifacts (`design.json`/`approach.json`/`codex.json`) as audit trail, not
+  scope (precedent `45240f0`). Documentation-only; no product/test code changed. The Codex
+  artifacts are kept (deleting them would fight the `/frame`+`/review` workflow that commits
+  them).
