@@ -156,6 +156,47 @@ AC → file map (docs-only story):
 - **AC6** (scope containment: docs only) — `dev-docs/roadmap.md`, `reviews/backlog.md`, and this
   story file only
 
+## Codex approach review (2026-06-27, base main, HEAD 98e66b2)
+
+**Verdict:** *"Spec-first, I would keep the two-tier split: roadmap as sequencer, backlog as
+detail store, with dated current-state reconciliation and linked execution rows. The chosen shape
+is directionally right, but it is not yet cleanly DRY or internally reconciled."* — the shape is
+**blessed**; all findings are tidies *within* it (no redesign).
+
+### IMPORTANT (3)
+
+1. **Reconciliation leaves stale shipped/removed claims elsewhere in the roadmap** — two-way ·
+   dated · `dev-docs/roadmap.md` Phase 1 + cross-cutting + data-model.
+   *Claim:* the table now says delete/export shipped and the multiplier is gone, but later
+   authoritative sections still say Phase 1 "data/API changes: add DELETE + export endpoints,"
+   still say delete/export endpoints are "required," and keep `multiplier` in the proposed future
+   `settings` data model — so the doc contradicts its own reconciled current-state.
+   *Alternative:* sweep the remaining authoritative sections — rewrite Phase 1 data/API changes as
+   UI/privacy-page/deauth follow-up, update the "Server persistence vs privacy" cross-cutting note
+   to "backend endpoints shipped; remaining = UI/policy/deauth," and drop `multiplier` from the
+   `settings` model (legacy-ignored at most).
+   *Win:* eliminates false future work; stops a later story resurrecting a removed field or
+   rebuilding shipped endpoints.
+
+2. **Execution plan duplicates backlog detail without stable item links** — two-way · kludgy ·
+   `dev-docs/roadmap.md` Execution plan.
+   *Claim:* the plan says detail lives in the backlog, but most rows copy tactical descriptions and
+   aren't linked to their backlog headings — two prose stores to keep in sync (weakens the
+   approved two-tier split / AC5).
+   *Alternative:* make each backlog-derived Item cell a link to its backlog heading/review file,
+   keep only minimal sequencing metadata in the roadmap, and add an explicit **exclusion row** for
+   any backlog heading intentionally omitted (e.g. "Workflow skill defects — moved out of repo").
+   *Win:* one detail authority, two-way navigation, no duplicated clauses that can drift.
+
+3. **`esbuild / Vite` bump is sequenced as open but the manifest shows it satisfied** — two-way ·
+   dated · `dev-docs/roadmap.md` Execution plan + `reviews/backlog.md`.
+   *Claim:* the plan lists the dev-only bump as open, but `client/package.json` pins `vite ^6.4.2`
+   and the lockfile resolves **vite 6.4.3 + esbuild 0.25.12** — exactly the backlog item's "done
+   looks like." A phantom open item. *(Verified by Claude against the manifest/lock, 2026-06-27.)*
+   *Alternative:* mark the backlog item DONE (with manifest evidence) and drop it from the
+   Execution plan, or rename it to the actual remaining dependency concern if one exists.
+   *Win:* keeps the open-work inventory truthful; avoids a future story on an already-satisfied bump.
+
 ## Scope decision (2026-06-26)
 
 Thomas: "i approve the scope" — approved as drafted, with the three recommended dispositions:
