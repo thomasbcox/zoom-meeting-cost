@@ -156,6 +156,17 @@ AC → file map (docs-only story):
 - **AC6** (scope containment: docs only) — `dev-docs/roadmap.md`, `reviews/backlog.md`, and this
   story file only
 
+## Codex review (2026-06-28, base 98e66b2, HEAD f2e466c) — re-review, correctness-only
+
+**Summary:** *"The approved fixes were applied correctly against 98e66b2. The stale Phase 1
+data/API, privacy, and settings-model multiplier claims are reconciled; the backlog-derived
+Execution plan rows now link to valid backlog headings with only sequencing metadata left in the
+roadmap; the excluded workflow-skill item is explicitly named; and the diff stays
+docs/review-artifact only with no product source, test, or config changes. Per instruction, I did
+not re-raise the deferred esbuild item."*
+
+**Findings: none (clean).** The deferred esbuild/Vite item (#4) was correctly not re-raised.
+
 ## Fixes (2026-06-27)
 
 Applied the approved correctness/approach findings (all docs-only, within the blessed shape):
