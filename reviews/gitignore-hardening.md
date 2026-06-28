@@ -49,7 +49,11 @@ id_rsa*
    and a root-level `.env.example` would likewise not be ignored.
 3. The key/certificate block ignores files matching `*.pem`, `*.key`, `*.p12`,
    `*.pfx`, `*.keystore`, and `id_rsa*`.
-4. Scope containment: the only file changed is `.gitignore`.
+4. Scope containment: the only *product* file changed is `.gitignore`. The story
+   file `reviews/gitignore-hardening.md` and the review-process artifacts the
+   `/review` loop mandates committing (`reviews/gitignore-hardening.approach.json`,
+   `reviews/gitignore-hardening.codex.json`) are bookkeeping, not product, and are
+   exempt from this AC.
 5. The test gate (`npm test && npm run build`) still passes (sanity — a
    `.gitignore` edit should not affect it).
 
@@ -61,8 +65,10 @@ id_rsa*
   (not ignored); `git check-ignore .env.example` likewise not ignored.
 - **AC3:** `git check-ignore -v foo.pem bar.key baz.p12 q.pfx r.keystore id_rsa
   id_rsa.pub` → each matched by its respective pattern.
-- **AC4:** `git diff --name-only main...HEAD` shows no files beyond `.gitignore`
-  (and the spec file `reviews/gitignore-hardening.md`).
+- **AC4:** `git diff --name-only main...HEAD` shows no *product* files beyond
+  `.gitignore` — the only non-`.gitignore` entries are this story file and the
+  `/review` artifacts (`*.approach.json`, `*.codex.json`), which are exempt
+  bookkeeping.
 - **AC5:** run `npm test && npm run build`.
 
 ## Open questions
@@ -118,6 +124,13 @@ review-process artifacts as in-scope.
   review-process artifacts the `/review` loop mandates committing
   (`*.approach.json`, `*.codex.json`). No product change; doc-only, shape
   unchanged — no re-review needed. To be applied in `/close`.
+
+## Fixes (2026-06-28)
+- **Correctness BLOCKER (fix):** Reworded AC4 and its Test note so scope
+  containment is scoped to *product* files (only `.gitignore`) and explicitly
+  exempts the story file plus the `/review`-mandated artifacts
+  (`*.approach.json`, `*.codex.json`) as bookkeeping. Doc-only; no product or
+  `.gitignore` change.
 
 ## Design decisions (2026-06-28)
 - **Scope:** Thomas approved as scoped ("ye") — implement exactly the queued
