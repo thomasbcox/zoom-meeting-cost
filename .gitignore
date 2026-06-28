@@ -1,11 +1,22 @@
 node_modules/
 dist/
-.env
-.env.local
 *.log
 .DS_Store
 client/node_modules/
 server/node_modules/
+
+# Env files — ignore all, keep the example template
+.env*
+!.env.example
+!**/.env.example
+
+# Key / certificate material
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+id_rsa*
 
 # Machine-local Claude settings (contains local paths; not for sharing)
 .claude/settings.local.json
