@@ -98,6 +98,18 @@ re-inclusion.
 
 **Findings:** none (empty).
 
+## Codex review (2026-06-28, base main, HEAD 06aeba4)
+**Summary:** The `.gitignore` change matches the requested env/key block and
+`git check-ignore` validates AC1–AC3, but the branch includes an extra file
+outside the declared scope.
+
+**BLOCKER — Extra review artifact violates scope containment**
+(`reviews/gitignore-hardening.approach.json:1`): the diff adds the
+`.approach.json` review artifact, but AC4 / the Test notes enumerate only
+`.gitignore` + the story file `reviews/gitignore-hardening.md`, so AC4 reads as
+false. Suggestion: remove the artifact, or update the spec/build note to admit the
+review-process artifacts as in-scope.
+
 ## Design decisions (2026-06-28)
 - **Scope:** Thomas approved as scoped ("ye") — implement exactly the queued
   block, `.gitignore` only; the offered extras (artifacts, editor dirs,
