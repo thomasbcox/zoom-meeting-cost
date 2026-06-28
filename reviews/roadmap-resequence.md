@@ -143,6 +143,19 @@ treats as mechanical.
 Skipped — docs-only story, no code shape to review (see Open question 3). Confirmed skipped at
 the frame consult (2026-06-26).
 
+## Build note (2026-06-26)
+
+AC → file map (docs-only story):
+
+- **AC1** (reconcile "Current state" table + Phase 1 notes to 2026-06-26 reality) — `dev-docs/roadmap.md`
+- **AC2** (single Execution plan inventorying every open item) — `dev-docs/roadmap.md`
+- **AC3** (each item carries phase · dependencies · gate flag) — `dev-docs/roadmap.md`
+- **AC4** (explicit ordered critical path + parallel tracks) — `dev-docs/roadmap.md`
+- **AC5** (DRY links; backlog points back to the roadmap sequencer) — `dev-docs/roadmap.md`,
+  `reviews/backlog.md`
+- **AC6** (scope containment: docs only) — `dev-docs/roadmap.md`, `reviews/backlog.md`, and this
+  story file only
+
 ## Scope decision (2026-06-26)
 
 Thomas: "i approve the scope" — approved as drafted, with the three recommended dispositions:
