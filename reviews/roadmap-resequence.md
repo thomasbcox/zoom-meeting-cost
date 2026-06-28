@@ -156,6 +156,27 @@ AC → file map (docs-only story):
 - **AC6** (scope containment: docs only) — `dev-docs/roadmap.md`, `reviews/backlog.md`, and this
   story file only
 
+## Fixes (2026-06-27)
+
+Applied the approved correctness/approach findings (all docs-only, within the blessed shape):
+
+- **#1 (FIX) — stale claims swept** (`dev-docs/roadmap.md`): Phase 1 "Data/API changes" now says
+  delete/export endpoints **shipped** (PR #52) and remaining work is the deauth webhook + UI; the
+  "Server persistence vs privacy" cross-cutting note updated to "backend endpoints shipped;
+  remaining = UI/policy/deauth/retention"; `multiplier` removed from the proposed `settings` data
+  model (noted legacy-ignored, PR #49).
+- **#2 (FIX) — Execution plan now DRY-linked**: every backlog-derived row's Item cell is a
+  markdown link to its exact `reviews/backlog.md` heading (CSP links to its backlog heading too);
+  the keystone/`drawWebView` rows link to `overlay-live-test-matrix.md`; rows trimmed to
+  sequencing metadata (phase · deps · gate) rather than copied tactical prose. Fragile intra-doc
+  Phase self-links were dropped in favour of the Phase column. **All 14 cross-references verified
+  to resolve** via the GitHub slug algorithm.
+- **#3 (FIX) — exclusion named**: added an "Excluded (named per AC2)" line linking *Workflow skill
+  defects — moved out of this repo* and stating why it's omitted from the sequence.
+- **#4 (DEFER) — esbuild/Vite**: backlog body left untouched (per scope decision); the Execution
+  plan row now carries a ⚠️ caveat ("likely already satisfied — lock resolves vite 6.4.3 /
+  esbuild 0.25.12; confirm + mark DONE separately") so the inventory stays truthful.
+
 ## Codex approach review (2026-06-27, base main, HEAD 98e66b2)
 
 **Verdict:** *"Spec-first, I would keep the two-tier split: roadmap as sequencer, backlog as
