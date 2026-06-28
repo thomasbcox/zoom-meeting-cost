@@ -1,0 +1,139 @@
+Date: 2026-06-28 · Branch: claude/gitignore-hardening · Status: approved
+
+## Problem
+The repo's `.gitignore` enumerates only two env files (`.env`, `.env.local`) and
+no key/certificate material. A real env file with any other suffix
+(`.env.production`, `.env.staging`, a per-app `.env`) or any stray private key /
+cert dropped into the tree (`*.pem`, `*.key`, `id_rsa`) would not be ignored and
+could be committed by accident. The existing `scripts/secret-scan/` guard is a
+staged-content backstop; broadening `.gitignore` is the cheaper, first-line
+prevention. Harden the patterns so no real env or key material can slip in by
+suffix, while keeping the committed `server/.env.example` template visible.
+
+This is the exact block Thomas queued in a prior session:
+
+```
+# Env files — ignore all, keep the example template
+.env*
+!.env.example
+!**/.env.example
+
+# Key / certificate material
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+id_rsa*
+```
+
+## In scope
+- Replace the two narrow env lines (`.env`, `.env.local`) with the broader
+  `.env*` + example-template negations.
+- Add the key/certificate-material block.
+- `.gitignore` only.
+
+## Non-goals
+- No new ignore rules beyond the queued block (no coverage/, editor dirs, build
+  artifacts, node_modules consolidation, or other tidy-ups — those were offered
+  and not chosen).
+- No changes to `scripts/secret-scan/` or any product code.
+- No untracking of files already in the index.
+
+## Acceptance criteria
+1. `.env*` causes all env-file variants to be ignored: `server/.env` and
+   `client/.env.local` remain ignored, and a hypothetical `.env.production` /
+   `server/.env.staging` would also be ignored.
+2. The committed template stays visible: `git check-ignore server/.env.example`
+   reports it is **not** ignored (the `!**/.env.example` negation re-includes it),
+   and a root-level `.env.example` would likewise not be ignored.
+3. The key/certificate block ignores files matching `*.pem`, `*.key`, `*.p12`,
+   `*.pfx`, `*.keystore`, and `id_rsa*`.
+4. Scope containment: the only *product* file changed is `.gitignore`. The story
+   file `reviews/gitignore-hardening.md` and the review-process artifacts the
+   `/review` loop mandates committing (`reviews/gitignore-hardening.approach.json`,
+   `reviews/gitignore-hardening.codex.json`) are bookkeeping, not product, and are
+   exempt from this AC.
+5. The test gate (`npm test && npm run build`) still passes (sanity — a
+   `.gitignore` edit should not affect it).
+
+## Test notes
+- **AC1:** `git check-ignore -v server/.env client/.env.local` → both matched by
+  `.env*`. For the hypothetical variants, `git check-ignore -v .env.production
+  server/.env.staging` (paths need not exist) → both matched.
+- **AC2:** `git check-ignore server/.env.example` exits non-zero / prints nothing
+  (not ignored); `git check-ignore .env.example` likewise not ignored.
+- **AC3:** `git check-ignore -v foo.pem bar.key baz.p12 q.pfx r.keystore id_rsa
+  id_rsa.pub` → each matched by its respective pattern.
+- **AC4:** `git diff --name-only main...HEAD` shows no *product* files beyond
+  `.gitignore` — the only non-`.gitignore` entries are this story file and the
+  `/review` artifacts (`*.approach.json`, `*.codex.json`), which are exempt
+  bookkeeping.
+- **AC5:** run `npm test && npm run build`.
+
+## Open questions
+None — the queued block is the exact, agreed scope.
+
+## Design sketch — HOW
+N/A — mechanical. Editing `.gitignore` glob patterns introduces no new module,
+data shape, dependency, or cross-cutting pattern. The only correctness nuance is
+glob/negation ordering (the `!**/.env.example` negation must follow the `.env*`
+ignore, and is needed in addition to `!.env.example` because the tracked template
+lives in a subdirectory, `server/.env.example`). That nuance is verified directly
+by AC2's `git check-ignore`, not by a design review.
+
+## Codex design review
+Noted skip — sketch is `N/A — mechanical` (no design surface to review).
+
+## Build note (2026-06-28)
+AC→file map (all ACs satisfied by the single `.gitignore` change):
+- **AC1** (broad env ignore), **AC2** (template negation), **AC3** (key/cert
+  patterns), **AC4** (scope containment): [.gitignore](.gitignore) — folded
+  `.env`/`.env.local` into `.env*` + `!.env.example` + `!**/.env.example`; added
+  `*.pem *.key *.p12 *.pfx *.keystore id_rsa*`.
+- **AC5** (gate): no code touched; gate green at HEAD.
+
+## Codex approach review (2026-06-28, base main, HEAD 06aeba4)
+**Verdict:** Sound shape — no approach concerns. Codex would satisfy the ACs with
+exactly the queued declarative `.gitignore` block (`.env*`, root + nested
+`.env.example` negations, then only the listed key/cert patterns); the branch does
+that, with no product code or dependency change. Changed files limited to
+`.gitignore` + the review note; manifests show no dependency/tooling abstraction
+bypassed. Native `git check-ignore` confirmed the patterns and `.env.example`
+re-inclusion.
+
+**Findings:** none (empty).
+
+## Codex review (2026-06-28, base main, HEAD 06aeba4)
+**Summary:** The `.gitignore` change matches the requested env/key block and
+`git check-ignore` validates AC1–AC3, but the branch includes an extra file
+outside the declared scope.
+
+**BLOCKER — Extra review artifact violates scope containment**
+(`reviews/gitignore-hardening.approach.json:1`): the diff adds the
+`.approach.json` review artifact, but AC4 / the Test notes enumerate only
+`.gitignore` + the story file `reviews/gitignore-hardening.md`, so AC4 reads as
+false. Suggestion: remove the artifact, or update the spec/build note to admit the
+review-process artifacts as in-scope.
+
+## Decisions (2026-06-28)
+- **Approach pass:** clean (empty) — nothing to decide.
+- **Correctness BLOCKER — "Extra review artifact violates scope containment":**
+  Thomas's call = **fix**. Clarify AC4 + the Build note so scope containment is
+  about *product* files (only `.gitignore`) and explicitly exempts the
+  review-process artifacts the `/review` loop mandates committing
+  (`*.approach.json`, `*.codex.json`). No product change; doc-only, shape
+  unchanged — no re-review needed. To be applied in `/close`.
+
+## Fixes (2026-06-28)
+- **Correctness BLOCKER (fix):** Reworded AC4 and its Test note so scope
+  containment is scoped to *product* files (only `.gitignore`) and explicitly
+  exempts the story file plus the `/review`-mandated artifacts
+  (`*.approach.json`, `*.codex.json`) as bookkeeping. Doc-only; no product or
+  `.gitignore` change.
+
+## Design decisions (2026-06-28)
+- **Scope:** Thomas approved as scoped ("ye") — implement exactly the queued
+  block, `.gitignore` only; the offered extras (artifacts, editor dirs,
+  node_modules consolidation, tracked-file audit) are explicitly out.
+- **Design findings:** none (Codex review skipped, mechanical). No one-way doors.
