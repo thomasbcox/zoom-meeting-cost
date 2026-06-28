@@ -222,6 +222,28 @@ against the ACs); dispositions inherit the approach decisions.
 4. **esbuild/Vite bump carried as open though the repo already satisfies it** — vite `^6.4.2` /
    lock vite 6.4.3 + esbuild 0.25.12. *(= approach #3, deferred.)*
 
+## Decisions (2026-06-27)
+
+Thomas, on the approach menu: *"Fix #1 & #2, defer #3."* On the consolidated correctness menu
+(which mirrored the approach pass): *"looks good"* — confirming the mapping below.
+
+- **A#1 / C#1 — stale claims survive elsewhere in the roadmap → FIX.** Sweep the remaining
+  authoritative sections: rewrite Phase 1 "data/API changes" as UI/privacy-page/deauth follow-up,
+  update the "Server persistence vs privacy" cross-cutting note to "backend delete/export
+  endpoints shipped; remaining = UI/policy/deauth," and drop `multiplier` from the proposed future
+  `settings` data model.
+- **A#2 / C#2 — Execution-plan rows not DRY-linked → FIX.** Convert each backlog-derived Item cell
+  to a markdown link to its `reviews/backlog.md` heading (or owning review file) and trim to
+  sequencing metadata.
+- **C#3 — "Workflow skill defects" not named as excluded → FIX** (the exclusion-row half of A#2's
+  approved alternative). Add an explicit exclusion row linking that heading and stating it is
+  excluded because it was moved out of this repo.
+- **A#3 / C#4 — esbuild/Vite phantom open item → DEFER.** Keep the backlog body untouched per the
+  scope decision (open question 2). To keep the roadmap inventory truthful without touching the
+  backlog, add a **one-line caveat** on that Execution-plan row noting it is likely already
+  satisfied (lock resolves vite 6.4.3 / esbuild 0.25.12) and should be confirmed + marked DONE
+  separately.
+
 ## Scope decision (2026-06-26)
 
 Thomas: "i approve the scope" — approved as drafted, with the three recommended dispositions:
