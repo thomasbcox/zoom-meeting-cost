@@ -51,6 +51,18 @@ presenter's stable Zoom identity.
 > were researched on 2026-06-11 and the answers folded into the phases below — see also
 > memory `reference-zoom-prod-unknowns-research`.
 
+> **🔄 Reconciliation refresh (2026-06-26, `roadmap-resequence`).** Work shipped after the
+> 2026-06-11 draft that this file now reflects: **data delete/export backend** —
+> `DELETE /api/me/data` + `GET /api/me/export` + a neutral `uid` registry and the
+> `userData.purgeUser(uid)` primitive ([`reviews/data-delete-export.md`](../reviews/data-delete-export.md),
+> PR #52); **loaded-cost multiplier removed** from the cost math/UI/schema (PR #49); plus
+> `/api/log` redaction-at-source (PR #50), the header-test order fix (PR #51), and Railway
+> PID-1 graceful shutdown (merge `2b0954a`). The **Current state** table and Phase 1 below are
+> updated for these; the authoritative *ordering* of all remaining work now lives in the new
+> **[Execution plan](#execution-plan-orderly-development)** section, which supersedes the old
+> one-line "Rough sequence." Tactical per-item detail stays in
+> [`reviews/backlog.md`](../reviews/backlog.md).
+
 The path to a paid product is therefore **mostly product + commerce work, not core
 re-architecture**:
 
@@ -79,7 +91,7 @@ re-architecture**:
 | Cost meter + overlay | ✅ shipped · ⚠️ live-render risk | camera Layers API; `buildOverlayState` emits aggregates only (`status, totalCost, costPerSecond, elapsedSeconds, attendees, currency, prefs:{}`). ⚠️ `drawWebView` may silently no-op on Zoom Workplace 6.7.8/7.0.2 (ZSEE-195647) — see live-render callout above |
 | Overlay data channel (panel→camera) | ✅ verified live 1:1 (prior build) | `postMessage`→`onMessage` matches the canonical sample; **verified live 1:1** (panel `postMessage ok` ↔ camera `overlay-message`, per-second) at PR #17 (`overlay-payload-parse`, `overlay-logging-quiet`). Open risk is **rendering** on *current* builds, not the channel — re-confirm via the live-test matrix |
 | **Privacy invariant** | ✅ holds | overlay payload carries **no** names/rates/aliases; `prefs:{}` "never carries private data" (`lib/overlayState.js`) |
-| Cost models | ✅ shipped | per-participant table **and** simple `N × rate × multiplier` (`lib/cost.js`, `usePresenterStore.js`) |
+| Cost models | ✅ shipped · 🔄 2026-06-26 | per-participant table **and** simple `N × averageRate` (`lib/cost.js`, `usePresenterStore.js`). The loaded-cost **multiplier was removed** (PR #49); legacy blobs round-trip and the field is ignored |
 | Matching / dedupe primitives | ✅ shipped | `lib/normalize.js`, `lib/matching.js` (`buildRateIndex`, `buildAliasIndex`, `resolveAll`); rate rules + aliases + per-meeting overrides |
 | Session lifecycle | ✅ shipped | start / pause / resume / end + start-new / resume (`session-restart-controls`) |
 | Overlay auto-recover | ✅ shipped | polls `getVideoState` on camera off→on (`overlay-rearm-reopen`) |
@@ -90,7 +102,7 @@ re-architecture**:
 | OAuth | partial | `/auth/callback` exchanges a code but is **not** used for identity (app-context is); scaffold only |
 | Billing / entitlements | ❌ none | no plan, no code |
 | Attendee harvesting | ❌ none | designed in backlog, not built |
-| Data delete / export | ❌ none | not built (privacy gap — see Phase 1) |
+| Data delete / export | ✅ backend shipped (UI pending) · 🔄 2026-06-26 | `DELETE /api/me/data` (purge) + `GET /api/me/export` (JSON download) + `userData.purgeUser(uid)` over a neutral `uid` registry (`data-delete-export`, PR #52). **Presenter-facing UI not yet built** and `docs/privacy.html` still routes deletion via email — see Phase 1 / backlog |
 
 **Zoom config in use** (✅ from `server/zoom-app-config.md` + `ZOOM_CAPABILITIES`):
 - **SDK capabilities:** `getRunningContext`, `getAppContext`, `getMeetingContext`,
@@ -125,9 +137,13 @@ under Marketplace → Add APIs; attach a Railway **Volume** + set `DATA_DIR`; se
 - **Remaining tasks (🔜):**
   - **Operator config:** add `getAppContext` (dashboard), attach Volume + `DATA_DIR`,
     set `RATE_STORE_KEY` → then verify live persistence (AC8 of `server-rate-store`).
-  - **Privacy controls (the real gap):** `DELETE /api/rates` (delete my data) and
-    `GET /api/rates/export` (export my data as JSON) — both `uid`-scoped. A short
-    **data-retention + deletion** note in the README/privacy policy.
+  - **Privacy controls — backend ✅ (2026-06-26), UI 🔜:** `DELETE /api/me/data` (purge) and
+    `GET /api/me/export` (export as JSON) shipped, both `uid`-scoped via the neutral registry +
+    `userData.purgeUser` (`data-delete-export`, PR #52). **Remaining:** the presenter-facing
+    delete/export **UI** and flipping `docs/privacy.html` from "email us" to **self-serve**
+    (gate the policy wording to ship with the UI so the claim stays true) — backlog item
+    *"Client UI for data delete / export"*. The `purgeUser(uid)` primitive is reused by the
+    deauth webhook below.
   - **⚠️ Mandatory Zoom deauthorization / data-compliance endpoint (new, researched
     2026-06-11):** published apps that store per-user data MUST handle Zoom's
     deauthorization event. On uninstall Zoom POSTs `user_data_retention`; if `false` you
@@ -143,7 +159,9 @@ under Marketplace → Add APIs; attach a Railway **Volume** + set `DATA_DIR`; se
   - **Backend data model** (currently a single encrypted blob per `uid`). Propose
     splitting as features grow (see *Data models* below) but **don't migrate yet** — the
     blob is fine until entitlements/history arrive.
-- **Data/API changes:** add `DELETE` + `export` endpoints; keep the blob store.
+- **Data/API changes:** delete/export endpoints **shipped** (`/api/me/data`, `/api/me/export`,
+  PR #52); keep the blob store. Remaining changes are the **deauth webhook** endpoint and the
+  delete/export **UI** + privacy-page wording — not new rate-data endpoints.
 - **Risks / open questions:** ⚠️ encryption is *at rest only* — the operator can decrypt
   (documented). Revisit (KMS-managed key, or per-user passphrase) only if a stronger
   posture is required for enterprise. Single-instance volume = no HA (acceptable for now).
@@ -365,10 +383,11 @@ These must be done **before** Marketplace submission / first paid user:
   MoR/tax burden); a **Merchant of Record (Paddle / Stripe Managed Payments)** is the global
   path. Backend stays the source of truth via webhooks regardless; keep the data model
   provider-agnostic. ⚠️ Confirm Zoom-native eligibility for the in-meeting SDK surface.
-- **Server persistence vs privacy** — ✅ encryption-at-rest shipped, but privacy work is
-  **not done**: delete/export endpoints and a retention/deletion policy are required
-  (Phase 1). The posture is **operator-decryptable**; stronger (KMS/passphrase) is a future
-  option for enterprise.
+- **Server persistence vs privacy** — ✅ encryption-at-rest **and** the backend delete/export
+  endpoints shipped (PR #52); privacy work is **not done**: the delete/export **UI**, the
+  privacy-page self-serve wording, the **deauth/data-compliance webhook**, and a retention/deletion
+  policy remain (Phase 1 / 6A). The posture is **operator-decryptable**; stronger (KMS/passphrase)
+  is a future option for enterprise.
 - **Paid features needing new scopes** — ✅ mostly **no**: unlimited rules, harvest, CSV,
   templates, history (aggregate) are backend/UI. Only *integrations* add third-party auth
   (not Zoom scopes). Team libraries need a new data model, not a new scope.
@@ -378,7 +397,8 @@ These must be done **before** Marketplace submission / first paid user:
 Today: one encrypted blob per `uid`. As entitlements/history/teams arrive, split into:
 
 - `users` — `uid` (PK), createdAt, lastSeen.
-- `settings` — `uid`, defaultRate, multiplier, costModel, simple* (the non-list config).
+- `settings` — `uid`, defaultRate, costModel, simple* (the non-list config). *(The loaded-cost
+  `multiplier` was removed — PR #49; a legacy value is ignored if present, not stored going forward.)*
 - `rate_rules` — id, `uid`, name, rate, source, updatedAt.
 - `aliases` — id, `uid`, alias, canonical.
 - `entitlements` — `uid`, plan, features, limits, status, renewsAt.
@@ -422,6 +442,75 @@ the **Phase 6A publishing gate** (deauth endpoint, minimal scopes, privacy polic
 surface-config check); and dev/prod credential isolation.
 
 ### Rough sequence
-**Overlay live-test matrix (de-risk the core feature)** → Phase 1 finish (privacy + config
-+ deauth endpoint) → Phase 2 (harvest) → Phase 3 (entitlements) → Phase 4 (Zoom-native
-billing, US-only) → MVP launch → Phase 5/6 iterate (incl. MoR for global).
+
+See the **[Execution plan](#execution-plan-orderly-development)** below — it supersedes the old
+one-line sequence with a dependency- and gate-annotated inventory of every open item.
+
+---
+
+## Execution plan (orderly development)
+
+The single authoritative answer to *"what's next, in what order, and what blocks what."* It
+inventories **every open unit of work** — open items from [`reviews/backlog.md`](../reviews/backlog.md)
+(the tactical detail store), the unbuilt future phases above, and the keystone overlay gate.
+**Each item links to its detail** (backlog heading or review/roadmap section); this section owns
+only the *sequence* — phase, dependencies, gate. The *what/why* stays in the linked source (DRY).
+
+> **Gate legend.** ⛔ **publishing gate** — blocks Marketplace submission / first paid user ·
+> 🚧 **build step** — on the path to launch, not itself a gate · ✨ **feature** ·
+> 🔧 **ops / CI / UX hardening** (ongoing) · 🧹 **cleanup** · 🎯 **keystone** (de-risks the core).
+
+### Inventory (by track)
+
+| Item (→ detail) | Phase | Depends on | Gate |
+|------|-------|-----------|------|
+| [Overlay live-test matrix](overlay-live-test-matrix.md) | 0.5 | — | 🎯 ⛔ |
+| Operator config (add `getAppContext`, Volume + `DATA_DIR`, `RATE_STORE_KEY`) | 1 | — | 🚧 |
+| [Client UI for data delete / export](../reviews/backlog.md#client-ui-for-data-delete--export--privacy-page-update) (+ privacy-page self-serve) | 1 | operator config | 🚧 |
+| [Zoom deauthorization / data-compliance webhook](../reviews/backlog.md#zoom-deauthorization--data-compliance-webhook) | 1 / 6A | `purgeUser` ✅; identity-mapping check | ⛔ |
+| Third-party PII / consent decision | 2 | — (decide before harvest) | ⛔ |
+| [Attendee harvest + cross-meeting memory](../reviews/backlog.md#rate-table-memory-across-meetings--harvest-attendee-names-into-it) (the paid hook) | 2 | operator config; PII decision | ✨ |
+| Free vs Pro entitlements | 3 | persistence live (Phase 1) | 🚧 |
+| Billing — Zoom-native, US-only | 4 | entitlements (Phase 3) | 🚧 |
+| Publishing-gate bundle (minimal scopes, [CSP exact-origin pin](../reviews/backlog.md#csp-hardening--pin-to-exact-origins), privacy policy, surface-config, dev/prod isolation) | 6A | features ~frozen; live host known | ⛔ |
+| [In-Zoom client-error hardening](../reviews/backlog.md#in-zoom-client-error-hardening-camera-overlay-flow) | — | live-test matrix in flight | 🔧 |
+| [Overlay auto-recover — sub-1.5 s flicker miss](../reviews/backlog.md#overlay-auto-recover-misses-very-brief-camera-off-flickers) | — | — | 🔧 |
+| `drawWebView` `webviewId` contradiction → [live-test matrix](overlay-live-test-matrix.md) | — | live-test matrix | 🔧 |
+| [Server process-level crash guards](../reviews/backlog.md#server-process-level-crash-guards) | 6B | — | 🔧 |
+| [Ruleset-as-code](../reviews/backlog.md#ruleset-as-code-single-source-of-truth-for-branch-protection) | 6B | — | 🔧 |
+| [esbuild / Vite dev-only bump](../reviews/backlog.md#esbuildvite-security-bump-dev-only-advisory) — ⚠️ **likely already satisfied** (lock resolves vite 6.4.3 / esbuild 0.25.12); confirm + mark the backlog item DONE separately | 6B | — | 🔧 |
+| Production ops (backups, `RATE_STORE_KEY` rotation, monitoring) | 6B | launch | 🔧 |
+| [Retire shape-only diagnostics probe](../reviews/backlog.md#retire-the-shape-only-diagnostics-probe-once-stable) | — | overlay stable (live-test done) | 🧹 |
+| [Notetakers default to $1/hr](../reviews/backlog.md#identify-notetakers-and-default-them-to-1hr) (off the critical path) | 2-adjacent | per-participant model ✅ | ✨ |
+| Phase 5 paid features (CSV, history, templates, dup-detection, team libraries, integrations) | 5 | entitlements + billing | ✨ |
+| Global billing / Merchant-of-Record | 4 (later) | US launch | ✨ |
+
+**Excluded (named per AC2):** [Workflow skill defects — moved out of this repo](../reviews/backlog.md#workflow-skill-defects--moved-out-of-this-repo)
+is **not** a `zoom-meeting-cost` work item — it was exported to the repo that owns the
+frame→review→close skills — so it is deliberately omitted from the sequence above.
+
+### Critical path to first paid launch (ordered)
+
+1. **🎯 Overlay live-test matrix** — de-risk the core feature; nothing user-facing is
+   production-ready until the overlay is proven to composite on current builds. **Do this first.**
+2. **Finish Phase 1** — operator config (turn the shipped store on) → data delete/export **UI**
+   + privacy-page self-serve → **deauth/data-compliance webhook** (the hard ⛔ gate; build it
+   close to submission).
+3. **Phase 2 — attendee harvest + cross-meeting memory** (resolve the third-party-PII disclosure
+   decision first). The clearest "saves me time every meeting" Pro value.
+4. **Phase 3 — entitlements** (free vs Pro, server-enforced).
+5. **Phase 4 — Zoom-native billing, US-only** (webhook → entitlements).
+6. **Phase 6A publishing-gate bundle** — minimal scopes, CSP pinned to exact origins, privacy
+   policy complete, camera-surface config confirmed, dev/prod credentials isolated.
+7. **MVP launch** → then iterate Phase 5 features + Phase 6B hardening (+ MoR for global).
+
+### Parallel tracks (not on the critical path)
+
+- **In-Zoom UX hardening** — client-error hardening, the sub-1.5 s flicker miss, and the
+  `drawWebView` `webviewId` contradiction. Tied to the live-test matrix; fold in while that runs.
+- **Ops & CI** (Phase 6B) — crash guards, ruleset-as-code, esbuild/Vite bump. Independent of the
+  feature path; pick up between feature stories. (Backups / key-rotation / monitoring wait for
+  launch.)
+- **Cleanup** — retire the diagnostics probe *after* the overlay is stable (it relies on the probe
+  today — don't remove it while live-testing is in flight).
+- **Off-path feature** — notetakers at $1/hr; synergises with harvest but isn't required for MVP.
