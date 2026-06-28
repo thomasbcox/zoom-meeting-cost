@@ -197,6 +197,31 @@ is directionally right, but it is not yet cleanly DRY or internally reconciled."
    Execution plan, or rename it to the actual remaining dependency concern if one exists.
    *Win:* keeps the open-work inventory truthful; avoids a future story on an already-satisfied bump.
 
+## Codex review (2026-06-27, base main, HEAD 98e66b2)
+
+**Summary:** *"Docs/review-artifact only and the relative links exist, but the planning docs do
+not yet satisfy the acceptance criteria — the roadmap still contains stale post-reconciliation
+claims, the execution plan is not DRY-linked to backlog anchors, and the open-work inventory is
+not fully truthful."* These four findings **mirror the approach pass** (same issues, graded
+against the ACs); dispositions inherit the approach decisions.
+
+### BLOCKER (2)
+
+1. **Roadmap still contradicts shipped delete/export + multiplier state** — `dev-docs/roadmap.md`
+   (Phase 1 data/API line, cross-cutting privacy note ~line 385, `settings` model ~line 397 still
+   lists `multiplier`). Fails AC1. *(= approach #1.)*
+2. **Execution plan rows not linked to backlog anchors** — `dev-docs/roadmap.md` Execution plan;
+   rows are bold text + copied detail rather than links to backlog headings. Fails AC5.
+   *(= approach #2.)*
+
+### IMPORTANT (2)
+
+3. **One non-DONE backlog heading silently excluded** — `Workflow skill defects — moved out of
+   this repo` (`reviews/backlog.md`) is neither inventoried nor named as excluded. Fails AC2.
+   *(Covered by approach #2's approved "add an exclusion row" alternative.)*
+4. **esbuild/Vite bump carried as open though the repo already satisfies it** — vite `^6.4.2` /
+   lock vite 6.4.3 + esbuild 0.25.12. *(= approach #3, deferred.)*
+
 ## Scope decision (2026-06-26)
 
 Thomas: "i approve the scope" — approved as drafted, with the three recommended dispositions:
