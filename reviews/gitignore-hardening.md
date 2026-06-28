@@ -110,6 +110,15 @@ outside the declared scope.
 false. Suggestion: remove the artifact, or update the spec/build note to admit the
 review-process artifacts as in-scope.
 
+## Decisions (2026-06-28)
+- **Approach pass:** clean (empty) — nothing to decide.
+- **Correctness BLOCKER — "Extra review artifact violates scope containment":**
+  Thomas's call = **fix**. Clarify AC4 + the Build note so scope containment is
+  about *product* files (only `.gitignore`) and explicitly exempts the
+  review-process artifacts the `/review` loop mandates committing
+  (`*.approach.json`, `*.codex.json`). No product change; doc-only, shape
+  unchanged — no re-review needed. To be applied in `/close`.
+
 ## Design decisions (2026-06-28)
 - **Scope:** Thomas approved as scoped ("ye") — implement exactly the queued
   block, `.gitignore` only; the offered extras (artifacts, editor dirs,
