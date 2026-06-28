@@ -156,6 +156,12 @@ AC → file map (docs-only story):
 - **AC6** (scope containment: docs only) — `dev-docs/roadmap.md`, `reviews/backlog.md`, and this
   story file only
 
+## Decisions (2026-06-28)
+
+Re-review (correctness-only, base 98e66b2) returned **zero findings** — nothing to decide. The
+approved fixes (#1/#2/#3) are verified applied; the deferred esbuild item (#4) stands deferred.
+Branch is clean and ready for the `/close` merge fork.
+
 ## Codex review (2026-06-28, base 98e66b2, HEAD f2e466c) — re-review, correctness-only
 
 **Summary:** *"The approved fixes were applied correctly against 98e66b2. The stale Phase 1
