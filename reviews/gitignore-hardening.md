@@ -87,6 +87,17 @@ AC→file map (all ACs satisfied by the single `.gitignore` change):
   `*.pem *.key *.p12 *.pfx *.keystore id_rsa*`.
 - **AC5** (gate): no code touched; gate green at HEAD.
 
+## Codex approach review (2026-06-28, base main, HEAD 06aeba4)
+**Verdict:** Sound shape — no approach concerns. Codex would satisfy the ACs with
+exactly the queued declarative `.gitignore` block (`.env*`, root + nested
+`.env.example` negations, then only the listed key/cert patterns); the branch does
+that, with no product code or dependency change. Changed files limited to
+`.gitignore` + the review note; manifests show no dependency/tooling abstraction
+bypassed. Native `git check-ignore` confirmed the patterns and `.env.example`
+re-inclusion.
+
+**Findings:** none (empty).
+
 ## Design decisions (2026-06-28)
 - **Scope:** Thomas approved as scoped ("ye") — implement exactly the queued
   block, `.gitignore` only; the offered extras (artifacts, editor dirs,
