@@ -181,7 +181,14 @@ story when picked up.
   cadence-aware clock (no seconds at the 1-min step) and an aggregate-only viewer
   preview beside the picker. Full story: `reviews/display-update-cadence.md`.
 
-## esbuild/vite security bump (dev-only advisory)
+## ~~esbuild/vite security bump (dev-only advisory)~~ — DONE
+- **CLOSED 2026-07-01** (Thomas) — satisfied by the current lockfile; no code change needed.
+  Verified: `client/package.json` pins `vite@^6.4.2` → lockfile resolves **vite 6.4.3**;
+  **esbuild resolves to a single 0.25.12** (≥ 0.25, patched) across the tree; `npm ci`
+  accepts the lockfile; `npm audit` reports **0 vulnerabilities** (prod *and* dev); the gate
+  (`npm test` — client + server 61 + secret-scan 14 — and `npm run build`) is green. The
+  advisory was resolved by an earlier lockfile regeneration; this item is the confirmation the
+  roadmap's Execution plan flagged ("likely already satisfied; confirm + mark DONE separately").
 - **Deferred from:** Dependabot PR #23, closed 2026-06-10 (Thomas's call).
 - **What:** A dev-server **esbuild** advisory (esbuild ≤ 0.24.2) reaches the repo
   transitively through **Vite**. The patched esbuild (`≥ 0.25`) requires Vite 6+

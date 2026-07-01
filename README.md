@@ -14,6 +14,14 @@ natively — no second app, no shared screen, no collaborate space.
 > directory. The presenter is asked to estimate each person's hourly opportunity
 > cost; the app computes the cost from those numbers and does not verify them.
 
+> **Requirements — Zoom Workplace desktop 7.1.0 or later.** The on-camera overlay
+> relies on Zoom's camera rendering context (Layers API). On desktop clients **older
+> than 7.1.0** the overlay may not appear — earlier builds (notably 6.7.8 / 7.0.2)
+> hit a Zoom-side regression where the draw call reports success but renders nothing
+> ([ZSEE-195647](https://devforum.zoom.us/t/runrenderingcontext-view-camera-drawwebview-silently-no-op-on-zoom-workplace-7-0-2-related-to-zsee-195647/143155)).
+> 7.1.0+ is the supported floor. Everything else (the side panel, saved settings)
+> works regardless.
+
 ![Meeting Cost shared screen — live total, cost/minute, elapsed time, and attendee count](dev-docs/screenshot.png)
 
 ## What's in this repo

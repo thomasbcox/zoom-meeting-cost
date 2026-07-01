@@ -1,6 +1,14 @@
 # Camera overlay — live-test matrix
 
-Status: **draft** · Created 2026-06-11 · Owner: Thomas
+> **⚠️ SUPERSEDED BY DECISION (2026-07-01) — reference only, not an active gate.** Thomas chose to
+> resolve the `drawWebView`/ZSEE-195647 live-render risk by **setting a minimum supported client
+> version (Zoom Workplace 7.1.0+) and documenting a user-facing warning** (README + docs site),
+> rather than running this matrix or building a `drawImage` fallback. The overlay is confirmed
+> working across weeks of real meetings on current builds. This document (and the operator guide)
+> are **kept for reference** in case a future issue reopens the question — they are no longer on the
+> critical path. See [`roadmap.md`](roadmap.md) → live-render callout.
+
+Status: **draft (superseded)** · Created 2026-06-11 · Owner: Thomas
 Relates to: `dev-docs/roadmap.md` (🔴 live-render risk), `reviews/camera-overlay-message-bridge.md`,
 `dev-docs/camera-overlay-no-draw.md`, `dev-docs/camera-overlay-no-update.md`,
 memory `reference-zoom-prod-unknowns-research`.
@@ -78,9 +86,12 @@ NOT available to prove the channel, which is exactly why:
   required for `drawParticipant`).
 - Build served with `VITE_USE_ZOOM=1` (RealZoom), live on the Railway/Marketplace domain.
 - Marketplace config complete for camera mode: all `ZOOM_CAPABILITIES` added under
-  Features → Add APIs (incl. `getAppContext`), and **verify whether a "Camera" / Meeting
-  Component surface must be enabled** (newer Marketplace taxonomy — unconfirmed gate; record
-  the answer here).
+  **Features → Zoom App SDK** (incl. `getAppContext`), mirroring `zoomSdk.config()`. **Surface-gate
+  question RESOLVED (2026-07-01):** there is **no** separate "Camera" / Meeting Component surface —
+  the API list under Features → Zoom App SDK (matching `config()`) + the **Domain Allow List**
+  (app URL + `appssdk.zoom.us` + CDNs) are the real gates; the Surface step just selects the
+  *product* (enable Meetings). See [`overlay-live-test-guide.md`](overlay-live-test-guide.md)
+  → Pre-flight for detail + the user-managed-app caveat.
 - Live access to the server `/api/log` stream while testing.
 - At least **two** participants when possible (one presenter, one observer) so you can confirm
   the overlay as *others* see it, not only self-view.

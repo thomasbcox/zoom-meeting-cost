@@ -35,16 +35,19 @@ single presenter, and as of 2026-06-10 the **persistence foundation is built**: 
 per-presenter rate config is stored **server-side, encrypted at rest**, keyed to the
 presenter's stable Zoom identity.
 
-> **🔴 Live-render risk (researched 2026-06-11, must verify before relying on the overlay).**
-> An active Zoom regression — **ZSEE-195647** — makes `runRenderingContext({view:'camera'})`
-> + `drawWebView()` resolve `ok:true` but render **nothing** on the camera feed on **Zoom
-> Workplace 6.7.8 / 7.0.2**; reported workaround (2026-05-02) is **`drawImage` instead of
-> `drawWebView`**. Our overlay is entirely `drawWebView`-based and logs success even when
-> blank — the exact false-success mode that has bitten us before. The overlay was confirmed
-> compositing live on 2026-06-10, so *some* client builds work, but a production user on an
-> affected build may see nothing. **Gate: a live client-version test matrix (+ a possible
-> `drawImage` fallback) before counting the overlay as production-ready.** Tracked as the
-> overlay live-test matrix story. (devforum thread 143155.)
+> **✅ Live-render risk — RESOLVED BY DECISION (2026-07-01, Thomas): set a minimum supported
+> client version, warn, and move on.** Background: an active Zoom regression — **ZSEE-195647** —
+> makes `runRenderingContext({view:'camera'})` + `drawWebView()` resolve `ok:true` but render
+> **nothing** on the camera feed on **Zoom Workplace 6.7.8 / 7.0.2** (devforum thread 143155). Our
+> overlay is entirely `drawWebView`-based and logs success even when blank. **Decision:** the overlay
+> is confirmed working across weeks of real meetings on current builds, so rather than run a
+> client-version test matrix or build a `drawImage` fallback, we **accept the risk on old builds**
+> and declare a **supported floor of Zoom Workplace 7.1.0+** (the first GA above the affected 7.0.2;
+> note: "above the bug," not a documented fix of ZSEE-195647). This is **documented as a user-facing
+> requirement/warning** — `README.md`, `docs/documentation.html` (Requirements + Troubleshooting),
+> `docs/support.html` (FAQ). **The overlay live-test matrix + `drawImage` fallback are therefore
+> DROPPED** (the matrix/guide are kept as reference only). This removes the old 🎯 keystone gate from
+> the critical path.
 
 > **Research note (2026-06-11).** The ⚠️ external unknowns this roadmap flagged
 > (Zoom monetization, billing/MoR, Marketplace review, data-compliance, camera-API config)
@@ -434,10 +437,11 @@ limits; data model kept provider-agnostic so a later switch to a Merchant of Rec
 suggestions, team libraries, integrations, and **global billing / Merchant-of-Record**
 (deferred with the US-only-first launch decision).
 
-**Critical pre-launch gates:** **verify the overlay actually composites + ticks on current
-Zoom Workplace builds** (the `drawWebView`/ZSEE-195647 live-test matrix — possible
-`drawImage` fallback); finish Phase 1 privacy controls (delete/export + policy) **and the
-mandatory deauthorization/data-compliance endpoint**; turn on the shipped store (config);
+**Critical pre-launch gates:** ~~verify the overlay composites on current builds~~ **(resolved by
+decision — min-version 7.1.0+ floor + documented warning; the `drawWebView`/ZSEE-195647 live-test
+matrix and `drawImage` fallback are dropped)**; finish Phase 1 privacy controls (delete/export +
+policy) **and the mandatory deauthorization/data-compliance endpoint**; turn on the shipped store
+(config);
 the **Phase 6A publishing gate** (deauth endpoint, minimal scopes, privacy policy,
 surface-config check); and dev/prod credential isolation.
 
@@ -464,7 +468,7 @@ only the *sequence* — phase, dependencies, gate. The *what/why* stays in the l
 
 | Item (→ detail) | Phase | Depends on | Gate |
 |------|-------|-----------|------|
-| [Overlay live-test matrix](overlay-live-test-matrix.md) | 0.5 | — | 🎯 ⛔ |
+| ~~[Overlay live-test matrix](overlay-live-test-matrix.md)~~ — ✅ **DROPPED 2026-07-01** (resolved by decision: min-version 7.1.0+ floor + user-facing warning; no matrix run, no `drawImage` fallback) | 0.5 | — | 🎯 ⛔→✅ |
 | Operator config (add `getAppContext`, Volume + `DATA_DIR`, `RATE_STORE_KEY`) | 1 | — | 🚧 |
 | [Client UI for data delete / export](../reviews/backlog.md#client-ui-for-data-delete--export--privacy-page-update) (+ privacy-page self-serve) | 1 | operator config | 🚧 |
 | [Zoom deauthorization / data-compliance webhook](../reviews/backlog.md#zoom-deauthorization--data-compliance-webhook) | 1 / 6A | `purgeUser` ✅; identity-mapping check | ⛔ |
@@ -473,14 +477,14 @@ only the *sequence* — phase, dependencies, gate. The *what/why* stays in the l
 | Free vs Pro entitlements | 3 | persistence live (Phase 1) | 🚧 |
 | Billing — Zoom-native, US-only | 4 | entitlements (Phase 3) | 🚧 |
 | Publishing-gate bundle (minimal scopes, [CSP exact-origin pin](../reviews/backlog.md#csp-hardening--pin-to-exact-origins), privacy policy, surface-config, dev/prod isolation) | 6A | features ~frozen; live host known | ⛔ |
-| [In-Zoom client-error hardening](../reviews/backlog.md#in-zoom-client-error-hardening-camera-overlay-flow) | — | live-test matrix in flight | 🔧 |
+| [In-Zoom client-error hardening](../reviews/backlog.md#in-zoom-client-error-hardening-camera-overlay-flow) | — | in-Zoom verification (normal meetings) | 🔧 |
 | [Overlay auto-recover — sub-1.5 s flicker miss](../reviews/backlog.md#overlay-auto-recover-misses-very-brief-camera-off-flickers) | — | — | 🔧 |
-| `drawWebView` `webviewId` contradiction → [live-test matrix](overlay-live-test-matrix.md) | — | live-test matrix | 🔧 |
+| ~~`drawWebView` `webviewId` contradiction~~ — ✅ settled in practice (`webviewId:'camera'` composites across weeks of live meetings) | — | — | 🔧→✅ |
 | [Server process-level crash guards](../reviews/backlog.md#server-process-level-crash-guards) | 6B | — | 🔧 |
 | [Ruleset-as-code](../reviews/backlog.md#ruleset-as-code-single-source-of-truth-for-branch-protection) | 6B | — | 🔧 |
-| [esbuild / Vite dev-only bump](../reviews/backlog.md#esbuildvite-security-bump-dev-only-advisory) — ⚠️ **likely already satisfied** (lock resolves vite 6.4.3 / esbuild 0.25.12); confirm + mark the backlog item DONE separately | 6B | — | 🔧 |
+| ~~[esbuild / Vite dev-only bump](../reviews/backlog.md#esbuildvite-security-bump-dev-only-advisory)~~ — ✅ **DONE 2026-07-01** (verified satisfied: vite 6.4.3 / esbuild 0.25.12, `npm ci` clean, 0 vulns, gate green) | 6B | — | 🔧 |
 | Production ops (backups, `RATE_STORE_KEY` rotation, monitoring) | 6B | launch | 🔧 |
-| [Retire shape-only diagnostics probe](../reviews/backlog.md#retire-the-shape-only-diagnostics-probe-once-stable) | — | overlay stable (live-test done) | 🧹 |
+| [Retire shape-only diagnostics probe](../reviews/backlog.md#retire-the-shape-only-diagnostics-probe-once-stable) | — | overlay stable ✅ (matrix dropped; probe can now be retired) | 🧹 |
 | [Notetakers default to $1/hr](../reviews/backlog.md#identify-notetakers-and-default-them-to-1hr) (off the critical path) | 2-adjacent | per-participant model ✅ | ✨ |
 | Phase 5 paid features (CSV, history, templates, dup-detection, team libraries, integrations) | 5 | entitlements + billing | ✨ |
 | Global billing / Merchant-of-Record | 4 (later) | US launch | ✨ |
@@ -491,8 +495,10 @@ frame→review→close skills — so it is deliberately omitted from the sequenc
 
 ### Critical path to first paid launch (ordered)
 
-1. **🎯 Overlay live-test matrix** — de-risk the core feature; nothing user-facing is
-   production-ready until the overlay is proven to composite on current builds. **Do this first.**
+1. ~~**🎯 Overlay live-test matrix**~~ — **DROPPED 2026-07-01** (resolved by decision: min-version
+   **7.1.0+** floor + user-facing warning, documented in README / docs site; no matrix run, no
+   `drawImage` fallback). The core-feature risk is now an accepted, documented constraint rather than
+   a gate — **so the critical path now starts at Phase 1.**
 2. **Finish Phase 1** — operator config (turn the shipped store on) → data delete/export **UI**
    + privacy-page self-serve → **deauth/data-compliance webhook** (the hard ⛔ gate; build it
    close to submission).
@@ -506,11 +512,12 @@ frame→review→close skills — so it is deliberately omitted from the sequenc
 
 ### Parallel tracks (not on the critical path)
 
-- **In-Zoom UX hardening** — client-error hardening, the sub-1.5 s flicker miss, and the
-  `drawWebView` `webviewId` contradiction. Tied to the live-test matrix; fold in while that runs.
+- **In-Zoom UX hardening** — client-error hardening and the sub-1.5 s flicker miss. (The
+  `drawWebView` `webviewId` contradiction is settled in practice.) Verify against normal meetings
+  on a 7.1.0+ client; no dedicated matrix run.
 - **Ops & CI** (Phase 6B) — crash guards, ruleset-as-code, esbuild/Vite bump. Independent of the
   feature path; pick up between feature stories. (Backups / key-rotation / monitoring wait for
   launch.)
-- **Cleanup** — retire the diagnostics probe *after* the overlay is stable (it relies on the probe
-  today — don't remove it while live-testing is in flight).
+- **Cleanup** — retire the diagnostics probe. Previously gated on the live-test matrix; with the
+  matrix dropped and the overlay stable in practice, it can be retired whenever convenient.
 - **Off-path feature** — notetakers at $1/hr; synergises with harvest but isn't required for MVP.
