@@ -111,3 +111,15 @@ or dependency; no product code. Per the frame protocol, the Codex design review 
   backlog closure (AC6) all ship in this one story.
 - **No design findings** — mechanical docs story; Codex design review skipped by protocol. No
   one-way-door decisions.
+
+## Build note (2026-07-01)
+
+AC → file map:
+- **AC1** (README requirement) → `README.md`
+- **AC2** (Requirements callout + Troubleshooting) → `docs/documentation.html`
+- **AC3** (FAQ entry) → `docs/support.html`
+- **AC4** (honest "floor above 7.0.2" framing) → `README.md`, `docs/documentation.html`, `docs/support.html`
+- **AC5** (gate DROPPED + SUPERSEDED banners) → `dev-docs/roadmap.md`, `dev-docs/overlay-live-test-matrix.md`, `dev-docs/overlay-live-test-guide.md`
+- **AC6** (esbuild/Vite closure) → `reviews/backlog.md`, `dev-docs/roadmap.md`
+- **AC7** (dates → 2026-07-01) → all edited files
+- **AC8** (scope containment) → whole diff (docs only; no `client/`/`server/`)
