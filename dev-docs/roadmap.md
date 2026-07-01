@@ -91,8 +91,8 @@ re-architecture**:
 
 | Area | Status | Evidence |
 |------|--------|----------|
-| Cost meter + overlay | ✅ shipped · ⚠️ live-render risk | camera Layers API; `buildOverlayState` emits aggregates only (`status, totalCost, costPerSecond, elapsedSeconds, attendees, currency, prefs:{}`). ⚠️ `drawWebView` may silently no-op on Zoom Workplace 6.7.8/7.0.2 (ZSEE-195647) — see live-render callout above |
-| Overlay data channel (panel→camera) | ✅ verified live 1:1 (prior build) | `postMessage`→`onMessage` matches the canonical sample; **verified live 1:1** (panel `postMessage ok` ↔ camera `overlay-message`, per-second) at PR #17 (`overlay-payload-parse`, `overlay-logging-quiet`). Open risk is **rendering** on *current* builds, not the channel — re-confirm via the live-test matrix |
+| Cost meter + overlay | ✅ shipped · min-version 7.1.0+ | camera Layers API; `buildOverlayState` emits aggregates only (`status, totalCost, costPerSecond, elapsedSeconds, attendees, currency, prefs:{}`). `drawWebView` may no-op on Zoom Workplace 6.7.8/7.0.2 (ZSEE-195647) → **accepted risk on clients < 7.1.0**, documented as a min-version requirement (see live-render callout above); no matrix |
+| Overlay data channel (panel→camera) | ✅ verified live 1:1 (prior build) | `postMessage`→`onMessage` matches the canonical sample; **verified live 1:1** (panel `postMessage ok` ↔ camera `overlay-message`, per-second) at PR #17 (`overlay-payload-parse`, `overlay-logging-quiet`). Rendering on old builds is **accepted risk** (min-version 7.1.0+; matrix dropped), not a channel issue |
 | **Privacy invariant** | ✅ holds | overlay payload carries **no** names/rates/aliases; `prefs:{}` "never carries private data" (`lib/overlayState.js`) |
 | Cost models | ✅ shipped · 🔄 2026-06-26 | per-participant table **and** simple `N × averageRate` (`lib/cost.js`, `usePresenterStore.js`). The loaded-cost **multiplier was removed** (PR #49); legacy blobs round-trip and the field is ignored |
 | Matching / dedupe primitives | ✅ shipped | `lib/normalize.js`, `lib/matching.js` (`buildRateIndex`, `buildAliasIndex`, `resolveAll`); rate rules + aliases + per-meeting overrides |
@@ -341,11 +341,13 @@ These must be done **before** Marketplace submission / first paid user:
   deauth webhook from Phase 1 (delete **all** `uid`-scoped data within 10 days, POST
   `/oauth/data/compliance`) and set the Deauthorization Notification Endpoint URL in the app
   config. **Cannot publish without this** given we store per-user data.
-- **⚠️ Confirm camera-mode surface config:** verify in the live dashboard whether the app
-  must be classified as a **Meeting Component / have a "Camera" surface enabled** (newer
-  Marketplace taxonomy) beyond just adding the Layers SDK capabilities — capability-only is
-  confirmed working via the sample but the surface gate is unconfirmed. (Tied to the overlay
-  live-test matrix.)
+- **✅ Camera-mode surface config (resolved 2026-07-01):** there is **no** separate "Camera" /
+  Meeting Component surface to enable. The Marketplace-config check reduces to a plain checklist:
+  camera/Layers capabilities added under **Features → Zoom App SDK** (mirroring `zoomSdk.config()`),
+  plus the **Domain Allow List** (app URL + `appssdk.zoom.us` + CDNs); the Surface step just selects
+  the *product* (enable Meetings). **No live-test-matrix dependency.** (Detail:
+  [`overlay-live-test-guide.md`](overlay-live-test-guide.md) → Pre-flight; memory
+  `reference-zoom-prod-unknowns-research`.)
 - **Minimal scopes:** request only what's used (✅ today: `zoomapp:inmeeting`,
   `meeting:read:participant`/capability; drop `user:read:email` unless email matching ships).
 - **Privacy policy + data-handling doc:** what's stored, where, encryption posture
@@ -482,7 +484,7 @@ only the *sequence* — phase, dependencies, gate. The *what/why* stays in the l
 | ~~`drawWebView` `webviewId` contradiction~~ — ✅ settled in practice (`webviewId:'camera'` composites across weeks of live meetings) | — | — | 🔧→✅ |
 | [Server process-level crash guards](../reviews/backlog.md#server-process-level-crash-guards) | 6B | — | 🔧 |
 | [Ruleset-as-code](../reviews/backlog.md#ruleset-as-code-single-source-of-truth-for-branch-protection) | 6B | — | 🔧 |
-| ~~[esbuild / Vite dev-only bump](../reviews/backlog.md#esbuildvite-security-bump-dev-only-advisory)~~ — ✅ **DONE 2026-07-01** (verified satisfied: vite 6.4.3 / esbuild 0.25.12, `npm ci` clean, 0 vulns, gate green) | 6B | — | 🔧 |
+| [esbuild / Vite dev-only bump](../reviews/backlog.md#esbuildvite-security-bump-dev-only-advisory--advisory-resolved-graph-cleanup-pending) — advisory ✅ resolved (0 vulns, esbuild 0.25.12); **graph cleanup pending** (`npm ls` invalid via vitest→vite@8, [tracked separately](../reviews/backlog.md#reconcile-vitestvite8--esbuild-peer-conflict-clean-npm-ls)) | 6B | — | 🔧 |
 | Production ops (backups, `RATE_STORE_KEY` rotation, monitoring) | 6B | launch | 🔧 |
 | [Retire shape-only diagnostics probe](../reviews/backlog.md#retire-the-shape-only-diagnostics-probe-once-stable) | — | overlay stable ✅ (matrix dropped; probe can now be retired) | 🧹 |
 | [Notetakers default to $1/hr](../reviews/backlog.md#identify-notetakers-and-default-them-to-1hr) (off the critical path) | 2-adjacent | per-participant model ✅ | ✨ |

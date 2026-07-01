@@ -181,14 +181,18 @@ story when picked up.
   cadence-aware clock (no seconds at the 1-min step) and an aggregate-only viewer
   preview beside the picker. Full story: `reviews/display-update-cadence.md`.
 
-## ~~esbuild/vite security bump (dev-only advisory)~~ — DONE
-- **CLOSED 2026-07-01** (Thomas) — satisfied by the current lockfile; no code change needed.
-  Verified: `client/package.json` pins `vite@^6.4.2` → lockfile resolves **vite 6.4.3**;
-  **esbuild resolves to a single 0.25.12** (≥ 0.25, patched) across the tree; `npm ci`
+## esbuild/vite security bump (dev-only advisory) — advisory resolved; graph cleanup pending
+- **STATUS 2026-07-01 (Thomas):** the **security advisory is resolved**, but the item is **NOT
+  fully closed** — the dependency graph is not clean. Verified: `client/package.json` pins
+  `vite@^6.4.2` → lockfile resolves **vite 6.4.3** → **esbuild 0.25.12** (≥ 0.25, patched); `npm ci`
   accepts the lockfile; `npm audit` reports **0 vulnerabilities** (prod *and* dev); the gate
-  (`npm test` — client + server 61 + secret-scan 14 — and `npm run build`) is green. The
-  advisory was resolved by an earlier lockfile regeneration; this item is the confirmation the
-  roadmap's Execution plan flagged ("likely already satisfied; confirm + mark DONE separately").
+  (`npm test && npm run build`) is green. **However** `npm ls vite esbuild --all` exits `ELSPROBLEMS`:
+  `vitest@4.1.8` pulls a nested **`vite@8.0.16`** that requires esbuild `^0.27.0 || ^0.28.0`, while
+  the tree dedupes esbuild `0.25.12` → marked **invalid**. So the original advisory (esbuild ≤ 0.24.2,
+  via the client's Vite 6) is gone, but a *new* peer inconsistency exists on the vitest→vite@8 path.
+  **Full closure = a clean `npm ls`**, which needs a lockfile reconciliation → tracked as its own item
+  below (*"Reconcile vitest→vite@8 / esbuild peer conflict"*). Surfaced by the min-client-version-warning
+  review (Codex BLOCKER, `reviews/min-client-version-warning.md`).
 - **Deferred from:** Dependabot PR #23, closed 2026-06-10 (Thomas's call).
 - **What:** A dev-server **esbuild** advisory (esbuild ≤ 0.24.2) reaches the repo
   transitively through **Vite**. The patched esbuild (`≥ 0.25`) requires Vite 6+
@@ -208,6 +212,23 @@ story when picked up.
   `≥ 0.25`; the gate stays green. **Do it ideally alongside a CI job** (`npm ci` + the
   test suite on PRs) so future Dependabot PRs are auto-gated — a CI `npm ci` would have
   caught PR #23's broken lockfile automatically. See backlog **#3 Part C**.
+
+## Reconcile vitest→vite@8 / esbuild peer conflict (clean `npm ls`)
+- **Surfaced:** 2026-07-01, min-client-version-warning review (Codex BLOCKER).
+- **What:** `npm ls vite esbuild --all` exits `ELSPROBLEMS`. `vitest@4.1.8` pulls a nested
+  **`vite@8.0.16`** that requires esbuild `^0.27.0 || ^0.28.0`, but the tree dedupes esbuild
+  **`0.25.12`** (what the client's Vite 6 uses), leaving vite@8's esbuild dep **invalid**. `npm ci`
+  still installs and `npm audit` is clean (0 vulns), so it is **not a live vulnerability** — but the
+  dependency graph is inconsistent and a fresh `npm install` could reshuffle it.
+- **Why:** a clean, reproducible dependency graph; unblocks marking the esbuild-advisory item above
+  fully DONE.
+- **Options (decide when picked up):** (a) regenerate the lockfile so vite@8 carries its own nested
+  esbuild 0.27+ instead of an invalid dedupe to 0.25.12; (b) pin/align vitest so it doesn't pull a
+  vite@8 needing a newer esbuild; (c) bump esbuild to a version both Vite 6 and Vite 8 accept, if one
+  exists. Touches `package-lock.json` (± `client/package.json`) — its **own `/frame` story**, not
+  docs-only.
+- **Done looks like:** `npm ls vite esbuild --all` exits clean (no `ELSPROBLEMS`); gate stays green;
+  the esbuild-advisory item above can be marked DONE.
 
 ## Rate-table memory across meetings + harvest attendee names into it
 - **Requested:** 2026-06-08 (Thomas).

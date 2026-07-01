@@ -182,3 +182,21 @@ Thomas: **"fix both please"** — both findings (raised in both passes) approved
    "re-confirm via the live-test matrix"; Phase 6A camera-surface → restate as a plain
    Marketplace-config check (caps under Features → Zoom App SDK + domain allowlist), surface question
    **resolved**, no matrix dependency.
+
+## Fixes (2026-07-01)
+
+Both approved findings applied (docs-only; gate re-run green):
+
+1. **BLOCKER — dependency closure reworded (not DONE).** `reviews/backlog.md`: the esbuild/Vite item
+   heading changed from "~~…~~ — DONE" to "advisory resolved; graph cleanup pending"; the closure note
+   now states the honest split — the **advisory (esbuild ≤0.24.2) is resolved** (0 vulns, esbuild
+   0.25.12, `npm ci`/gate clean) **but** `npm ls vite esbuild --all` is `ELSPROBLEMS`
+   (vitest@4.1.8→vite@8.0.16 wants esbuild ^0.27/^0.28; tree has 0.25.12, invalid). Added a **new
+   tracked item** "Reconcile vitest→vite@8 / esbuild peer conflict (clean `npm ls`)" as its own
+   future `/frame` story (touches `package-lock.json`, out of this docs-only scope). `dev-docs/roadmap.md`
+   exec-plan row changed from "✅ DONE" to "advisory resolved; graph cleanup pending (tracked separately)".
+2. **IMPORTANT — roadmap made the single authority.** `dev-docs/roadmap.md`: Current-state "Cost meter"
+   row → "min-version 7.1.0+ / accepted risk < 7.1.0, no matrix"; "Overlay data channel" row → dropped
+   "re-confirm via the live-test matrix" → "accepted risk (min-version 7.1.0+; matrix dropped)"; Phase 6A
+   camera-surface bullet → "resolved: no separate surface" + plain Marketplace-config checklist, no
+   matrix dependency.
