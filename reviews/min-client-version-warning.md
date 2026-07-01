@@ -200,3 +200,9 @@ Both approved findings applied (docs-only; gate re-run green):
    "re-confirm via the live-test matrix" → "accepted risk (min-version 7.1.0+; matrix dropped)"; Phase 6A
    camera-surface bullet → "resolved: no separate surface" + plain Marketplace-config checklist, no
    matrix dependency.
+
+## Build note (2026-07-01, re-review of fixes)
+
+Correctness-only re-review, base = last-reviewed SHA `76fc37f`. Verifies the two approved fixes
+(commit `d2ff5b2`): BLOCKER → `reviews/backlog.md` + `dev-docs/roadmap.md` (esbuild reword + new
+tracking item); IMPORTANT → `dev-docs/roadmap.md` (current-state rows + Phase 6A camera-surface).
