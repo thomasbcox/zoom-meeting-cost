@@ -123,3 +123,31 @@ AC → file map:
 - **AC6** (esbuild/Vite closure) → `reviews/backlog.md`, `dev-docs/roadmap.md`
 - **AC7** (dates → 2026-07-01) → all edited files
 - **AC8** (scope containment) → whole diff (docs only; no `client/`/`server/`)
+
+## Codex approach review (2026-07-01, base main, HEAD f52e570)
+
+**Verdict:** Not sound as-is — the docs/decision shape is right, but the branch (a) closes the
+esbuild/Vite dependency item on an **invalid dependency graph** and (b) leaves **contradictory
+roadmap gates** behind. Both verified independently by Claude.
+
+### BLOCKER — Dependency closure is not backed by a clean graph  _(two-way · nonstandard)_
+- **Locus:** `reviews/backlog.md` (esbuild item), `dev-docs/roadmap.md` (exec-plan row), `package-lock.json`.
+- **Claim (VERIFIED):** `npm ls vite esbuild --all` exits `ELSPROBLEMS`. `vitest@4.1.8` pulls
+  `vite@8.0.16`, which requires esbuild `^0.27.0 || ^0.28.0`, but the tree has only esbuild
+  `0.25.12` → marked **invalid**. The closure prose ("single esbuild 0.25.12 across the tree,"
+  clean state) overclaims. (The *security advisory* — esbuild ≤0.24.2 — is still resolved: 0 vulns.)
+- **Alternative:** reconcile manifest/lock so `npm ls` is clean, **or** reword the item to the narrow
+  verified fact (advisory resolved / 0 vulns) and track the vite@8↔esbuild peer conflict separately.
+- **Win:** no false DONE on dependency-security work; one reproducible package state.
+
+### IMPORTANT — Dropped gate still exists as roadmap guidance  _(two-way · kludgy)_
+- **Locus:** `dev-docs/roadmap.md:94–95` (Current state rows), `:342–348` (Phase 6A camera-surface).
+- **Claim (VERIFIED):** the Execution plan + top callout say the matrix is dropped, but the Current
+  state "Overlay data channel" row still says "re-confirm via the live-test matrix," the "Cost meter"
+  row is still tagged "⚠️ live-render risk," and Phase 6A still carries a camera-surface confirmation
+  "tied to the live-test matrix" — though the surface question was resolved (no separate surface).
+  Competing sources of truth.
+- **Alternative:** make `roadmap.md` the single authority — current-state rows → accepted-risk-below-7.1.0
+  (no matrix); Phase 6A camera-surface → either drop (resolved) or keep as a plain Marketplace-config
+  check with no matrix dependency. Matrix/guide stay archived reference.
+- **Win:** eliminates a zombie gate; prevents future work resurrecting the dropped matrix.
