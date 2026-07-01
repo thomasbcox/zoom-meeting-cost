@@ -151,3 +151,34 @@ roadmap gates** behind. Both verified independently by Claude.
   (no matrix); Phase 6A camera-surface → either drop (resolved) or keep as a plain Marketplace-config
   check with no matrix dependency. Matrix/guide stay archived reference.
 - **Win:** eliminates a zombie gate; prevents future work resurrecting the dropped matrix.
+
+## Codex review (2026-07-01, base main, HEAD 76fc37f)
+
+**Summary:** Not sound as-is — same two issues the approach pass raised; no new line-level findings.
+(Codex couldn't run the gate in its read-only sandbox — EPERM on Vite's `.vite-temp`; the gate was
+verified green locally.)
+
+- **BLOCKER — Dependency closure not backed by a clean graph** (`reviews/backlog.md:187`,
+  `dev-docs/roadmap.md:485`): duplicate of the approach BLOCKER. `npm ls vite esbuild --all` →
+  `ELSPROBLEMS` (vitest→vite@8.0.16 wants esbuild ^0.27/^0.28; tree has 0.25.12, invalid). AC6's
+  "clean state" overclaims.
+- **IMPORTANT — Dropped gate still exists as roadmap guidance** (`dev-docs/roadmap.md:95`, `:344–348`):
+  duplicate of the approach IMPORTANT. Current-state rows + Phase 6A camera-surface still reference the
+  dropped matrix / unresolved surface question.
+
+## Decisions (2026-07-01)
+
+Thomas: **"fix both please"** — both findings (raised in both passes) approved for **FIX**.
+
+1. **BLOCKER (dependency closure) → FIX, as a docs reword (scope stays docs-only).** Do **not** mark
+   the esbuild/Vite item DONE. Reword the backlog item + roadmap row to the *verified* state: the
+   **security advisory (esbuild ≤0.24.2) is resolved** (0 vulns; esbuild 0.25.12), **but** the
+   dependency graph is **invalid** — `vitest@4.1.8 → vite@8.0.16` requires esbuild ^0.27/^0.28 while
+   the tree has 0.25.12 (`npm ls` ELSPROBLEMS). Keep the item **open**, record the newly-surfaced
+   graph conflict, and note that reconciling the lockfile (bump esbuild / pin vitest's vite) is a
+   **separate story** touching `package-lock.json` (out of this docs-only scope).
+2. **IMPORTANT (roadmap consistency) → FIX.** Make `roadmap.md` the single authority: Current-state
+   "Cost meter" row → accepted-risk-below-7.1.0 (no matrix); "Overlay data channel" row → drop
+   "re-confirm via the live-test matrix"; Phase 6A camera-surface → restate as a plain
+   Marketplace-config check (caps under Features → Zoom App SDK + domain allowlist), surface question
+   **resolved**, no matrix dependency.
