@@ -206,3 +206,14 @@ Both approved findings applied (docs-only; gate re-run green):
 Correctness-only re-review, base = last-reviewed SHA `76fc37f`. Verifies the two approved fixes
 (commit `d2ff5b2`): BLOCKER → `reviews/backlog.md` + `dev-docs/roadmap.md` (esbuild reword + new
 tracking item); IMPORTANT → `dev-docs/roadmap.md` (current-state rows + Phase 6A camera-surface).
+
+## Codex review (2026-07-01, base 76fc37f, HEAD 0c2a032) — re-review
+
+**Summary:** Re-review **passed, no findings.** The esbuild/Vite item is no longer marked DONE, the
+invalid vitest→vite@8→esbuild graph is explicitly called out and tracked separately, and the roadmap's
+changed sections consistently describe the overlay matrix as dropped and the camera-surface question as
+resolved / plain Marketplace configuration. No new problems versus 76fc37f.
+
+## Decisions (2026-07-01, re-review)
+
+Clean re-review — **zero findings, nothing to fix.** Both prior-round fixes verified correct.
