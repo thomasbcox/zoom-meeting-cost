@@ -149,3 +149,13 @@ dependency, no duplicated framework behavior, no new abstraction, no hand-rolled
 subsystem for a single line. No high-leverage approach concerns.
 
 _Empty findings → shape blessed; proceeded to the correctness pass in the same round._
+
+## Codex review (2026-07-01, base main, HEAD f4f45e7)
+
+**Summary: no code issues.** The branch matches the approved diagnostic scope:
+`requireIdentity` logs a guarded `AppContextError` reason to stderr, preserves the opaque
+401 and silent 503 paths, and adds focused coverage. (Codex could not execute the tests —
+sandbox `EPERM` on `listen(0)`, the same real-socket pattern the existing suite uses; the
+gate was run green locally before this pass.)
+
+No findings.
