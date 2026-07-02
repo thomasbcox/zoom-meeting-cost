@@ -1,5 +1,7 @@
 import { useState } from 'react';
 
+import BuildBadge from './BuildBadge.jsx';
+
 // Prototype harness bar. In real Zoom, identity comes from the SDK and
 // participants come from Zoom events — none of this UI would be shown. It exists
 // so you can simulate participants joining/leaving (mock only) and rename
@@ -24,6 +26,10 @@ export default function RoleBar({ myName, setMyName, adapter, participants }) {
           {isMock ? 'Mock prototype mode' : 'Real Zoom mode'}
         </span>
         {isMock && <span className="proto-tag">PROTOTYPE</span>}
+
+        {/* Which build is running (env + short commit) — reflects the actual loaded
+            bundle, so it can reveal a stale cached webview vs the live server. */}
+        <BuildBadge />
 
         <label className="rb-field">
           Your name

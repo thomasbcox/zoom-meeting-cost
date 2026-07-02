@@ -6,6 +6,7 @@ import SdkBlockedError from './components/SdkBlockedError.jsx';
 import { getZoomAdapter } from './zoom/zoomAdapter.js';
 import { renderModeFor } from './lib/renderMode.js';
 import { logLifecycle } from './lib/lifecycleLog.js';
+import { buildInfo } from './lib/buildInfo.js';
 
 // Top-level router. Resolves the Zoom adapter once, reads the running context,
 // and mounts the right tree:
@@ -40,6 +41,10 @@ export default function Root() {
           runningContext,
           rawContext,
           routedMode: renderModeFor(runningContext),
+          // Which build produced this bundle — env + FULL commit SHA (not shortened),
+          // so the log line matches Railway deploy metadata directly.
+          env: buildInfo.env,
+          commit: buildInfo.commit,
         });
         setBoot({
           adapter,

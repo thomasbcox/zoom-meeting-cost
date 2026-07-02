@@ -10,6 +10,10 @@ import * as userData from './userData.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// When this server process booted — reported by /api/version so a stale/long-running
+// deploy is visible. (env + commit come from Railway's runtime vars; see build-env-stamp.)
+const STARTED_AT = new Date().toISOString();
+
 // Zoom REQUIRES these OWASP secure headers on HTML responses. Without them the
 // Zoom client refuses to render the app — a blank white screen, with a
 // "Missing OWASP Secure Headers" error in the Zoom client console. We set them
@@ -89,6 +93,19 @@ export function createApp({
   // --- Health / debug -------------------------------------------------------
   app.get('/api/health', (_req, res) => {
     res.json({ ok: true, zoomConfigured });
+  });
+
+  // Build/version stamp — which environment + git commit this server is running, so you
+  // can tell dev from prod from a browser without opening Zoom (see build-env-stamp.md).
+  // Public + non-sensitive (no identity gate): env name, deployed commit, boot time.
+  // Railway injects RAILWAY_ENVIRONMENT_NAME + RAILWAY_GIT_COMMIT_SHA at runtime; a local
+  // run (neither set) reports 'local'/'unknown'.
+  app.get('/api/version', (_req, res) => {
+    res.json({
+      env: process.env.RAILWAY_ENVIRONMENT_NAME || 'local',
+      commit: process.env.RAILWAY_GIT_COMMIT_SHA || 'unknown',
+      startedAt: STARTED_AT,
+    });
   });
 
   app.post('/api/log', (req, res) => {
