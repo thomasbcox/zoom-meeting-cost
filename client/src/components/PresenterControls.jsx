@@ -1,5 +1,6 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { formatMoney, simpleCountCommit } from '../lib/cost.js';
+import { displayDraft } from '../lib/numberInputDraft.js';
 import { sessionControls } from '../lib/sessionControls.js';
 import { DISPLAY_INTERVALS, DISPLAY_INTERVAL_LABELS } from '../lib/displayCadence.js';
 import { SourceBadge } from './SharedCostScreen.jsx';
@@ -256,6 +257,7 @@ function RateTableEditor({ config, actions }) {
         <input
           placeholder="$/hr"
           type="number"
+          min="0"
           value={rate}
           onChange={(e) => setRate(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && add()}
@@ -337,6 +339,7 @@ function OverridesEditor({ resolved, overrides, actions }) {
                 <input
                   className="inline num"
                   type="number"
+                  min="0"
                   placeholder="override"
                   value={overrides[p.id] ?? ''}
                   onChange={(e) => actions.setOverride(p.id, e.target.value)}
@@ -360,11 +363,25 @@ function NumberInput({ value, onCommit, step = '1', prefix, suffix }) {
   // Local draft so typing isn't fought by clamping; re-synced from `value` on
   // focus and committed on blur/Enter.
   const [draft, setDraft] = useState(String(value ?? ''));
+  // Explicit focus state drives the draft-resync decision below. Kept SEPARATE from
+  // focusedValueRef (which stays purely the original-focus-value guard): making focus
+  // real state means a blur (isFocused true→false) re-runs the effect and resyncs the
+  // draft from `value` even when `value` itself didn't change — e.g. a committed -1 that
+  // clamps back to the same 0. (Codex design review 2026-07-02.)
+  const [isFocused, setIsFocused] = useState(false);
   // The value shown at focus time. Commit ONLY when the draft actually changed,
   // so an untouched focus/blur never writes — otherwise, for the attendee-count
   // field, a stray blur (or `value` moving while focused, e.g. the live count)
   // would pin "track the live count" to a fixed number. (Codex review 2026-06-08.)
   const focusedValueRef = useRef(null);
+
+  // Keep the draft in sync with the external value while NOT focused, so an async-loaded
+  // (server-hydrated) value replaces the stale mounted default, and a clamped commit shows
+  // its clamped result after blur. While focused, the user owns the draft (never clobbered).
+  useEffect(() => {
+    if (isFocused) return;
+    setDraft((cur) => displayDraft({ value, isFocused: false, currentDraft: cur }));
+  }, [value, isFocused]);
 
   const commitIfChanged = () => {
     if (focusedValueRef.current == null) return; // not focused / already committed
@@ -379,14 +396,19 @@ function NumberInput({ value, onCommit, step = '1', prefix, suffix }) {
       <input
         type="number"
         step={step}
+        min="0"
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         onFocus={() => {
           const s = String(value ?? '');
           setDraft(s);
           focusedValueRef.current = s;
+          setIsFocused(true);
         }}
-        onBlur={commitIfChanged}
+        onBlur={() => {
+          commitIfChanged();
+          setIsFocused(false);
+        }}
         onKeyDown={(e) => {
           if (e.key === 'Enter') {
             commitIfChanged();
