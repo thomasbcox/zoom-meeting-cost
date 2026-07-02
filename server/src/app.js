@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 import express from 'express';
 
 import { createOAuthRouter, zoomConfigured } from './zoom/oauth.js';
-import { resolveUid } from './zoom/appContext.js';
+import { resolveUid, AppContextError } from './zoom/appContext.js';
 import { isConfigured as rateStoreConfigured } from './store/rateCrypto.js';
 import * as rateStore from './store/rateStore.js';
 import * as userData from './userData.js';
@@ -123,7 +123,15 @@ export function createApp({
     try {
       req.uid = resolveUid(req.get('x-zoom-app-context'), { clientId, clientSecret });
       return next();
-    } catch {
+    } catch (err) {
+      // Log WHY the context was rejected so a 401 is diagnosable (decrypt failed /
+      // aud mismatch / expired / no uid). AppContextError.message is a fixed reason
+      // string (or `decrypt failed: <node crypto message>`) — it never embeds the
+      // context blob or the client secret, so logging it is safe. Guard on the type
+      // so an unexpected non-context throw can't spill an arbitrary message. The
+      // reason is server-log-only: the client still gets an opaque 401.
+      const reason = err instanceof AppContextError ? err.message : 'non-context error';
+      console.error(`[server] app-context rejected: ${reason}`);
       return res.status(401).json({ error: 'invalid-app-context' });
     }
   }
