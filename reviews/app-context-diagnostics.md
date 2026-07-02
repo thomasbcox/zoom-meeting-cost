@@ -123,3 +123,29 @@ questions resolved to the recommended defaults:
    once the logged reason is known from a real session, is a separate story.
 
 This shape is now binding on implementation.
+
+## Build note (2026-07-01)
+
+AC → file map:
+
+- **AC1** (reason logged to stderr with `[server]` prefix): `server/src/app.js`
+  (`requireIdentity` catch block) · test `server/test/identityLog.test.js`.
+- **AC2** (blob/secret never logged): `server/src/app.js` (logs `AppContextError.message`
+  only, `instanceof`-guarded) · test `server/test/identityLog.test.js`.
+- **AC3** (response unchanged `401 invalid-app-context`): `server/src/app.js` · test
+  `server/test/identityLog.test.js`.
+- **AC4** (503 `identity-unconfigured` path emits no reason log): `server/src/app.js`
+  (503 returns before the try/catch) · test `server/test/identityLog.test.js`.
+
+## Codex approach review (2026-07-01, base main, HEAD f4f45e7)
+
+**Verdict: Sound approach — no findings.** Codex's own AC sketch matched the approved
+shape exactly: keep `requireIdentity` as the gate, catch `resolveUid()` failures, log one
+stderr line with the `[server]` prefix, derive the reason only from
+`AppContextError.message` with a safe fallback, leave the 401/503 contracts unchanged, and
+cover reason/redaction/response/503-silent with focused server tests. After reading the
+log, diff, full changed files, and manifests, the implementation matches: no new
+dependency, no duplicated framework behavior, no new abstraction, no hand-rolled logging
+subsystem for a single line. No high-leverage approach concerns.
+
+_Empty findings → shape blessed; proceeded to the correctness pass in the same round._
