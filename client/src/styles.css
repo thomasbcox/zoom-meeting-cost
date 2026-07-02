@@ -91,6 +91,31 @@ code {
   color: var(--amber);
   border: 1px solid var(--amber);
 }
+/* Build/env stamp: env + short commit. dev stands out (amber); prod is muted; other
+   (local/unknown) is subtle. Monospace so the commit reads cleanly. */
+.build-badge {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  letter-spacing: 0.3px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.build-badge-dev {
+  background: var(--amber);
+  color: #1a1300;
+  font-weight: 700;
+}
+.build-badge-prod {
+  background: var(--panel-2);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+.build-badge-other {
+  background: var(--panel-2);
+  color: var(--muted);
+  border: 1px dashed var(--border);
+}
 .rb-field {
   display: flex;
   flex-direction: column;
