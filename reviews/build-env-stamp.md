@@ -183,3 +183,13 @@ plumbing, and folds in the prior design guardrails (full-SHA logging, fixed CSS 
 vocabulary). No high-leverage approach concerns.
 
 _Empty findings → shape blessed; proceeded to the correctness pass in the same round._
+
+## Codex review (2026-07-02, base main, HEAD ab90260)
+
+**Summary: no issues.** The branch satisfies the spec: `/api/version` is public with
+runtime env/commit fallbacks, client build metadata is baked through Vite, the badge is
+mounted only in `RoleBar`, the boot payload logs raw env + full commit, and the changed
+file list stays within AC5 scope. (Codex did not run tests/build in this read-only pass;
+the gate was run green locally before both passes.)
+
+No findings.
