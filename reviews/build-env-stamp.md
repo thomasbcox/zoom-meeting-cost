@@ -155,3 +155,31 @@ Thomas approved the full A+B+C+D scope ("let's do all of these including D"). Di
    presenter-only).
 
 This shape is binding on implementation.
+
+## Build note (2026-07-02)
+
+AC → file map:
+
+- **AC1 (A · /api/version)** — `server/src/app.js` (route + `STARTED_AT`) · test
+  `server/test/version.test.js`.
+- **AC2 (C · baked constants)** — `client/vite.config.js` (Vite `define`) +
+  `client/src/lib/buildInfo.js` (`buildInfo`, `normalizeEnv`, `envKind`, `shortCommit`) ·
+  test `client/src/lib/buildInfo.test.js`.
+- **AC3 (B · panel badge)** — `client/src/components/BuildBadge.jsx` +
+  `client/src/components/RoleBar.jsx` (mount) + `client/src/styles.css` (badge styles) ·
+  test `client/src/components/BuildBadge.test.jsx`.
+- **AC4 (D · boot-log stamp)** — `client/src/Root.jsx` (`env` + full `commit` in the
+  `boot` payload) · fields asserted via `buildInfo.test.js`; live boot line post-deploy.
+- **AC5 (scope containment)** — `git diff --name-only main...HEAD`.
+
+## Codex approach review (2026-07-02, base main, HEAD ab90260)
+
+**Verdict: Shape sound — no findings.** Codex's own sketch matched the implementation:
+Vite `define` for baked client metadata, a tiny guarded `buildInfo` with normalized env
+kind, a hook-free badge mounted only in `RoleBar`, the existing `logLifecycle('boot', …)`
+path with raw env + full commit, and a sibling unauthenticated `/api/version`. Stays in
+the scoped files, adds no dependency, uses framework-native config over hand-rolled
+plumbing, and folds in the prior design guardrails (full-SHA logging, fixed CSS class
+vocabulary). No high-leverage approach concerns.
+
+_Empty findings → shape blessed; proceeded to the correctness pass in the same round._
