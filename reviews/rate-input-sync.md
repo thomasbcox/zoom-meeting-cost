@@ -171,3 +171,13 @@ helper for node-env tests, and use native `min="0"`. The changed files match tha
 stay in scope, and don't reinvent a dependency or framework construct.
 
 _Empty findings → shape blessed; proceeded to the correctness pass in the same round._
+
+## Codex review (2026-07-02, base main, HEAD 913b58d)
+
+**Summary: no issues.** The branch matches the spec: draft sync is scoped to unfocused
+`NumberInput`s, focused drafts are preserved, the helper is pure and tested, `min="0"` is
+present on the specified inputs, and changed files stay within AC4. (Codex could not run
+the client test — read-only sandbox `EPERM` on Vite's temp write; the gate was run green
+locally before both passes.)
+
+No findings.
