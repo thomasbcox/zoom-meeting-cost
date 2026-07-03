@@ -124,3 +124,13 @@ dependency; uses the existing runtime construct. Codex ran the two target test f
 (`node --test server/test/appContext.test.js server/test/rateCrypto.test.js`) → 18/18 pass.
 
 _Empty findings → shape blessed; proceeded to the correctness pass in the same round._
+
+## Codex review (2026-07-03, base main, HEAD 279e498)
+
+**Summary: no issues.** The branch pins `{ authTagLength: 16 }` at both required GCM decrypt
+sites, leaves envelope/encryption formats unchanged, adds wrong-length tag rejection coverage
+at both boundaries, and stays within the spec's file scope. Codex ran the two target test
+files → 18/18 pass. (Full server suite not runnable in the read-only sandbox — EPERM on port
+binds/temp writes; the gate was run green locally before both passes.)
+
+No findings.
