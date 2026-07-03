@@ -42,8 +42,10 @@ export function decryptAppContext(context, clientSecret) {
   try {
     const { iv, aad, cipherText, tag } = unpack(context);
     const key = crypto.createHash('sha256').update(clientSecret).digest();
+    // authTagLength: 16 pins the GCM tag length so a truncated tag can't be accepted — Zoom's
+    // app-context layout always carries a 16-byte trailing tag. (AUDIT-1 / semgrep gcm-no-tag-length.)
     const decipher = crypto
-      .createDecipheriv('aes-256-gcm', key, iv)
+      .createDecipheriv('aes-256-gcm', key, iv, { authTagLength: 16 })
       .setAAD(aad)
       .setAuthTag(tag)
       .setAutoPadding(false);

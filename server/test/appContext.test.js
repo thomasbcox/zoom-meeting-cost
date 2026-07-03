@@ -52,6 +52,27 @@ test('rejects a bad issuer', () => {
   assert.throws(() => resolveUid(blob, { clientId: CLIENT_ID, clientSecret: SECRET }), /iss/);
 });
 
+test('rejects a wrong-LENGTH trailing auth tag (authTagLength pinned to 16)', () => {
+  // The invariant AUDIT-1 hardens. unpack() takes all bytes after the ciphertext as the tag,
+  // so trimming/appending a byte on the raw blob yields a 15-/17-byte tag. A truncated tag is
+  // a CORRECT-prefix of the real 16-byte tag — the exact truncation attack — and must be
+  // rejected on length rather than silently verified against fewer bytes.
+  const blob = encryptAppContextForTest(ctx(), SECRET);
+  const raw = Buffer.from(blob, 'base64');
+
+  const truncated = raw.subarray(0, raw.length - 1).toString('base64'); // → 15-byte tag
+  assert.throws(
+    () => resolveUid(truncated, { clientId: CLIENT_ID, clientSecret: SECRET }),
+    AppContextError
+  );
+
+  const extended = Buffer.concat([raw, Buffer.from([0])]).toString('base64'); // → 17-byte tag
+  assert.throws(
+    () => resolveUid(extended, { clientId: CLIENT_ID, clientSecret: SECRET }),
+    AppContextError
+  );
+});
+
 test('rejects garbage / missing context', () => {
   assert.throws(() => resolveUid('not-base64-context', { clientId: CLIENT_ID, clientSecret: SECRET }));
   assert.throws(() => resolveUid('', { clientId: CLIENT_ID, clientSecret: SECRET }), /missing/);

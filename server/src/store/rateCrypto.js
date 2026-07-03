@@ -53,7 +53,12 @@ export function encrypt(uid, plaintext) {
 // Decrypt an envelope for `uid`. Throws on a wrong key/uid or tampering (GCM auth fail).
 export function decrypt(uid, blob) {
   const key = deriveKey(uid);
-  const decipher = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(blob.nonce, 'base64'));
+  // authTagLength: 16 pins the GCM tag length so a truncated (shorter-than-expected) tag is
+  // rejected outright — the encrypt side always emits the full 16-byte tag, so this accepts
+  // every existing envelope. (AUDIT-1 / semgrep gcm-no-tag-length.)
+  const decipher = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(blob.nonce, 'base64'), {
+    authTagLength: 16,
+  });
   decipher.setAuthTag(Buffer.from(blob.tag, 'base64'));
   return Buffer.concat([
     decipher.update(Buffer.from(blob.ct, 'base64')),
