@@ -149,3 +149,25 @@ and is out of scope here (would be a separate story if ever wanted). Disposition
    is sufficient.
 
 This shape is binding on implementation.
+
+## Build note (2026-07-02)
+
+AC → file map:
+
+- **AC1 (draft resync)** — `client/src/components/PresenterControls.jsx` (`NumberInput`:
+  explicit `isFocused` state + `[value, isFocused]` effect applying `displayDraft`).
+- **AC2 (pure helper + tests)** — `client/src/lib/numberInputDraft.js` · test
+  `client/src/lib/numberInputDraft.test.js`.
+- **AC3 (negative guard)** — `client/src/components/PresenterControls.jsx` (`min="0"` on the
+  `NumberInput`, add-row `$/hr`, and per-participant override inputs).
+- **AC4 (scope containment)** — `git diff --name-only main...HEAD`.
+
+## Codex approach review (2026-07-02, base main, HEAD 913b58d)
+
+**Verdict: Sound approach — no findings.** Codex's own sketch matched the implementation:
+keep `NumberInput` as the local draft boundary, add explicit focus state so blur can
+resync even when `value` is unchanged, extract the focused/unfocused rule into a tiny pure
+helper for node-env tests, and use native `min="0"`. The changed files match that shape,
+stay in scope, and don't reinvent a dependency or framework construct.
+
+_Empty findings → shape blessed; proceeded to the correctness pass in the same round._
