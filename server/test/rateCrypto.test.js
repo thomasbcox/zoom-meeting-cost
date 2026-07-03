@@ -47,6 +47,22 @@ test('a tampered tag/ciphertext is rejected (GCM auth)', () => {
   });
 });
 
+test('a wrong-LENGTH auth tag is rejected (authTagLength pinned to 16)', () => {
+  // The invariant AUDIT-1 hardens: a shorter- or longer-than-16-byte GCM tag must never be
+  // accepted. Distinct from same-length tampering above — this exercises the pinned length.
+  withKey('test-master-key-not-real', () => {
+    const blob = rateCrypto.encrypt('u', 'secret');
+    const tag = Buffer.from(blob.tag, 'base64');
+    assert.equal(tag.length, 16, 'encrypt emits a full 16-byte tag');
+
+    const truncated = { ...blob, tag: tag.subarray(0, 12).toString('base64') };
+    assert.throws(() => rateCrypto.decrypt('u', truncated), /./, 'a 12-byte tag must be rejected');
+
+    const extended = { ...blob, tag: Buffer.concat([tag, Buffer.from([0])]).toString('base64') };
+    assert.throws(() => rateCrypto.decrypt('u', extended), /./, 'a 17-byte tag must be rejected');
+  });
+});
+
 test('fails closed when RATE_STORE_KEY is unset', () => {
   withKey(undefined, () => {
     assert.equal(rateCrypto.isConfigured(), false);
