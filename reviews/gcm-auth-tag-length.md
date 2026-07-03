@@ -102,3 +102,25 @@ Thomas approved the scope as written. Disposition:
    a same-length flip as ordinary tamper coverage. (Folded into the spec.)
 
 This shape is binding on implementation.
+
+## Build note (2026-07-03)
+
+AC → file map:
+
+- **AC1 (pin authTagLength:16)** — `server/src/store/rateCrypto.js` (decrypt),
+  `server/src/zoom/appContext.js` (decryptAppContext).
+- **AC2 (backward-compatible round-trips)** — existing `server/test/rateCrypto.test.js` +
+  `server/test/appContext.test.js` happy-path cases (unchanged, still green).
+- **AC3 (wrong-length tag rejected)** — new cases in `server/test/rateCrypto.test.js` and
+  `server/test/appContext.test.js` (truncate/extend tag → assert reject).
+- **AC4 (scope containment)** — `git diff --name-only main...HEAD`.
+
+## Codex approach review (2026-07-03, base main, HEAD 279e498)
+
+**Verdict: Sound shape — no findings.** Codex's expected solution matched exactly: Node's
+built-in `{ authTagLength: 16 }` at the two decrypt sites, encryption/envelope formats
+unchanged, direct wrong-length tag tests at both boundaries. No avoidable abstraction or
+dependency; uses the existing runtime construct. Codex ran the two target test files
+(`node --test server/test/appContext.test.js server/test/rateCrypto.test.js`) → 18/18 pass.
+
+_Empty findings → shape blessed; proceeded to the correctness pass in the same round._
