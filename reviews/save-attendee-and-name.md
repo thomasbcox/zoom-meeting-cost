@@ -144,3 +144,25 @@ Thomas approved the scope as written. Dispositions:
    (2) **clear the override** on save; (3) muted **"in list"** marker for saved rows.
 
 This shape is binding on implementation.
+
+## Build note (2026-07-03)
+
+AC → file map:
+
+- **AC1 (name field mock-only)** — `client/src/components/RoleBar.jsx` (`isMock` gate).
+- **AC2/AC3 (save-to-list button + membership)** — `client/src/components/PresenterControls.jsx`
+  (`OverridesEditor`: `config` threaded, Save button / "in list" marker).
+- **AC4 (pure helper + tests)** — `client/src/lib/saveToList.js` · test
+  `client/src/lib/saveToList.test.js`.
+- **AC5 (scope containment)** — `git diff --name-only main...HEAD`.
+
+## Codex approach review (2026-07-04, base main, HEAD d735202)
+
+**Verdict: Sound shape — no findings.** Codex's own sketch matched: mock-gate only the
+RoleBar name input, keep identity flowing from `self.displayName`, a pure
+`saveToListTarget(participant, config)` reusing the matching indexes/normalization for
+explicit membership, wired to existing `addRule` + `clearOverride` — no new store action or
+dependency. Branch follows that shape, within approved scope. (Focused Vitest run blocked by
+the read-only sandbox's `.vite-temp` write — environmental, not a finding.)
+
+_Empty findings → shape blessed; proceeded to the correctness pass in the same round._
