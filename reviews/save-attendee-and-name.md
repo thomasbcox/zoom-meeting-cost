@@ -166,3 +166,13 @@ dependency. Branch follows that shape, within approved scope. (Focused Vitest ru
 the read-only sandbox's `.vite-temp` write — environmental, not a finding.)
 
 _Empty findings → shape blessed; proceeded to the correctness pass in the same round._
+
+## Codex review (2026-07-04, base main, HEAD d735202)
+
+**Summary: no issues.** The branch stays within the approved file scope, mock-gates the
+presenter name field, implements explicit direct/alias saved-list membership via a pure
+helper, and wires Save to `addRule(target.name, target.rate)` + `clearOverride(p.id)` as
+specified. (Focused Vitest blocked by the read-only sandbox's `.vite-temp` write — the gate
+was run green locally before both passes.)
+
+No findings.
