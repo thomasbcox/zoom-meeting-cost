@@ -31,10 +31,15 @@ export default function RoleBar({ myName, setMyName, adapter, participants }) {
             bundle, so it can reveal a stale cached webview vs the live server. */}
         <BuildBadge />
 
-        <label className="rb-field">
-          Your name
-          <input value={myName} onChange={(e) => setMyName(e.target.value)} />
-        </label>
+        {/* Presenter name is the Zoom identity (self.displayName) in real Zoom — no editable
+            field there. The input is a mock-only harness convenience for trying a different
+            presenter name locally; myName is still seeded from self.displayName. */}
+        {isMock && (
+          <label className="rb-field">
+            Your name
+            <input value={myName} onChange={(e) => setMyName(e.target.value)} />
+          </label>
+        )}
       </div>
 
       {isMock && (

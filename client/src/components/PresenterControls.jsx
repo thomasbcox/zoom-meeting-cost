@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { formatMoney, simpleCountCommit } from '../lib/cost.js';
 import { displayDraft } from '../lib/numberInputDraft.js';
+import { saveToListTarget } from '../lib/saveToList.js';
 import { sessionControls } from '../lib/sessionControls.js';
 import { DISPLAY_INTERVALS, DISPLAY_INTERVAL_LABELS } from '../lib/displayCadence.js';
 import { SourceBadge } from './SharedCostScreen.jsx';
@@ -160,7 +161,12 @@ export default function PresenterControls({
           <AliasEditor config={config} actions={actions} />
 
           {/* --- Current-meeting overrides ------------------------------ */}
-          <OverridesEditor resolved={resolved} overrides={overrides} actions={actions} />
+          <OverridesEditor
+            resolved={resolved}
+            overrides={overrides}
+            actions={actions}
+            config={config}
+          />
         </>
       )}
     </div>
@@ -319,34 +325,55 @@ function AliasEditor({ config, actions }) {
   );
 }
 
-function OverridesEditor({ resolved, overrides, actions }) {
+function OverridesEditor({ resolved, overrides, actions, config }) {
   return (
     <section className="panel">
       <h3>Per-participant overrides</h3>
       <p className="muted small">
-        Override the value for someone in this meeting. Not saved to your private list.
+        Override the value for someone in this meeting, or save them to your private list.
       </p>
       <table className="edit-table">
         <tbody>
-          {resolved.map((p) => (
-            <tr key={p.id}>
-              <td>{p.displayName}</td>
-              <td>
-                <SourceBadge source={p.source} />
-              </td>
-              <td className="num">{formatMoney(p.rate, { decimals: 0 })}</td>
-              <td className="num">
-                <input
-                  className="inline num"
-                  type="number"
-                  min="0"
-                  placeholder="override"
-                  value={overrides[p.id] ?? ''}
-                  onChange={(e) => actions.setOverride(p.id, e.target.value)}
-                />
-              </td>
-            </tr>
-          ))}
+          {resolved.map((p) => {
+            // Whether this attendee can be promoted into the saved rate table (null = already
+            // saved, by name or alias — regardless of a current override). See lib/saveToList.
+            const target = saveToListTarget(p, config);
+            return (
+              <tr key={p.id}>
+                <td>{p.displayName}</td>
+                <td>
+                  <SourceBadge source={p.source} />
+                </td>
+                <td className="num">{formatMoney(p.rate, { decimals: 0 })}</td>
+                <td className="num">
+                  <input
+                    className="inline num"
+                    type="number"
+                    min="0"
+                    placeholder="override"
+                    value={overrides[p.id] ?? ''}
+                    onChange={(e) => actions.setOverride(p.id, e.target.value)}
+                  />
+                </td>
+                <td>
+                  {target ? (
+                    <button
+                      className="btn tiny"
+                      title="Add this attendee to your saved private list at the current value"
+                      onClick={() => {
+                        actions.addRule(target.name, target.rate);
+                        actions.clearOverride(p.id);
+                      }}
+                    >
+                      ＋ Save
+                    </button>
+                  ) : (
+                    <span className="muted small">in list</span>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
           {resolved.length === 0 && (
             <tr>
               <td className="muted">No participants in the meeting.</td>
