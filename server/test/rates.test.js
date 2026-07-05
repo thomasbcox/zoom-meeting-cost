@@ -129,3 +129,33 @@ test('GET /api/rates is 503 when ZOOM_CLIENT_ID is unset (no aud-bypass)', async
     process.env.ZOOM_CLIENT_ID = prev;
   }
 });
+
+test('PUT merge-preserves meetingHistory: settings-only never wipes it; new rows union in', async () => {
+  const server = await start();
+  const base = `http://127.0.0.1:${server.address().port}/api/rates`;
+  // A dedicated uid so this can't interfere with the round-trip test above.
+  const ctx = encryptAppContextForTest(
+    { iss: 'marketplace.zoom.us', aud: CLIENT_ID, uid: 'history-uid', exp: Math.floor(Date.now() / 1000) + 600 },
+    SECRET
+  );
+  const headers = { 'x-zoom-app-context': ctx, 'content-type': 'application/json' };
+  const settings = { rateTable: [], aliases: [], defaultRate: 75, costModel: 'perParticipant' };
+  const row = (id, endedAt) => ({ id, endedAt, totalCost: 10, durationSeconds: 60, headcount: 2, costPerMinute: 10, costModel: 'perParticipant' });
+  try {
+    // 1. Save a config WITH one history row.
+    await fetch(base, { method: 'PUT', headers, body: JSON.stringify({ ...settings, meetingHistory: [row('m1', 100)] }) });
+
+    // 2. A settings-only PUT (no meetingHistory) must PRESERVE the stored row.
+    await fetch(base, { method: 'PUT', headers, body: JSON.stringify({ ...settings, defaultRate: 200 }) });
+    let got = await (await fetch(base, { headers })).json();
+    assert.equal(got.defaultRate, 200, 'settings updated');
+    assert.deepEqual(got.meetingHistory.map((r) => r.id), ['m1'], 'history preserved through a settings-only PUT');
+
+    // 3. A PUT adding a newer row unions with the stored one, newest-first.
+    await fetch(base, { method: 'PUT', headers, body: JSON.stringify({ ...settings, meetingHistory: [row('m2', 200)] }) });
+    got = await (await fetch(base, { headers })).json();
+    assert.deepEqual(got.meetingHistory.map((r) => r.id), ['m2', 'm1'], 'union, newest-first');
+  } finally {
+    server.close();
+  }
+});

@@ -176,6 +176,14 @@ export function createApp({
       // Validate the config shape + numeric rates before persisting (don't trust the body).
       const cfg = rateStore.validateConfig(req.body);
       if (!cfg) return res.status(400).json({ error: 'invalid-config' });
+      // Meeting history is server-owned: merge-preserve it so a settings-only or stale client
+      // can only ADD summaries, never wipe stored ones (see meeting-summary-history.md). Only
+      // touch the field when either side actually has history — a config that never carried it
+      // still round-trips verbatim.
+      const existing = await rateStore.load(req.uid);
+      if (cfg.meetingHistory !== undefined || existing?.meetingHistory !== undefined) {
+        cfg.meetingHistory = rateStore.mergeHistory(cfg.meetingHistory, existing?.meetingHistory);
+      }
       return res.json(await rateStore.save(req.uid, cfg));
     } catch (err) {
       return next(err);

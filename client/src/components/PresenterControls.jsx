@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { formatMoney, simpleCountCommit } from '../lib/cost.js';
 import { displayDraft } from '../lib/numberInputDraft.js';
 import { saveToListTarget } from '../lib/saveToList.js';
+import { formatMeetingSummary } from '../lib/meetingSummary.js';
 import { sessionControls } from '../lib/sessionControls.js';
 import { DISPLAY_INTERVALS, DISPLAY_INTERVAL_LABELS } from '../lib/displayCadence.js';
 import { SourceBadge } from './SharedCostScreen.jsx';
@@ -169,6 +170,9 @@ export default function PresenterControls({
           />
         </>
       )}
+
+      {/* --- Past meetings (persists across sessions) --------------------- */}
+      <PastMeetings history={config.meetingHistory} />
     </div>
   );
 }
@@ -222,8 +226,10 @@ function RateTableEditor({ config, actions }) {
       <p className="muted small">Your best-guess hourly opportunity cost for each person. Never shown to participants.</p>
       <p className="muted small" role="note">
         ⚠️ Saved to the server, encrypted, and tied to your Zoom identity so it loads in
-        your future meetings. It is <strong>not</strong> end-to-end encrypted — the app
-        operator can decrypt it. Don&rsquo;t enter anything you wouldn&rsquo;t want stored
+        your future meetings — along with aggregate <strong>past-meeting summaries</strong>
+        (ended time, duration, total cost, attendee count; no names or per-person values). It
+        is <strong>not</strong> end-to-end encrypted — the app operator can decrypt it, and it
+        is included in export/delete. Don&rsquo;t enter anything you wouldn&rsquo;t want stored
         server-side.
       </p>
       <table className="edit-table">
@@ -381,6 +387,45 @@ function OverridesEditor({ resolved, overrides, actions, config }) {
           )}
         </tbody>
       </table>
+    </section>
+  );
+}
+
+// Past meetings: persisted end-of-meeting summaries (newest-first). Each row is the exact
+// one-line text — visible + selectable — with a Copy button (clipboard is best-effort; the
+// Zoom webview may block it, so the line itself is the fallback). Aggregate only.
+function PastMeetings({ history = [] }) {
+  const rows = Array.isArray(history) ? history : [];
+
+  const copy = (s) => {
+    try {
+      navigator.clipboard?.writeText(formatMeetingSummary(s));
+    } catch {
+      /* clipboard blocked in the webview — the line is shown for manual selection */
+    }
+  };
+
+  return (
+    <section className="panel">
+      <h3>Past meetings</h3>
+      <p className="muted small">
+        Saved end-of-meeting summaries — aggregate only (no names or per-person values). Copy one
+        to paste into chat.
+      </p>
+      {rows.length === 0 ? (
+        <p className="muted small">No past meetings yet — end a session to record one.</p>
+      ) : (
+        <ul className="past-meetings">
+          {rows.map((s) => (
+            <li key={s.id ?? s.endedAt}>
+              <span className="past-summary">{formatMeetingSummary(s)}</span>
+              <button className="btn tiny" onClick={() => copy(s)}>
+                Copy
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }
