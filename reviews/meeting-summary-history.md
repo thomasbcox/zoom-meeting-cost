@@ -274,3 +274,12 @@ Both passes, this round:
   `id: String(endedAt)` (deterministic, unique per End, collision-resistant across reloads);
   `addMeetingSummary` no longer assigns `newId('m')`. Helper test updated to assert the id and
   a distinct-endedAt → distinct-id regression case. No randomness introduced.
+
+## Codex re-review (2026-07-04, base 39129f8, HEAD — id fix)
+
+**Correctness-only re-review of the approved fix. Summary: no issues.** The fix is present —
+summaries get `id: String(endedAt)` in `buildMeetingSummary`, `addMeetingSummary` drops
+`newId('m')`, and distinct ids across reloads mean the server dedup merge won't overwrite
+prior rows. No regressions in the scoped diff.
+
+No findings.
