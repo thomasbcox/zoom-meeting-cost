@@ -251,3 +251,19 @@ Neither is a redesign → shape blessed; correctness pass proceeds on the tidied
   stored `m100` instead of adding a row — violating AC1 (append) and AC3 (PUT only adds).
   _Fix:_ collision-resistant ids (`crypto.randomUUID()` + fallback); regression test that a
   stored `m100` and a new append after a fresh runtime both survive.
+
+## Decisions (2026-07-04)
+
+Both passes, this round:
+
+- **Approach BLOCKER (hydration-gate append loss)** — **REJECTED** (over-engineered for a
+  best-effort estimates tool; near-unreachable window). No pending-queue.
+- **Approach IMPORTANT (headcount second source of truth)** — **FIXED in-round**
+  (`summaryRef.headcount` = `totals.attendeeCount`).
+- **Correctness BLOCKER (history id collision across reloads)** — **FIX in /close via
+  `endedAt`-as-id.** Use `id: String(endedAt)` instead of the module-level `newId('m')`
+  (whose `_seq` resets to 100 each load, so the server's dedup-by-id merge overwrote the
+  prior session's `m100`). `endedAt` is already in the record, unique per End, deterministic
+  (no `Math.random`/UUID — Thomas preferred avoiding randomness), and collision-resistant
+  across reloads. Drop the `newId('m')` usage for summaries. Add a regression test: a stored
+  row + a new append with a distinct `endedAt` both survive the merge.
