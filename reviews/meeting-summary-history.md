@@ -239,3 +239,15 @@ green locally.)
   total/$-per-min use), so simple mode's explicit attendee-count override is consistent.
 
 Neither is a redesign → shape blessed; correctness pass proceeds on the tidied code.
+
+## Codex review (2026-07-04, base main, HEAD <post-headcount-fix>)
+
+**Summary: one BLOCKER — history IDs collide across runtimes.**
+
+- **[BLOCKER] History IDs collide after reload and overwrite prior summaries**
+  (`client/src/state/usePresenterStore.js`, `addMeetingSummary`). `newId('m')`'s module-level
+  `_seq` starts at 100 every app load, so the first summary after each reopen is `m100`. The
+  server merge dedupes by `id` (incoming wins), so a fresh session's `m100` **replaces** the
+  stored `m100` instead of adding a row — violating AC1 (append) and AC3 (PUT only adds).
+  _Fix:_ collision-resistant ids (`crypto.randomUUID()` + fallback); regression test that a
+  stored `m100` and a new append after a fresh runtime both survive.
