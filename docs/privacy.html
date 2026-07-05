@@ -73,12 +73,17 @@
       </ul>
 
       <h2>What our server stores</h2>
-      <p>Our server stores one thing: your saved configuration. The names and
+      <p>Our server stores your saved configuration. The names and
         opportunity-cost values you enter are sent to our server and kept
         <strong>encrypted at rest</strong>, tied to your Zoom account, so your setup is
         there next time. This is the only place individual values are kept, and only you can
         retrieve them. We do not build profiles and do not track individuals across
         meetings.</p>
+      <p>When you end a session, we also save an <strong>aggregate past-meeting summary</strong>
+        alongside your configuration — the end time, duration, final total, attendee count, and
+        cost model. These summaries contain <strong>no names and no per-person values</strong>,
+        are encrypted at rest and tied to your Zoom account, and are included whenever you
+        export or delete your data.</p>
 
       <h2>The on-camera total</h2>
       <p>The live total on the overlay is computed inside the Zoom client and passed

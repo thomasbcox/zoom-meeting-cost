@@ -98,6 +98,53 @@ test('validateConfig: multiplier/simpleMultiplier are optional (removed field) y
   assert.equal(rateStore.validateConfig({ ...noMult, simpleMultiplier: NaN }), null);
 });
 
+test('validateConfig: meetingHistory is optional but shape-validated when present', () => {
+  const base = { rateTable: [], aliases: [], defaultRate: 0, costModel: 'perParticipant' };
+  const row = {
+    id: 'm1',
+    endedAt: 1_700_000_000_000,
+    totalCost: 1240.5,
+    durationSeconds: 2535,
+    headcount: 2,
+    costPerMinute: 18,
+    costModel: 'perParticipant',
+  };
+  // Absent → still valid (backward compatible); present + well-formed → valid.
+  assert.equal(rateStore.validateConfig(base), base);
+  assert.ok(rateStore.validateConfig({ ...base, meetingHistory: [row] }));
+  assert.ok(rateStore.validateConfig({ ...base, meetingHistory: [] }));
+
+  const bad = [
+    { ...base, meetingHistory: 'nope' }, // not an array
+    { ...base, meetingHistory: [{ ...row, endedAt: 0 }] }, // endedAt must be > 0
+    { ...base, meetingHistory: [{ ...row, endedAt: 'soon' }] }, // endedAt non-numeric
+    { ...base, meetingHistory: [{ ...row, totalCost: -1 }] }, // negative numeric
+    { ...base, meetingHistory: [{ ...row, headcount: NaN }] }, // NaN numeric
+    { ...base, meetingHistory: [{ ...row, costModel: 'weird' }] }, // bad costModel
+    { ...base, meetingHistory: [42] }, // row not an object
+    { ...base, meetingHistory: Array.from({ length: 51 }, () => row) }, // over the hard cap
+  ];
+  for (const b of bad) assert.equal(rateStore.validateConfig(b), null, JSON.stringify(b).slice(0, 60));
+});
+
+test('mergeHistory unions incoming + stored, dedups by id, newest-first, capped', () => {
+  const mk = (id, endedAt) => ({ id, endedAt, totalCost: 1, durationSeconds: 1, headcount: 1, costPerMinute: 1 });
+  const stored = [mk('m2', 200), mk('m1', 100)];
+  const incoming = [mk('m3', 300), mk('m2', 250)]; // m3 new; m2 duplicate (incoming wins, endedAt 250)
+
+  const merged = rateStore.mergeHistory(incoming, stored);
+  assert.deepEqual(merged.map((r) => r.id), ['m3', 'm2', 'm1'], 'newest-first by endedAt, deduped');
+  assert.equal(merged.find((r) => r.id === 'm2').endedAt, 250, 'incoming row wins on dup id');
+
+  // A settings-only PUT (no incoming history) preserves the stored rows.
+  assert.deepEqual(rateStore.mergeHistory(undefined, stored).map((r) => r.id), ['m2', 'm1']);
+
+  // Cap keeps the newest MEETING_HISTORY_MAX.
+  const many = Array.from({ length: 30 }, (_, i) => mk(`x${i}`, i));
+  assert.equal(rateStore.mergeHistory(many, []).length, rateStore.MEETING_HISTORY_MAX);
+  assert.equal(rateStore.mergeHistory(many, [])[0].id, 'x29'); // newest
+});
+
 test('the on-disk file is ciphertext, not plaintext', async () => {
   await rateStore.save('uid-secret', {
     rateTable: [{ id: 'r1', name: 'Acme CFO', rate: 220 }],

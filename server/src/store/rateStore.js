@@ -34,6 +34,33 @@ export function asConfigObject(cfg) {
 const numNonNeg = (v) => typeof v === 'number' && Number.isFinite(v) && v >= 0;
 const strOrNull = (v) => v == null || typeof v === 'string';
 
+// Meeting-history caps: keep the newest MEETING_HISTORY_MAX; reject an incoming array larger
+// than HISTORY_HARD_MAX as an abuse bound (the 100 kb PUT body limit also caps size).
+export const MEETING_HISTORY_MAX = 20;
+const HISTORY_HARD_MAX = 50;
+
+// Union incoming + stored meeting-history rows, dedup by id (incoming wins), newest-first by
+// endedAt, capped. PUT uses this so a write can only ADD history — a settings-only or stale
+// client can never drop stored summaries. (See reviews/meeting-summary-history.md.)
+export function mergeHistory(incoming = [], stored = [], max = MEETING_HISTORY_MAX) {
+  const all = [
+    ...(Array.isArray(incoming) ? incoming : []),
+    ...(Array.isArray(stored) ? stored : []),
+  ];
+  const seen = new Set();
+  const out = [];
+  for (const row of all) {
+    if (!row || typeof row !== 'object') continue;
+    if (row.id != null) {
+      if (seen.has(row.id)) continue;
+      seen.add(row.id);
+    }
+    out.push(row);
+  }
+  out.sort((a, b) => (Number(b.endedAt) || 0) - (Number(a.endedAt) || 0));
+  return out.slice(0, max);
+}
+
 // Validate an incoming rate config before it is persisted. Returns the config on success,
 // or null if anything is malformed (the endpoint then 400s). Strict: rateTable/aliases
 // must be arrays of well-formed rows; every present numeric field must be a finite,
@@ -64,6 +91,20 @@ export function validateConfig(cfg) {
   // present they must still be well-formed so a malformed legacy value is rejected.
   if (c.multiplier != null && !numNonNeg(c.multiplier)) return null;
   if (c.simpleMultiplier != null && !numNonNeg(c.simpleMultiplier)) return null;
+
+  // Meeting history: aggregate per-session summaries (no names/rates). Optional; when present,
+  // a bounded array of well-formed rows. (See reviews/meeting-summary-history.md.)
+  if (c.meetingHistory != null) {
+    if (!Array.isArray(c.meetingHistory) || c.meetingHistory.length > HISTORY_HARD_MAX) return null;
+    for (const m of c.meetingHistory) {
+      if (!m || typeof m !== 'object' || Array.isArray(m)) return null;
+      if (!strOrNull(m.id)) return null;
+      if (typeof m.endedAt !== 'number' || !Number.isFinite(m.endedAt) || m.endedAt <= 0) return null;
+      if (!numNonNeg(m.totalCost) || !numNonNeg(m.durationSeconds)) return null;
+      if (!numNonNeg(m.headcount) || !numNonNeg(m.costPerMinute)) return null;
+      if (m.costModel != null && m.costModel !== 'simple' && m.costModel !== 'perParticipant') return null;
+    }
+  }
 
   return c;
 }

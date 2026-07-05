@@ -11,6 +11,7 @@ import { selectActiveTotals } from './lib/cost.js';
 import { buildOverlayState } from './lib/overlayState.js';
 import { quantizeForDisplay } from './lib/displayCadence.js';
 import { seedPresenterName } from './lib/presenterName.js';
+import { buildMeetingSummary, isRecordable } from './lib/meetingSummary.js';
 import { logLifecycle } from './lib/lifecycleLog.js';
 import { createVideoRecovery } from './lib/overlayRecover.js';
 
@@ -52,6 +53,9 @@ export default function App({ adapter, self, initialParticipants = [] }) {
   const totalRef = useRef(0);
   const lastTickRef = useRef(0);
   const [, forceTick] = useState(0);
+  // Current summary inputs for End (read at click time by the memoized sessionActions.end, so
+  // it captures live headcount / cost model / cost-rate, not stale initial-render values).
+  const summaryRef = useRef({});
 
   const sessionActions = useMemo(
     () => ({
@@ -69,6 +73,18 @@ export default function App({ adapter, self, initialParticipants = [] }) {
         setSession({ status: 'running' });
       },
       end() {
+        // Record an aggregate summary of the just-ended session, reading CURRENT values from
+        // summaryRef (not stale memoized ones — sessionActions is memoized with []).
+        const { costPerSecond, headcount, costModel, recordSummary } = summaryRef.current;
+        const summary = buildMeetingSummary({
+          endedAt: Date.now(),
+          totalCost: totalRef.current,
+          elapsedSeconds: elapsedRef.current,
+          headcount,
+          costPerSecond,
+          costModel,
+        });
+        if (isRecordable(summary)) recordSummary(summary);
         setSession({ status: 'ended' });
       },
     }),
@@ -113,6 +129,15 @@ export default function App({ adapter, self, initialParticipants = [] }) {
     totals,
     status: session.status,
     displayIntervalSeconds: config.displayIntervalSeconds,
+  };
+  // Keep the End-summary inputs current every render (see summaryRef above). Headcount comes
+  // from totals.attendeeCount — the SAME snapshot the displayed total/$-per-min use, so simple
+  // mode's explicit attendee-count override is reflected consistently (not participants.length).
+  summaryRef.current = {
+    costPerSecond: totals?.costPerSecond || 0,
+    headcount: totals?.attendeeCount ?? 0,
+    costModel: config.costModel,
+    recordSummary: actions.addMeetingSummary,
   };
 
   const postOverlay = useCallback(() => {

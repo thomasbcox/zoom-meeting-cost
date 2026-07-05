@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { loadRates, saveRates } from '../lib/ratesApi.js';
 import { DEFAULT_DISPLAY_INTERVAL, normalizeDisplayInterval } from '../lib/displayCadence.js';
+import { appendSummary } from '../lib/meetingSummary.js';
 
 // The presenter's PRIVATE configuration. Persisted to the SERVER (encrypted at rest,
 // keyed to the presenter's Zoom identity) — NOT localStorage, which isn't durable inside
@@ -35,6 +36,9 @@ const DEFAULT_CONFIG = {
   // How often the ON-CAMERA cost number is allowed to change (seconds). Only
   // affects what viewers see / the preview — never the internal accrual.
   displayIntervalSeconds: DEFAULT_DISPLAY_INTERVAL,
+  // Aggregate end-of-meeting summaries (newest-first, capped). Server-persisted + server-owned:
+  // a PUT merge-preserves it (add-only). No names/rates. See meeting-summary-history.
+  meetingHistory: [],
 };
 
 let _seq = 100;
@@ -42,6 +46,10 @@ const newId = (prefix) => `${prefix}${_seq++}`;
 
 export function usePresenterStore(adapter) {
   const [persisted, setPersisted] = useState(() => ({ ...DEFAULT_CONFIG }));
+  // Latest persisted config, for actions that must read + flush the whole blob synchronously
+  // (addMeetingSummary) without threading it through a functional updater's side effects.
+  const persistedRef = useRef(persisted);
+  persistedRef.current = persisted;
   // Overrides are intentionally NOT persisted — they belong to the live meeting.
   const [overrides, setOverrides] = useState({});
 
@@ -146,6 +154,22 @@ export function usePresenterStore(adapter) {
     });
   }, []);
 
+  // Append an end-of-meeting summary and FLUSH immediately (don't wait for the 800 ms debounce),
+  // so it survives a quick panel close. The server merge-preserves history (add-only), so the
+  // immediate flush and the later debounced save are idempotent. Flush only once hydrated, so a
+  // very-early End can't clobber the server with defaults before the initial load lands.
+  const addMeetingSummary = useCallback(
+    (summary) => {
+      // `summary` already carries a stable id (String(endedAt)) from buildMeetingSummary — no
+      // per-load counter, so it can't collide across reloads and get merged over server-side.
+      const cur = persistedRef.current;
+      const next = { ...cur, meetingHistory: appendSummary(cur.meetingHistory, summary) };
+      setPersisted(next);
+      if (hydratedRef.current) saveRates(adapter, next);
+    },
+    [adapter]
+  );
+
   return {
     config: persisted,
     overrides,
@@ -162,6 +186,7 @@ export function usePresenterStore(adapter) {
       deleteAlias,
       setOverride,
       clearOverride,
+      addMeetingSummary,
     },
   };
 }
