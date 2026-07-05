@@ -18,6 +18,10 @@ export function buildMeetingSummary({
   costModel,
 }) {
   return {
+    // id = the End timestamp: unique per End (you can't end two meetings in the same ms),
+    // deterministic, and — unlike a per-load counter — collision-resistant ACROSS reloads, so
+    // the server's dedup-by-id merge never overwrites a prior session's summary. (Codex review.)
+    id: String(endedAt),
     endedAt,
     totalCost: Number(totalCost) || 0,
     durationSeconds: Math.round(Number(elapsedSeconds) || 0),

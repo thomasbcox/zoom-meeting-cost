@@ -267,3 +267,10 @@ Both passes, this round:
   (no `Math.random`/UUID — Thomas preferred avoiding randomness), and collision-resistant
   across reloads. Drop the `newId('m')` usage for summaries. Add a regression test: a stored
   row + a new append with a distinct `endedAt` both survive the merge.
+
+## Fixes (2026-07-04)
+
+- **Correctness BLOCKER (history id collision)** — FIXED. `buildMeetingSummary` now sets
+  `id: String(endedAt)` (deterministic, unique per End, collision-resistant across reloads);
+  `addMeetingSummary` no longer assigns `newId('m')`. Helper test updated to assert the id and
+  a distinct-endedAt → distinct-id regression case. No randomness introduced.

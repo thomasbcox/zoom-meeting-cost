@@ -160,9 +160,10 @@ export function usePresenterStore(adapter) {
   // very-early End can't clobber the server with defaults before the initial load lands.
   const addMeetingSummary = useCallback(
     (summary) => {
-      const withId = { ...summary, id: newId('m') };
+      // `summary` already carries a stable id (String(endedAt)) from buildMeetingSummary — no
+      // per-load counter, so it can't collide across reloads and get merged over server-side.
       const cur = persistedRef.current;
-      const next = { ...cur, meetingHistory: appendSummary(cur.meetingHistory, withId) };
+      const next = { ...cur, meetingHistory: appendSummary(cur.meetingHistory, summary) };
       setPersisted(next);
       if (hydratedRef.current) saveRates(adapter, next);
     },

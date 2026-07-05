@@ -19,6 +19,7 @@ describe('buildMeetingSummary', () => {
       costModel: 'perParticipant',
     });
     expect(s).toEqual({
+      id: '1700000000000',
       endedAt: 1_700_000_000_000,
       totalCost: 12.5,
       durationSeconds: 91,
@@ -30,7 +31,17 @@ describe('buildMeetingSummary', () => {
 
   it('coerces junk to safe numbers and normalizes costModel', () => {
     const s = buildMeetingSummary({ endedAt: 1, totalCost: undefined, elapsedSeconds: NaN, headcount: null, costPerSecond: 'x', costModel: 'simple' });
-    expect(s).toEqual({ endedAt: 1, totalCost: 0, durationSeconds: 0, headcount: 0, costPerMinute: 0, costModel: 'simple' });
+    expect(s).toEqual({ id: '1', endedAt: 1, totalCost: 0, durationSeconds: 0, headcount: 0, costPerMinute: 0, costModel: 'simple' });
+  });
+
+  it('id = String(endedAt): stable + unique per End, so it never collides across reloads', () => {
+    // The bug this guards: a per-load counter reset to the same value each reopen, letting the
+    // server dedup-by-id merge overwrite a prior session's summary. endedAt-derived ids differ.
+    const a = buildMeetingSummary({ endedAt: 1000, elapsedSeconds: 5 });
+    const b = buildMeetingSummary({ endedAt: 2000, elapsedSeconds: 5 });
+    expect(a.id).toBe('1000');
+    expect(b.id).toBe('2000');
+    expect(a.id).not.toBe(b.id);
   });
 });
 
