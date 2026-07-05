@@ -183,3 +183,46 @@ Thomas: "accept all." Dispositions:
    text, clipboard best-effort**.
 
 This shape is binding on implementation.
+
+## Build note (2026-07-04)
+
+AC → file map:
+
+- **AC1 (record on End + immediate flush)** — `client/src/App.jsx` (`sessionActions.end` +
+  `summaryRef`), `client/src/state/usePresenterStore.js` (`addMeetingSummary`).
+- **AC2 (current-value snapshot)** — `client/src/App.jsx` (`summaryRef` updated each render).
+- **AC3 (PUT merge-preserve)** — `server/src/app.js` (guarded merge), `server/src/store/rateStore.js`
+  (`mergeHistory`).
+- **AC4 (Past meetings panel + copy)** — `client/src/components/PresenterControls.jsx`
+  (`PastMeetings`), `client/src/styles.css`.
+- **AC5 (server validation)** — `server/src/store/rateStore.js` (`validateConfig` history block).
+- **AC6 (pure helpers + privacy)** — `client/src/lib/meetingSummary.js`; in-app notice
+  (`PresenterControls.jsx`) + `docs/privacy.html`.
+- Tests: `client/src/lib/meetingSummary.test.js`, `server/test/rateStore.test.js`,
+  `server/test/rates.test.js`.
+- **AC7 (scope)** — `git diff --name-only main...HEAD`.
+
+## Codex approach review (2026-07-04, base main, HEAD 8363140)
+
+**Verdict: mostly the right shape (capped aggregate history in the existing blob, pure
+helpers, server union-preserve, no new store/endpoint) — two shape issues.**
+
+- **[BLOCKER · two-way · kludgy] Hydration gate can drop an End-session append.**
+  `addMeetingSummary` flushes only when `hydratedRef.current` is true (and the debounced save
+  is likewise hydration-gated). If a presenter ends a `durationSeconds > 0` session **before
+  the boot `loadRates` resolves** — and especially when it returns `null` (new user, no later
+  `setPersisted` to re-trigger the debounce) — the summary stays in local state and never
+  persists. Real (if narrow) AC1 loss path for the feature's primary artifact.
+  _Alternative:_ queue pending summaries while unhydrated and merge/flush them once load
+  finishes (still `/api/rates` + server merge-preserve). _Win:_ "End with duration > 0
+  persists" holds in every client lifecycle state.
+- **[IMPORTANT · two-way · kludgy] Summary headcount has a second source of truth.** The
+  summary stores `participants.length`, but the displayed total/$-per-min use
+  `totals.attendeeCount` — which in **simple mode** honors the explicit attendee-count
+  override. So a simple-mode session with a manual N saves a total computed from N but a
+  headcount of the live count — inconsistent. _Alternative:_ take `headcount` from
+  `totals.attendeeCount` (same snapshot the UI shows). _Win:_ the persisted/copied summary
+  matches the numbers the presenter saw.
+
+(Codex could not run the suite — read-only sandbox `EPERM` on Vite's temp write; gate was
+green locally.)
