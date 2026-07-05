@@ -226,3 +226,16 @@ helpers, server union-preserve, no new store/endpoint) — two shape issues.**
 
 (Codex could not run the suite — read-only sandbox `EPERM` on Vite's temp write; gate was
 green locally.)
+
+## Approach decisions (2026-07-04)
+
+- **BLOCKER (hydration-gate append loss)** — **REJECTED (accepted as a documented edge).**
+  Thomas: "we aren't a financial application; this feels overly engineered." The only correct
+  fix is a pending-summary queue; the window (a slow boot GET *and* a full session ended inside
+  it) is near-unreachable and the artifact is a best-effort aggregate estimate. Normal path
+  already flushes immediately on End. Not worth the machinery. (No `POST /api/history`; no queue.)
+- **IMPORTANT (headcount second source of truth)** — **FIXED in-round** (minor two-way tidy):
+  `summaryRef.headcount` now reads `totals.attendeeCount` (the same snapshot the displayed
+  total/$-per-min use), so simple mode's explicit attendee-count override is consistent.
+
+Neither is a redesign → shape blessed; correctness pass proceeds on the tidied code.

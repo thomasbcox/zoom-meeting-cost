@@ -130,10 +130,12 @@ export default function App({ adapter, self, initialParticipants = [] }) {
     status: session.status,
     displayIntervalSeconds: config.displayIntervalSeconds,
   };
-  // Keep the End-summary inputs current every render (see summaryRef above).
+  // Keep the End-summary inputs current every render (see summaryRef above). Headcount comes
+  // from totals.attendeeCount — the SAME snapshot the displayed total/$-per-min use, so simple
+  // mode's explicit attendee-count override is reflected consistently (not participants.length).
   summaryRef.current = {
     costPerSecond: totals?.costPerSecond || 0,
-    headcount: participants.length,
+    headcount: totals?.attendeeCount ?? 0,
     costModel: config.costModel,
     recordSummary: actions.addMeetingSummary,
   };
