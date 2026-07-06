@@ -123,6 +123,18 @@ first-run reformat across all JS + a new CI step).
 - **Backlog:** move AUDIT-2 and AUDIT-3 to `## Done` in `BACKLOG.md`, noting the eslint/prettier
   tail was split out.
 
+## Build note (2026-07-06)
+
+AC → file map:
+- **AC1** (shell-lint CI gate: shellcheck + shfmt over `shfmt -f .`) → `.github/workflows/ci.yml`
+  (new `shell-lint` job).
+- **AC2** (script passes both tools) → `dev-docs/marketing/marketplace-cover.sh` (`shfmt -w`
+  reformat + inline `# shellcheck disable=SC2016`).
+- **AC3** (gitleaks allowlist, 0 findings) → `.gitleaksignore` (3 immutable fingerprints).
+- **AC4** (scope containment) → also `dev-docs/marketing/marketplace-cover.png`,
+  `docs/image-market-cover.png` (marketing assets committed per scope decision), `BACKLOG.md`
+  (AUDIT-2/3 → Done, split AUDIT-4), and the story/design artifacts. No product code.
+
 ## Codex design review (2026-07-06)
 
 **Verdict:** *"The sketch is close but not sound as written. I would not build it this way without
