@@ -171,6 +171,20 @@ sized to the problem, `.gitleaksignore` fingerprints avoid the whole-file blind 
 
 **Findings:** none.
 
+## Codex review (2026-07-06, base main, HEAD ba15d1b)
+
+**Summary:** *"The branch matches the spec and Build note: shell lint CI is added, the script
+passes `shfmt`/`shellcheck`, `.gitleaksignore` suppresses only the three known fingerprints,
+`gitleaks detect --no-banner` reports no leaks, and no product code is touched."*
+
+**Findings:** none.
+
+## Decisions (2026-07-06)
+
+Both passes returned empty finding sets — approach ("Sound approach") and correctness ("matches the
+spec"). Nothing to fix, defer, or reject. PR #65 green on all checks (test + build, **shell lint**,
+CodeQL). Ready for `/close`.
+
 ## Design decisions (2026-07-06)
 
 Thomas approved scope (shell half of AUDIT-2 + all of AUDIT-3; eslint/prettier deferred to a
