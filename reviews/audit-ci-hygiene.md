@@ -160,6 +160,17 @@ both confirmed empirically.
 > - **win:** silences the known false positives while keeping default coverage live on the rest of
 >   each file.
 
+## Codex approach review (2026-07-06, base main, HEAD ba15d1b)
+
+**Verdict:** *"Sound approach."* Codex's reference design matched the implementation — a separate
+CI shell-lint job over `shfmt -f .`, pinned/installable `shfmt`, default ShellCheck with only the
+intentional `SC2016` literals suppressed, and narrow per-finding gitleaks suppression rather than
+whole-file allowlists. No product code touched, no dependency/package-script bypassed, CI logic
+sized to the problem, `.gitleaksignore` fingerprints avoid the whole-file blind spot. Verified
+`shfmt -d`, `shellcheck`, and `gitleaks detect` all exit 0 locally.
+
+**Findings:** none.
+
 ## Design decisions (2026-07-06)
 
 Thomas approved scope (shell half of AUDIT-2 + all of AUDIT-3; eslint/prettier deferred to a
