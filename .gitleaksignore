@@ -1,0 +1,10 @@
+# gitleaks allowlist — synthetic secret-scan fixtures (repo policy: fake secrets only).
+# Each entry is an immutable finding fingerprint (commit:file:rule:startline) for a known
+# false positive in a historical commit. See reviews/audit-ci-hygiene.md (AUDIT-3).
+#
+# - reviews/secret-scan-guardrails.codex.json — fake PEM in a review artifact.
+# - scripts/secret-scan/detect.test.mjs        — the secret-scanner's own detection test.
+# - server/test/loadEnv.test.js                — a synthetic env fixture.
+27faeb580080566a34a544151bae952c1e1a8c82:reviews/secret-scan-guardrails.codex.json:private-key:1
+9237c73ca279680a8f9db89e660e249ac707b7e6:scripts/secret-scan/detect.test.mjs:generic-api-key:13
+ab421b3dbb664a800fb3aef4d776b3daf5472e6b:server/test/loadEnv.test.js:generic-api-key:10

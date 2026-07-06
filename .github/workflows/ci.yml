@@ -38,3 +38,34 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  # Estate-wide shell standard (see ~/.claude/CLAUDE.md): shellcheck for correctness,
+  # shfmt -i 2 -ci for format. Both belong in CI. Runs independently of the test gate.
+  shell-lint:
+    name: shell lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # shellcheck is preinstalled on GitHub's ubuntu runners; shfmt is not, so install
+      # the pinned official binary (matching the version used locally).
+      - name: Install shfmt
+        env:
+          SHFMT_VERSION: v3.13.1
+        run: |
+          curl -sSfL "https://github.com/mvdan/sh/releases/download/${SHFMT_VERSION}/shfmt_${SHFMT_VERSION}_linux_amd64" \
+            -o /usr/local/bin/shfmt
+          chmod +x /usr/local/bin/shfmt
+          shfmt --version
+          shellcheck --version
+
+      # `shfmt -f .` finds shell files by shebang/extension, so the gate auto-covers any
+      # future script with no hard-coded list to maintain. A non-empty format diff or a
+      # shellcheck error-level finding fails the job.
+      - name: shfmt (format)
+        run: shfmt -d -i 2 -ci $(shfmt -f .)
+
+      - name: shellcheck (correctness)
+        run: shellcheck $(shfmt -f .)
