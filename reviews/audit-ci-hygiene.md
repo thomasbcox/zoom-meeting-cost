@@ -185,6 +185,11 @@ Both passes returned empty finding sets — approach ("Sound approach") and corr
 spec"). Nothing to fix, defer, or reject. PR #65 green on all checks (test + build, **shell lint**,
 CodeQL). Ready for `/close`.
 
+## Fixes (2026-07-06)
+
+No approved fixes — both the approach and correctness passes returned empty finding sets. Nothing
+to apply; HEAD is unchanged from the reviewed SHA (ba15d1b) apart from review-artifact commits.
+
 ## Design decisions (2026-07-06)
 
 Thomas approved scope (shell half of AUDIT-2 + all of AUDIT-3; eslint/prettier deferred to a
