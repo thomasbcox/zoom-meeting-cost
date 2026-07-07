@@ -239,6 +239,23 @@ timing change).
 Neither is a shape-changing redesign, so the correctness pass ran this round on the reviewed HEAD;
 the guard is applied in `/close`.
 
+## Fixes (2026-07-07)
+
+**Approach IMPORTANT + correctness BLOCKER (same defect: hydration double-save / clean-load echo)**
+→ fixed in `client/src/state/usePresenterStore.js`:
+- Added a `lastSavedRef` (the config considered already on the server) and a pure, exported
+  `shouldPersistConfig(hydrated, config, lastSaved)` guard. The debounced persistence effect now
+  saves only when `hydrated && config !== lastSaved`.
+- Hydration sets `lastSavedRef = fixed` (the loaded/healed config), so the debounced effect never
+  echoes it: **clean load → 0 saves**; **dirty load → exactly 1** (the heal), its debounced second
+  write suppressed by the guard. After each debounced save, `lastSavedRef` advances to what was
+  saved; a genuine user edit (a new object) still writes.
+- `addMeetingSummary` intentionally left as-is (its immediate-flush + debounced save is a known,
+  idempotent add-only path — out of scope for this finding).
+- New test `client/src/state/usePresenterStore.test.js` covers the guard: no save pre-hydration, no
+  echo of a just-hydrated config, and a normal edit-after-clean-load still saves (the de-risk the
+  reviewer asked for).
+
 ## Design decisions (2026-07-07)
 
 Thomas approved scope (fix the saved-list corruption via unique-name identity + collision-free ids +

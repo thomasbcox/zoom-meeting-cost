@@ -42,6 +42,16 @@ const DEFAULT_CONFIG = {
   meetingHistory: [],
 };
 
+// Should the debounced persistence effect write this config? Only once hydrated, and only
+// when `config` is a DIFFERENT object than the one we last marked persisted. Extracted pure
+// (repo convention: testable decision, no React) so the "save at most once per change" rule
+// is verified directly. The reference check is the whole point: hydration marks the loaded /
+// repaired config as `lastSaved`, so it is not echoed back; a user edit produces a new object
+// and does save. (Fixes the hydration double-save / clean-load echo — rate-list-dedupe review.)
+export function shouldPersistConfig(hydrated, config, lastSaved) {
+  return hydrated && config !== lastSaved;
+}
+
 export function usePresenterStore(adapter) {
   const [persisted, setPersisted] = useState(() => ({ ...DEFAULT_CONFIG }));
   // Latest persisted config, for actions that must read + flush the whole blob synchronously
@@ -50,6 +60,12 @@ export function usePresenterStore(adapter) {
   persistedRef.current = persisted;
   // Overrides are intentionally NOT persisted — they belong to the live meeting.
   const [overrides, setOverrides] = useState({});
+
+  // The config we consider already on the server. Set at hydration (the loaded/healed config)
+  // and after each debounced save, so the persistence effect never echoes a just-loaded or
+  // just-saved config — only a genuine change (a new object) writes. Starts equal to the
+  // initial `persisted`, so a null/mock load (defaults untouched) also never echoes.
+  const lastSavedRef = useRef(persisted);
 
   // Load the presenter's saved config from the server on boot (identity = Zoom app
   // context). New user / mock / unreachable → keep the defaults. `hydrated` then gates
@@ -67,6 +83,10 @@ export function usePresenterStore(adapter) {
         // memory. A clean load does no save (no echo). See lib/rateTable.
         const { config: fixed, changed } = repairConfig({ ...persistedRef.current, ...server });
         setPersisted(fixed);
+        // Mark the hydrated config as already-persisted so the debounced effect does not echo
+        // it back (AC4: a clean load writes zero times). On a dirty load, heal the server data
+        // with exactly ONE best-effort save — the guard suppresses the debounced second write.
+        lastSavedRef.current = fixed;
         if (changed) saveRates(adapter, fixed);
       }
       if (!cancelled) hydratedRef.current = true;
@@ -79,8 +99,11 @@ export function usePresenterStore(adapter) {
   // Persist changes to the server, debounced. Best-effort: failures are swallowed in
   // ratesApi (the app keeps working on session state).
   useEffect(() => {
-    if (!hydratedRef.current) return undefined;
-    const id = setTimeout(() => saveRates(adapter, persisted), 800);
+    if (!shouldPersistConfig(hydratedRef.current, persisted, lastSavedRef.current)) return undefined;
+    const id = setTimeout(() => {
+      saveRates(adapter, persisted);
+      lastSavedRef.current = persisted; // this config is now the on-server baseline
+    }, 800);
     return () => clearTimeout(id);
   }, [persisted, adapter]);
 
