@@ -109,6 +109,16 @@ _Both resolved at the frame consult — see Design decisions._
 - **Error model:** logging is best-effort and swallowed (as the other adapter logs are); it never
   alters `_participantsAvailable` or rethrows.
 
+## Build note (2026-07-07)
+
+AC → file map:
+- **AC1** (switch-to-Simple resets count) → `client/src/lib/cost.js` (`costModelPatch`) +
+  `client/src/state/usePresenterStore.js` (`setCostModel`).
+- **AC1b** (boot in per-participant) → `usePresenterStore.js` hydration effect (`booted`).
+- **AC2–AC4** (participant-fetch breadcrumb, edge-triggered, shape-bounded) →
+  `client/src/zoom/zoomAdapter.js` (`summarizeFetchError`, `_setParticipantsAvailable`, `_refresh`).
+- **AC5** (scope) → also tests `client/src/lib/cost.test.js`, `client/src/zoom/zoomAdapter.test.js`.
+
 ## Codex design review (2026-07-07)
 
 **Verdict:** *"The Simple-count half is sound — the `costModelPatch(model)` helper fits the repo's
