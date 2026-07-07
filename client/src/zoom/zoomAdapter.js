@@ -227,6 +227,25 @@ function errMsg(err) {
   return String(err);
 }
 
+// Shape-bounded summary of a getMeetingParticipants() rejection for the availability
+// breadcrumb. Allowlists known scalar diagnostic fields only — never an arbitrary SDK
+// object dump. The `code`/`errorCode` is what distinguishes a 40316-style capability/config
+// error (getMeetingParticipants not enabled in the Marketplace app) from a role error (not
+// host/co-host). If nothing allowlisted is present, record the object's KEYS (shape only,
+// self-correcting) rather than its values — mirrors summarizeMediaEvent.
+function summarizeFetchError(err) {
+  if (err == null || typeof err !== 'object') return { message: String(err) };
+  const out = {};
+  for (const k of ['message', 'code', 'errorCode', 'status', 'reason']) {
+    const v = err[k];
+    if (v != null && (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean')) {
+      out[k] = v;
+    }
+  }
+  if (Object.keys(out).length === 0) out.keys = Object.keys(err);
+  return out;
+}
+
 // Real implementation — only instantiated inside the Zoom client. Kept minimal
 // and dependency-lazy so the prototype build doesn't require @zoom/appssdk.
 // Exported so the direct postMessage/onMessage overlay bridge can be unit-tested
@@ -493,6 +512,18 @@ export class RealZoom {
     return () => this._msgSubs.delete(cb);
   }
 
+  // Commit the participant-availability flag and EDGE-LOG the transition. Reads the CURRENT
+  // value at commit time (not before the await), logs only when it flips — unavailable edge
+  // with the error summary, available edge with the aggregate count — then assigns. Because
+  // the read+compare happens here, overlapping _refresh() calls (fired from onParticipantChange
+  // without serialization) can't double-log a failure or miss a recovery. Best-effort logging.
+  _setParticipantsAvailable(next, extra) {
+    const prev = this._participantsAvailable;
+    this._participantsAvailable = next;
+    if (next === prev) return;
+    logLifecycle(next ? 'participants-available' : 'participants-unavailable', extra ?? {}, this._log);
+  }
+
   async _refresh() {
     try {
       const res = await this._sdk.getMeetingParticipants();
@@ -502,12 +533,13 @@ export class RealZoom {
         displayName: p.screenName ?? p.displayName ?? 'Participant',
         email: p.email,
       }));
-      this._participantsAvailable = true;
-    } catch {
-      // getMeetingParticipants requires host/co-host + scope. Mark the list
-      // unavailable so the UI can distinguish "can't read participants" from a
-      // genuine empty/$0 meeting, rather than degrading silently to $0.
-      this._participantsAvailable = false;
+      this._setParticipantsAvailable(true, { count: this._participants.length });
+    } catch (err) {
+      // getMeetingParticipants requires host/co-host + scope. Mark the list unavailable so the
+      // UI can distinguish "can't read participants" from a genuine empty/$0 meeting. Edge-log
+      // the failure reason (shape only) so a live run reveals whether it's a role or a config
+      // (40316-style) problem — the two need different fixes. See summarizeFetchError.
+      this._setParticipantsAvailable(false, { error: summarizeFetchError(err) });
     }
   }
 

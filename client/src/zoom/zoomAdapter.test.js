@@ -589,3 +589,79 @@ describe('participant-list availability', () => {
     expect(a.getParticipants()).toEqual([]);
   });
 });
+
+// --- Participant-availability breadcrumb (edge-triggered, shape-only) -------------------
+describe('RealZoom participant-availability breadcrumb', () => {
+  const sdkWith = (getMeetingParticipants) => ({ getMeetingParticipants });
+  const events = (logs, name) => logs.filter((l) => l.event === name);
+
+  it('edge-logs the failure once, with the diagnostic code and no unknown fields', async () => {
+    const logs = [];
+    // A plain SDK-style rejection carrying a 40316 code plus a field we must NOT log.
+    const rejection = { code: 40316, message: 'capability not enabled', participantName: 'Alice' };
+    const z = new RealZoom(sdkWith(() => Promise.reject(rejection)), { log: (p) => logs.push(p) });
+
+    await z._refresh(); // available(true) -> false : one unavailable log
+    await z._refresh(); // false -> false : NO new log (edge)
+
+    const unavail = events(logs, 'participants-unavailable');
+    expect(unavail).toHaveLength(1);
+    expect(unavail[0].error).toEqual({ message: 'capability not enabled', code: 40316 });
+    expect(JSON.stringify(unavail[0])).not.toContain('Alice'); // allowlist dropped the extra field
+    expect(z.participantsAvailable()).toBe(false);
+  });
+
+  it('edge-logs recovery once with the aggregate count and never participant names', async () => {
+    const logs = [];
+    let mode = 'fail';
+    const sdk = sdkWith(() =>
+      mode === 'fail'
+        ? Promise.reject(new Error('nope'))
+        : Promise.resolve({
+            participants: [
+              { participantUUID: 'u1', screenName: 'Alice' },
+              { participantUUID: 'u2', screenName: 'Bob' },
+            ],
+          })
+    );
+    const z = new RealZoom(sdk, { log: (p) => logs.push(p) });
+
+    await z._refresh(); // true -> false
+    mode = 'ok';
+    await z._refresh(); // false -> true : one recovery log
+
+    const avail = events(logs, 'participants-available');
+    expect(avail).toHaveLength(1);
+    expect(avail[0].count).toBe(2);
+    expect(JSON.stringify(avail[0])).not.toMatch(/Alice|Bob/);
+    expect(z.participantsAvailable()).toBe(true);
+  });
+
+  it('does not log on steady-state success (no spurious available edge)', async () => {
+    const logs = [];
+    const z = new RealZoom(sdkWith(() => Promise.resolve({ participants: [] })), {
+      log: (p) => logs.push(p),
+    });
+    await z._refresh(); // true -> true : no log
+    await z._refresh();
+    expect(logs.filter((l) => String(l.event).startsWith('participants-'))).toHaveLength(0);
+  });
+
+  it('availability still transitions true->false->true regardless of logging', async () => {
+    let mode = 'ok';
+    const z = new RealZoom(
+      sdkWith(() =>
+        mode === 'ok' ? Promise.resolve({ participants: [] }) : Promise.reject(new Error('x'))
+      ),
+      { log() {} }
+    );
+    await z._refresh();
+    expect(z.participantsAvailable()).toBe(true);
+    mode = 'fail';
+    await z._refresh();
+    expect(z.participantsAvailable()).toBe(false);
+    mode = 'ok';
+    await z._refresh();
+    expect(z.participantsAvailable()).toBe(true);
+  });
+});
