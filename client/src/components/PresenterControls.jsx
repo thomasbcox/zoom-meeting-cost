@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { formatMoney, simpleCountCommit } from '../lib/cost.js';
 import { displayDraft } from '../lib/numberInputDraft.js';
 import { saveToListTarget } from '../lib/saveToList.js';
+import { MAX_RATES } from '../lib/rateTable.js';
+import { normalizeName } from '../lib/normalize.js';
 import { formatMeetingSummary } from '../lib/meetingSummary.js';
 import { sessionControls } from '../lib/sessionControls.js';
 import { DISPLAY_INTERVALS, DISPLAY_INTERVAL_LABELS } from '../lib/displayCadence.js';
@@ -214,7 +216,15 @@ function RateTableEditor({ config, actions }) {
   const [name, setName] = useState('');
   const [rate, setRate] = useState('');
 
+  // At the cap, only an UPSERT (re-entering a name already in the list, which just
+  // updates its rate) is allowed — a genuinely new name is blocked. `isUpsert` uses the
+  // same normalization as matching, so "tom cox" resolves to an existing "Tom Cox".
+  const atCap = config.rateTable.length >= MAX_RATES;
+  const isUpsert = config.rateTable.some((r) => normalizeName(r.name) === normalizeName(name));
+  const addDisabled = atCap && !isUpsert;
+
   const add = () => {
+    if (addDisabled) return;
     actions.addRule(name, rate);
     setName('');
     setRate('');
@@ -274,10 +284,16 @@ function RateTableEditor({ config, actions }) {
           onChange={(e) => setRate(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && add()}
         />
-        <button className="btn" onClick={add}>
+        <button className="btn" onClick={add} disabled={addDisabled}>
           Add
         </button>
       </div>
+      {atCap && (
+        <p className="muted small" role="note">
+          You can save up to {MAX_RATES} people ({config.rateTable.length}/{MAX_RATES}). Remove one
+          to add another — or re-enter an existing name to update their value.
+        </p>
+      )}
     </section>
   );
 }
@@ -286,7 +302,12 @@ function AliasEditor({ config, actions }) {
   const [alias, setAlias] = useState('');
   const [canonical, setCanonical] = useState('');
 
+  const atCap = config.aliases.length >= MAX_RATES;
+  const isUpsert = config.aliases.some((a) => normalizeName(a.alias) === normalizeName(alias));
+  const addDisabled = atCap && !isUpsert;
+
   const add = () => {
+    if (addDisabled) return;
     actions.addAlias(alias, canonical);
     setAlias('');
     setCanonical('');
@@ -323,15 +344,24 @@ function AliasEditor({ config, actions }) {
           onChange={(e) => setCanonical(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && add()}
         />
-        <button className="btn" onClick={add}>
+        <button className="btn" onClick={add} disabled={addDisabled}>
           Add
         </button>
       </div>
+      {atCap && (
+        <p className="muted small" role="note">
+          You can save up to {MAX_RATES} aliases ({config.aliases.length}/{MAX_RATES}). Remove one to
+          add another — or re-enter an existing alias to update it.
+        </p>
+      )}
     </section>
   );
 }
 
 function OverridesEditor({ resolved, overrides, actions, config }) {
+  // "＋ Save" always adds a NEW person to the saved list (saveToListTarget is null once
+  // they're already saved), so it's subject to the same cap.
+  const atCap = config.rateTable.length >= MAX_RATES;
   return (
     <section className="panel">
       <h3>Per-participant overrides</h3>
@@ -365,7 +395,12 @@ function OverridesEditor({ resolved, overrides, actions, config }) {
                   {target ? (
                     <button
                       className="btn tiny"
-                      title="Add this attendee to your saved private list at the current value"
+                      disabled={atCap}
+                      title={
+                        atCap
+                          ? `Your saved list is full (${MAX_RATES} max) — remove someone first`
+                          : 'Add this attendee to your saved private list at the current value'
+                      }
                       onClick={() => {
                         actions.addRule(target.name, target.rate);
                         actions.clearOverride(p.id);

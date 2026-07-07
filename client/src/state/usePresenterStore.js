@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { loadRates, saveRates } from '../lib/ratesApi.js';
 import { DEFAULT_DISPLAY_INTERVAL, normalizeDisplayInterval } from '../lib/displayCadence.js';
 import { appendSummary } from '../lib/meetingSummary.js';
+import { upsertRule, upsertAlias, repairConfig } from '../lib/rateTable.js';
 
 // The presenter's PRIVATE configuration. Persisted to the SERVER (encrypted at rest,
 // keyed to the presenter's Zoom identity) — NOT localStorage, which isn't durable inside
@@ -41,8 +42,15 @@ const DEFAULT_CONFIG = {
   meetingHistory: [],
 };
 
-let _seq = 100;
-const newId = (prefix) => `${prefix}${_seq++}`;
+// Should the debounced persistence effect write this config? Only once hydrated, and only
+// when `config` is a DIFFERENT object than the one we last marked persisted. Extracted pure
+// (repo convention: testable decision, no React) so the "save at most once per change" rule
+// is verified directly. The reference check is the whole point: hydration marks the loaded /
+// repaired config as `lastSaved`, so it is not echoed back; a user edit produces a new object
+// and does save. (Fixes the hydration double-save / clean-load echo — rate-list-dedupe review.)
+export function shouldPersistConfig(hydrated, config, lastSaved) {
+  return hydrated && config !== lastSaved;
+}
 
 export function usePresenterStore(adapter) {
   const [persisted, setPersisted] = useState(() => ({ ...DEFAULT_CONFIG }));
@@ -53,6 +61,12 @@ export function usePresenterStore(adapter) {
   // Overrides are intentionally NOT persisted — they belong to the live meeting.
   const [overrides, setOverrides] = useState({});
 
+  // The config we consider already on the server. Set at hydration (the loaded/healed config)
+  // and after each debounced save, so the persistence effect never echoes a just-loaded or
+  // just-saved config — only a genuine change (a new object) writes. Starts equal to the
+  // initial `persisted`, so a null/mock load (defaults untouched) also never echoes.
+  const lastSavedRef = useRef(persisted);
+
   // Load the presenter's saved config from the server on boot (identity = Zoom app
   // context). New user / mock / unreachable → keep the defaults. `hydrated` then gates
   // saving so we don't echo the just-loaded value back.
@@ -61,7 +75,20 @@ export function usePresenterStore(adapter) {
     let cancelled = false;
     (async () => {
       const server = await loadRates(adapter);
-      if (!cancelled && server) setPersisted((c) => ({ ...c, ...server }));
+      if (!cancelled && server) {
+        // Heal already-corrupted saved data on load: unique ids + one row per
+        // normalized name/alias. repairConfig is identity-preserving on a clean config,
+        // so `changed` is true only when the server data actually needed fixing — then we
+        // save the healed config ONCE so the corruption is fixed server-side, not just in
+        // memory. A clean load does no save (no echo). See lib/rateTable.
+        const { config: fixed, changed } = repairConfig({ ...persistedRef.current, ...server });
+        setPersisted(fixed);
+        // Mark the hydrated config as already-persisted so the debounced effect does not echo
+        // it back (AC4: a clean load writes zero times). On a dirty load, heal the server data
+        // with exactly ONE best-effort save — the guard suppresses the debounced second write.
+        lastSavedRef.current = fixed;
+        if (changed) saveRates(adapter, fixed);
+      }
       if (!cancelled) hydratedRef.current = true;
     })();
     return () => {
@@ -72,8 +99,11 @@ export function usePresenterStore(adapter) {
   // Persist changes to the server, debounced. Best-effort: failures are swallowed in
   // ratesApi (the app keeps working on session state).
   useEffect(() => {
-    if (!hydratedRef.current) return undefined;
-    const id = setTimeout(() => saveRates(adapter, persisted), 800);
+    if (!shouldPersistConfig(hydratedRef.current, persisted, lastSavedRef.current)) return undefined;
+    const id = setTimeout(() => {
+      saveRates(adapter, persisted);
+      lastSavedRef.current = persisted; // this config is now the on-server baseline
+    }, 800);
     return () => clearTimeout(id);
   }, [persisted, adapter]);
 
@@ -102,12 +132,15 @@ export function usePresenterStore(adapter) {
     }));
   }, []);
 
+  // Add-or-update by name (unique names): a name already in the table updates its rate
+  // instead of adding a duplicate row; a genuinely new name past MAX_RATES is rejected.
+  // upsertRule returns the SAME array reference on a no-op (empty / rejected-cap), so we
+  // skip the state update — no needless save. See lib/rateTable.
   const addRule = useCallback((name, rate) => {
-    if (!name?.trim()) return;
-    setPersisted((c) => ({
-      ...c,
-      rateTable: [...c.rateTable, { id: newId('r'), name: name.trim(), rate: clampNum(rate, 0) }],
-    }));
+    setPersisted((c) => {
+      const { table } = upsertRule(c.rateTable, name, clampNum(rate, 0));
+      return table === c.rateTable ? c : { ...c, rateTable: table };
+    });
   }, []);
 
   const updateRule = useCallback((id, patch) => {
@@ -125,12 +158,12 @@ export function usePresenterStore(adapter) {
     setPersisted((c) => ({ ...c, rateTable: c.rateTable.filter((r) => r.id !== id) }));
   }, []);
 
+  // Same upsert-by-normalized-alias + cap contract as addRule (symmetry decision).
   const addAlias = useCallback((alias, canonical) => {
-    if (!alias?.trim() || !canonical?.trim()) return;
-    setPersisted((c) => ({
-      ...c,
-      aliases: [...c.aliases, { id: newId('a'), alias: alias.trim(), canonical: canonical.trim() }],
-    }));
+    setPersisted((c) => {
+      const { list } = upsertAlias(c.aliases, alias, canonical);
+      return list === c.aliases ? c : { ...c, aliases: list };
+    });
   }, []);
 
   const deleteAlias = useCallback((id) => {
