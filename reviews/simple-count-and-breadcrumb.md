@@ -158,6 +158,21 @@ scoped to the story files."*
 
 **Findings:** none.
 
+## Codex review (2026-07-07, base main, HEAD 696981d)
+
+**Summary:** *"The branch matches the spec: Simple-mode switching resets `simpleUserCount`, hydration
+boots in `perParticipant` without echo-saving clean loads, participant availability breadcrumbs are
+edge-triggered and shape-bounded, and touched files stay within the allowed scope. I found no
+issues."* (Sandbox blocked the Vitest temp write with EPERM — not an assertion failure; the gate is
+green locally + CI.)
+
+**Findings:** none.
+
+## Decisions (2026-07-07)
+
+Both passes empty — approach ("Sound, modern shape") and correctness ("matches the spec"). Nothing
+to fix, defer, or reject. PR #67 green on all checks. Ready for `/close`.
+
 ## Design decisions (2026-07-07)
 
 Thomas approved scope (Simple-mode count default + participant-fetch breadcrumb, one story) and
