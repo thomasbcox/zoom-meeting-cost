@@ -256,6 +256,20 @@ the guard is applied in `/close`.
   echo of a just-hydrated config, and a normal edit-after-clean-load still saves (the de-risk the
   reviewer asked for).
 
+## Codex re-review (2026-07-07, base da433fc, HEAD d66cc91) — correctness-only
+
+**Summary:** *"The `lastSavedRef` + `shouldPersistConfig` change correctly suppresses the clean-load
+echo, keeps dirty hydration to the single immediate repair save, and still lets a later immutable
+user edit save through the debounced path."* (Sandbox again blocked the Vitest temp write — not a
+finding; the gate is green locally + CI.)
+
+**Findings:** none. The approach IMPORTANT + correctness BLOCKER (double-save) are resolved.
+
+## Decisions (2026-07-07, re-review)
+
+Clean re-review — nothing to fix, defer, or reject. PR #66 green on all checks. Ready for `/close`
+→ merge fork.
+
 ## Design decisions (2026-07-07)
 
 Thomas approved scope (fix the saved-list corruption via unique-name identity + collision-free ids +
