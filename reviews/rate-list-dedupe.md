@@ -113,7 +113,8 @@ _Both resolved at the frame consult — see Design decisions._
     unique string; assign `nextId(...)` **only** to rows whose id is missing or collides. Do **not**
     renumber otherwise-valid ids.
   - `dedupeAliases(rows)` → same shape for `{alias, canonical}`: collapse by `normalizeName(alias)`
-    (keep first), minimal id repair, and enforce the 10-cap on repair overflow.
+    (keep first) + minimal id repair. Repair does **not** truncate to the cap — the 10-cap governs
+    new adds only; silently dropping already-saved rows on load would be surprising data loss.
   - `repairConfig(config)` → apply both dedupers; return **`{ config, changed }`** where `changed`
     is true iff anything was actually altered (so a clean load is a no-op).
 - **`usePresenterStore.js`:** delete `_seq`/`newId`. `addRule` → `upsertRule` (+ clamp); `addAlias`

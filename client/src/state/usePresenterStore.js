@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { loadRates, saveRates } from '../lib/ratesApi.js';
 import { DEFAULT_DISPLAY_INTERVAL, normalizeDisplayInterval } from '../lib/displayCadence.js';
 import { appendSummary } from '../lib/meetingSummary.js';
+import { upsertRule, upsertAlias, repairConfig } from '../lib/rateTable.js';
 
 // The presenter's PRIVATE configuration. Persisted to the SERVER (encrypted at rest,
 // keyed to the presenter's Zoom identity) — NOT localStorage, which isn't durable inside
@@ -41,9 +42,6 @@ const DEFAULT_CONFIG = {
   meetingHistory: [],
 };
 
-let _seq = 100;
-const newId = (prefix) => `${prefix}${_seq++}`;
-
 export function usePresenterStore(adapter) {
   const [persisted, setPersisted] = useState(() => ({ ...DEFAULT_CONFIG }));
   // Latest persisted config, for actions that must read + flush the whole blob synchronously
@@ -61,7 +59,16 @@ export function usePresenterStore(adapter) {
     let cancelled = false;
     (async () => {
       const server = await loadRates(adapter);
-      if (!cancelled && server) setPersisted((c) => ({ ...c, ...server }));
+      if (!cancelled && server) {
+        // Heal already-corrupted saved data on load: unique ids + one row per
+        // normalized name/alias. repairConfig is identity-preserving on a clean config,
+        // so `changed` is true only when the server data actually needed fixing — then we
+        // save the healed config ONCE so the corruption is fixed server-side, not just in
+        // memory. A clean load does no save (no echo). See lib/rateTable.
+        const { config: fixed, changed } = repairConfig({ ...persistedRef.current, ...server });
+        setPersisted(fixed);
+        if (changed) saveRates(adapter, fixed);
+      }
       if (!cancelled) hydratedRef.current = true;
     })();
     return () => {
@@ -102,12 +109,15 @@ export function usePresenterStore(adapter) {
     }));
   }, []);
 
+  // Add-or-update by name (unique names): a name already in the table updates its rate
+  // instead of adding a duplicate row; a genuinely new name past MAX_RATES is rejected.
+  // upsertRule returns the SAME array reference on a no-op (empty / rejected-cap), so we
+  // skip the state update — no needless save. See lib/rateTable.
   const addRule = useCallback((name, rate) => {
-    if (!name?.trim()) return;
-    setPersisted((c) => ({
-      ...c,
-      rateTable: [...c.rateTable, { id: newId('r'), name: name.trim(), rate: clampNum(rate, 0) }],
-    }));
+    setPersisted((c) => {
+      const { table } = upsertRule(c.rateTable, name, clampNum(rate, 0));
+      return table === c.rateTable ? c : { ...c, rateTable: table };
+    });
   }, []);
 
   const updateRule = useCallback((id, patch) => {
@@ -125,12 +135,12 @@ export function usePresenterStore(adapter) {
     setPersisted((c) => ({ ...c, rateTable: c.rateTable.filter((r) => r.id !== id) }));
   }, []);
 
+  // Same upsert-by-normalized-alias + cap contract as addRule (symmetry decision).
   const addAlias = useCallback((alias, canonical) => {
-    if (!alias?.trim() || !canonical?.trim()) return;
-    setPersisted((c) => ({
-      ...c,
-      aliases: [...c.aliases, { id: newId('a'), alias: alias.trim(), canonical: canonical.trim() }],
-    }));
+    setPersisted((c) => {
+      const { list } = upsertAlias(c.aliases, alias, canonical);
+      return list === c.aliases ? c : { ...c, aliases: list };
+    });
   }, []);
 
   const deleteAlias = useCallback((id) => {
