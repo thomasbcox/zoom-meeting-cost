@@ -178,6 +178,32 @@ the hydration/id-repair exactly as sketched, and the alias policy needs a decisi
 >   symmetry, or explicitly scope aliases to id-generation + id-repair only.
 > - **win:** one clear alias contract; no test/UI rework after the first pass.
 
+## Codex approach review (2026-07-07, base main, HEAD da433fc)
+
+**Verdict:** *"I would satisfy these ACs with exactly this general shape … The branch mostly follows
+that shape, uses no new dependency, and does not appear to reinvent an installed library. One
+persistence-shape issue remains: the dirty-load repair save is layered on top of the generic
+debounced save effect, so the 'save once' invariant is not actually centralized."*
+
+### IMPORTANT — Dirty hydration repair is saved through two paths _(two-way · kludgy)_
+> On a **dirty** load the effect does `setPersisted(fixed)` + immediate `saveRates(fixed)`, then
+> flips `hydratedRef = true`. The re-render then runs the normal `[persisted, adapter]` debounced
+> save effect (hydrated is now true) → it schedules the **same** config for a second (debounced)
+> write. So a repaired load writes twice; the "save once" contract isn't centralized.
+> - **alternative:** record the just-hydrated config as already-persisted and have the debounced
+>   effect skip once for it (a `lastSavedRef` guard), or route dirty hydration through one
+>   persistence helper that saves + advances the "last saved" marker before normal saves open.
+> - **win:** one repaired-load write instead of two; no-echo invariant centralized in the store
+>   rather than depending on effect timing.
+>
+> **Claude's read:** accurate. Impact is small and bounded: both writes are the *same healed
+> config* (idempotent, `saveRates` PUTs the whole blob; server merge-preserves history), and the
+> immediate write only fires on a **dirty** load — a **one-time** event per corrupted user (once
+> healed, future loads are clean → `changed=false` → no immediate save). Note the debounced
+> save-after-load echo is **pre-existing** (the original hydration did it too); this finding only
+> adds the second write on the dirty path. The tidy touches hydration/save *timing* — historically
+> the repo's most bug-prone spot (the meeting-summary saga) — so it carries a little risk.
+
 ## Design decisions (2026-07-07)
 
 Thomas approved scope (fix the saved-list corruption via unique-name identity + collision-free ids +
