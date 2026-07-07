@@ -204,6 +204,41 @@ debounced save effect, so the 'save once' invariant is not actually centralized.
 > adds the second write on the dirty path. The tidy touches hydration/save *timing* — historically
 > the repo's most bug-prone spot (the meeting-summary saga) — so it carries a little risk.
 
+## Codex review (2026-07-07, base main, HEAD da433fc)
+
+**Summary:** *"The branch implements the helper shape, cap/upsert behavior, and alias symmetry, but
+it still violates the hydration persistence contract in the spec/Build note."* (Codex also noted its
+read-only sandbox blocked a Vite temp write, so it couldn't run the client Vitest — not a finding;
+the gate ran green locally and on CI.)
+
+### BLOCKER — Hydration still saves clean loads and double-saves repairs
+> `client/src/state/usePresenterStore.js:69` — AC4 requires a clean load to avoid a redundant save,
+> and a dirty repair to be saved once. But the load effect always `setPersisted(fixed)` then flips
+> `hydratedRef=true`; the debounced persistence effect then saves that just-loaded config anyway
+> (clean-load echo), and on a dirty load line 70's immediate `saveRates` makes it **two** writes.
+> `repairConfig`'s identity-preservation is real but doesn't help — the effect keys on `persisted`
+> moving default→server, not on `repairConfig`'s return reference.
+> - **suggestion:** a `lastSavedRef` / `skipNextPersistRef` guard: after hydration mark the
+>   loaded-or-repaired config already-persisted so the debounced effect skips it once; on a dirty
+>   repair do the one best-effort save and advance the same marker before normal edits open.
+
+**Same defect as the approach IMPORTANT** (double-save) — one fix resolves both. AC4's guarantee was
+asserted only at the `repairConfig` unit level, not at the store-integration level, so the clean-
+load echo slipped through. **Disposition: fix** (already green-lit as "tidy now" at the approach
+menu). The fix must deliver: clean load → **zero** saves; dirty load → **exactly one** (the heal);
+plus a test proving a normal user edit *after* a clean load still saves exactly once (de-risks the
+timing change).
+
+## Decisions (2026-07-07)
+
+- **Approach IMPORTANT (double-save on dirty hydration)** → **fix** ("tidy now"). Add the
+  `lastSavedRef` guard centralizing "save at most once" across hydration.
+- **Correctness BLOCKER (clean-load echo + dirty double-save)** → **fix**. Same defect as above;
+  the single guard resolves both. Add the after-clean-load-still-saves test.
+
+Neither is a shape-changing redesign, so the correctness pass ran this round on the reviewed HEAD;
+the guard is applied in `/close`.
+
 ## Design decisions (2026-07-07)
 
 Thomas approved scope (fix the saved-list corruption via unique-name identity + collision-free ids +
