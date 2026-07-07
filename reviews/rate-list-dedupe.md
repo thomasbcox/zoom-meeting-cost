@@ -130,6 +130,22 @@ _Both resolved at the frame consult — see Design decisions._
 - **Error model:** none new — helpers are pure and total (never throw); the store keeps its
   best-effort save. Cap/upsert outcomes are data, surfaced as UI affordance, not exceptions.
 
+## Build note (2026-07-07)
+
+AC → file map:
+- **AC1** (no dup ids; delete/update hit one row) → `client/src/lib/rateTable.js` (`nextId`,
+  minimal id repair) + `client/src/state/usePresenterStore.js` (upsert-based add).
+- **AC2** (upsert-by-name) → `rateTable.js` (`upsertRule`) + store `addRule`.
+- **AC3** (10-cap + UI block) → `rateTable.js` (`MAX_RATES`, cap in upsert) +
+  `client/src/components/PresenterControls.jsx` (`RateTableEditor`/`AliasEditor`/`OverridesEditor`
+  disabled state + note).
+- **AC4** (hydration repair, heal-and-save once) → `rateTable.js` (`repairConfig`) + store
+  hydration effect.
+- **AC5** (aliases symmetry) → `rateTable.js` (`upsertAlias`, `dedupeRows` on aliases) + store
+  `addAlias` + `AliasEditor`.
+- **AC6** (scope) → only the files above + `rateTable.test.js` + the review artifacts.
+- Tests: `client/src/lib/rateTable.test.js`.
+
 ## Codex design review (2026-07-07)
 
 **Verdict:** *"The main shape is sound — a pure `client/src/lib/rateTable.js` helper, `normalizeName`
