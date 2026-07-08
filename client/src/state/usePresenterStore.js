@@ -4,6 +4,7 @@ import { loadRates, saveRates } from '../lib/ratesApi.js';
 import { DEFAULT_DISPLAY_INTERVAL, normalizeDisplayInterval } from '../lib/displayCadence.js';
 import { appendSummary } from '../lib/meetingSummary.js';
 import { upsertRule, upsertAlias, repairConfig } from '../lib/rateTable.js';
+import { costModelPatch } from '../lib/cost.js';
 
 // The presenter's PRIVATE configuration. Persisted to the SERVER (encrypted at rest,
 // keyed to the presenter's Zoom identity) — NOT localStorage, which isn't durable inside
@@ -82,12 +83,17 @@ export function usePresenterStore(adapter) {
         // save the healed config ONCE so the corruption is fixed server-side, not just in
         // memory. A clean load does no save (no echo). See lib/rateTable.
         const { config: fixed, changed } = repairConfig({ ...persistedRef.current, ...server });
-        setPersisted(fixed);
-        // Mark the hydrated config as already-persisted so the debounced effect does not echo
-        // it back (AC4: a clean load writes zero times). On a dirty load, heal the server data
-        // with exactly ONE best-effort save — the guard suppresses the debounced second write.
-        lastSavedRef.current = fixed;
-        if (changed) saveRates(adapter, fixed);
+        // Every session boots in per-participant ("listed-member") mode — a persisted 'simple'
+        // never carries across sessions. Combined with the switch-to-simple count reset, this
+        // makes a stale simpleUserCount unreachable.
+        const booted = { ...fixed, costModel: 'perParticipant' };
+        setPersisted(booted);
+        // Mark the booted config as already-persisted so the debounced effect does not echo it
+        // back (a clean load writes zero times, incl. this boot-mode override). On a dirty load,
+        // heal the server data with exactly ONE best-effort save — the guard suppresses the
+        // debounced second write.
+        lastSavedRef.current = booted;
+        if (changed) saveRates(adapter, booted);
       }
       if (!cancelled) hydratedRef.current = true;
     })();
@@ -112,8 +118,10 @@ export function usePresenterStore(adapter) {
   }, []);
 
   // --- Simple cost model (independent of the per-participant settings) ------
+  // Switching TO simple also clears the attendee override so the count defaults to the
+  // live/actual count (track-live) rather than a stale saved number. See lib/cost.
   const setCostModel = useCallback((model) => {
-    setPersisted((c) => ({ ...c, costModel: model === 'simple' ? 'simple' : 'perParticipant' }));
+    setPersisted((c) => ({ ...c, ...costModelPatch(model) }));
   }, []);
 
   const setSimpleAverageRate = useCallback((rate) => {

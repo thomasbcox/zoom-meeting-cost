@@ -4,6 +4,7 @@ import {
   computeSimpleTotals,
   selectActiveTotals,
   simpleCountCommit,
+  costModelPatch,
   formatMoney,
   formatDuration,
 } from './cost.js';
@@ -189,6 +190,22 @@ describe('cost calculations and formatting', () => {
 
     it('should handle float values by flooring them', () => {
       expect(formatDuration(65.7)).toBe('00:01:05');
+    });
+  });
+
+  describe('costModelPatch', () => {
+    it('switching to simple clears the attendee override (track the live count)', () => {
+      expect(costModelPatch('simple')).toEqual({ costModel: 'simple', simpleUserCount: null });
+    });
+
+    it('switching to per-participant sets only the model (leaves simpleUserCount alone)', () => {
+      const patch = costModelPatch('perParticipant');
+      expect(patch).toEqual({ costModel: 'perParticipant' });
+      expect('simpleUserCount' in patch).toBe(false);
+    });
+
+    it('any non-simple model resolves to per-participant', () => {
+      expect(costModelPatch('anythingElse')).toEqual({ costModel: 'perParticipant' });
     });
   });
 });

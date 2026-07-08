@@ -73,6 +73,19 @@ export function simpleCountCommit(rawValue, liveCount) {
   return n === Number(liveCount) ? '' : rawValue;
 }
 
+/**
+ * The config patch to apply when the cost model changes. Switching TO 'simple' also
+ * clears `simpleUserCount` to null so the attendee count defaults to the live/actual
+ * count (track-live) instead of a stale saved override. Switching to 'perParticipant'
+ * only sets the model — it leaves `simpleUserCount` untouched. Pure so the store can
+ * spread the result and the behavior is unit-tested directly.
+ */
+export function costModelPatch(model) {
+  return model === 'simple'
+    ? { costModel: 'simple', simpleUserCount: null }
+    : { costModel: 'perParticipant' };
+}
+
 function clampNonNeg(v) {
   const n = Number(v);
   return Number.isFinite(n) && n > 0 ? n : 0;
