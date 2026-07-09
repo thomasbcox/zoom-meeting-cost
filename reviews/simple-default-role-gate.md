@@ -230,6 +230,21 @@ Applied in `/close`; because a fix lands, `/close` stops at the re-review/merge 
   for both `simpleCountDisplay` and the `simpleCountCommit` revert). Now an unavailable list ⇒ meter
   reads $0 until a manual count is entered, consistent with the empty prompt.
 
+## Codex re-review (2026-07-08, base 0d6c0a2, HEAD 3ba66c9) — correctness-only
+
+**Summary:** *"The approved fix is correctly threaded: `App` computes `liveCountForSimple =
+simpleLiveCount(participantsAvailable, participants.length)`, uses it for `selectActiveTotals`, and
+passes it into `SimpleCostPanel`, so an unavailable participant list contributes `0` until a manual
+count is entered while an available list still tracks the live count."* (Sandbox blocked the Vitest
+temp write — not a finding; gate green locally + CI.)
+
+**Findings:** none. The correctness BLOCKER is resolved.
+
+## Decisions (2026-07-08, re-review)
+
+Clean re-review — nothing to fix, defer, or reject. PR #68 green on all checks. Ready for `/close`
+→ merge fork.
+
 ## Design decisions (2026-07-08)
 
 Thomas approved scope (Simple-by-default for everyone + non-host lockdown + panel shrink + docs
