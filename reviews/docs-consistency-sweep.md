@@ -109,6 +109,35 @@ AC → file map:
   `dev-docs/railway-setup.md`, `dev-docs/dependency-review.md`.
 - **AC7** → docs + `BACKLOG.md` only; no product code.
 
+## Codex approach review (2026-07-09, base main, HEAD b9222a2)
+
+**Verdict:** *"The sweep is directionally sound on the implementation claims … The operator-
+decryptable wording is an accurate clarification, not a new commitment, and the July 9 date bumps
+are defensible on the pages with substantive changes. I would not call the shape fully sound yet
+because it leaves a stale README visual, stale public-page copy, and split backlog references."*
+
+### BLOCKER — README still embeds the old per-person-only architecture image _(two-way · dated)_
+> The ASCII diagram was updated, but README still embeds `dev-docs/meeting-cost-architecture.png`
+> (source `.svg`), which shows only the per-person path — the most visible diagram now contradicts
+> the Simple-default model and AC2's "diagram reflects cost-model selection."
+> - **alternative:** regenerate the SVG/PNG to match the new ASCII shape, or drop the PNG and keep
+>   the ASCII as the single diagram.
+
+### IMPORTANT — Public policy/support copy still describes the per-person-only model _(two-way · dated)_
+> `docs/privacy.html:56` ("estimates each person's opportunity cost … default for anyone not
+> listed") and `docs/support.html` still frame per-person as the model, and Support's storage FAQ
+> still says "only you can retrieve," undercutting the new operator-decryptable disclosure.
+> - **alternative:** neutralize the use/data-entry copy (Simple default = average rate + count;
+>   per-person is host/co-host optional) and point Support's FAQ at the Privacy operator-decryptable
+>   explanation.
+
+### IMPORTANT — Deferred items recorded in a different backlog than the roadmap points to _(two-way · nonstandard)_
+> BUG-1/OPS-1 went into root `BACKLOG.md`, but `dev-docs/roadmap.md` says tactical work lives in
+> `reviews/backlog.md` — so the new items are invisible to the roadmap's advertised work source
+> (split-brain planning docs).
+> - **alternative:** pick one canonical backlog — update the roadmap to point at root `BACKLOG.md`,
+>   or also link the items in `reviews/backlog.md`.
+
 ## Design decisions (2026-07-09)
 
 Thomas approved the full scope — all audited findings (MUST + SHOULD + NIT), including the
