@@ -186,6 +186,29 @@ feature, or introduce a larger architecture than the problem needs. No approach-
 
 **Findings:** none.
 
+## Codex review (2026-07-08, base main, HEAD 0d6c0a2)
+
+**Summary:** *"The branch mostly matches the role-gated Simple-first spec, but I found one
+availability edge where Simple mode can still compute from a non-manual live count while showing the
+empty attendee prompt."*
+
+### BLOCKER — Unavailable Simple mode can still accrue from a cached live count
+> `App` hides the unavailable blocker in Simple mode but still passes `participants.length` as
+> `liveCount` into `selectActiveTotals` ([App.jsx:115](../client/src/App.jsx#L115)). With a blank
+> `simpleUserCount`, totals use that live count — while `simpleCountDisplay` hides the count when
+> `participantsAvailable` is false. So if the adapter reports the list unavailable **after a prior
+> non-empty snapshot** (e.g. a host who loses access mid-meeting), the attendee field is empty but
+> the meter accrues cost for the **cached** attendees — violating AC2b/AC4 ("$0 until filled").
+> - **suggestion:** use an availability-aware live count for Simple (`participantsAvailable ?
+>   participants.length : 0`), thread it to both totals and the count field's commit, and add a
+>   regression test for `participantsAvailable:false` + blank count + nonzero cached count.
+
+**Claude's read:** confirmed real. On failure the adapter keeps its last participant snapshot and
+still emits it, so `participants.length` can be nonzero while `participantsAvailable` is false — the
+field then reads empty but the meter runs on the stale count. Small, two-way fix; recommend **fix**
+(thread an availability-aware `simpleLiveCount = participantsAvailable ? participants.length : 0`
+into both `selectActiveTotals` and `SimpleCostPanel`, extracted as a tiny tested helper).
+
 ## Design decisions (2026-07-08)
 
 Thomas approved scope (Simple-by-default for everyone + non-host lockdown + panel shrink + docs
