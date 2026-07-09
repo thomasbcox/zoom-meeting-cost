@@ -7,7 +7,7 @@ import PresenterControls from './components/PresenterControls.jsx';
 
 import { usePresenterStore } from './state/usePresenterStore.js';
 import { resolveAll } from './lib/matching.js';
-import { selectActiveTotals } from './lib/cost.js';
+import { selectActiveTotals, simpleLiveCount } from './lib/cost.js';
 import { isHostRole } from './lib/role.js';
 import { buildOverlayState } from './lib/overlayState.js';
 import { quantizeForDisplay } from './lib/displayCadence.js';
@@ -104,6 +104,10 @@ export default function App({ adapter, self, initialParticipants = [] }) {
   const canPerParticipant = isHostRole(self?.role);
   const effectiveCostModel = canPerParticipant ? config.costModel : 'simple';
   const participantListRequired = effectiveCostModel !== 'simple';
+  // Simple mode may track the live headcount ONLY when the list is available — an
+  // unavailable list can still hold a stale non-empty snapshot, which would otherwise make
+  // the meter accrue on a cached count while the field shows the empty prompt. See cost.js.
+  const liveCountForSimple = simpleLiveCount(participantsAvailable, participants.length);
 
   const totals = useMemo(
     () =>
@@ -112,14 +116,14 @@ export default function App({ adapter, self, initialParticipants = [] }) {
         resolved,
         simpleAverageRate: config.simpleAverageRate,
         simpleUserCount: config.simpleUserCount,
-        liveCount: participants.length,
+        liveCount: liveCountForSimple,
       }),
     [
       effectiveCostModel,
       config.simpleAverageRate,
       config.simpleUserCount,
       resolved,
-      participants.length,
+      liveCountForSimple,
     ]
   );
 
@@ -355,6 +359,7 @@ export default function App({ adapter, self, initialParticipants = [] }) {
             previewDisplay={previewDisplay}
             canPerParticipant={canPerParticipant}
             participantsAvailable={participantsAvailable}
+            liveCountForSimple={liveCountForSimple}
           />
         </aside>
       </main>

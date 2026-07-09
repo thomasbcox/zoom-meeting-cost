@@ -219,6 +219,17 @@ into both `selectActiveTotals` and `SimpleCostPanel`, extracted as a tiny tested
 
 Applied in `/close`; because a fix lands, `/close` stops at the re-review/merge fork.
 
+## Fixes (2026-07-08)
+
+**Correctness BLOCKER (unavailable Simple accrues from cached live count)** → fixed:
+- New pure `simpleLiveCount(participantsAvailable, count)` in `client/src/lib/cost.js` → returns the
+  count only when the list is available, else `0` (so a stale non-empty snapshot can't drive the
+  meter). Unit-tested incl. the regression case (`false, 3) → 0`).
+- `App` computes `liveCountForSimple = simpleLiveCount(participantsAvailable, participants.length)`
+  and threads it into `selectActiveTotals` (the meter) and down to `SimpleCostPanel` (which uses it
+  for both `simpleCountDisplay` and the `simpleCountCommit` revert). Now an unavailable list ⇒ meter
+  reads $0 until a manual count is entered, consistent with the empty prompt.
+
 ## Design decisions (2026-07-08)
 
 Thomas approved scope (Simple-by-default for everyone + non-host lockdown + panel shrink + docs

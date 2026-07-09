@@ -102,6 +102,17 @@ export function simpleCountDisplay({ simpleUserCount, liveCount, participantsAva
   return '';
 }
 
+/**
+ * The live attendee count Simple mode may use — but ONLY when the participant list is
+ * actually available. When it's unavailable, the adapter can still hold a STALE non-empty
+ * snapshot; using it would make the meter accrue on a cached count while the field shows the
+ * empty prompt. So an unavailable list yields 0: the meter reads $0 until a manual count is
+ * entered, matching simpleCountDisplay's blank prompt.
+ */
+export function simpleLiveCount(participantsAvailable, count) {
+  return participantsAvailable ? Number(count) || 0 : 0;
+}
+
 function clampNonNeg(v) {
   const n = Number(v);
   return Number.isFinite(n) && n > 0 ? n : 0;

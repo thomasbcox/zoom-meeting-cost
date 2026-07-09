@@ -26,6 +26,7 @@ export default function PresenterControls({
   previewDisplay,
   canPerParticipant = true,
   participantsAvailable = true,
+  liveCountForSimple = resolved.length,
 }) {
   // Which session controls to show for the current status. `ended` now offers a
   // way out (start new / resume) instead of being a dead-end. Overlay Show/Hide is
@@ -139,7 +140,7 @@ export default function PresenterControls({
         <SimpleCostPanel
           config={config}
           actions={actions}
-          liveCount={resolved.length}
+          liveCount={liveCountForSimple}
           participantsAvailable={participantsAvailable}
         />
       ) : (
