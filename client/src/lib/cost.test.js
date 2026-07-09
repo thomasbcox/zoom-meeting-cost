@@ -5,6 +5,7 @@ import {
   selectActiveTotals,
   simpleCountCommit,
   costModelPatch,
+  simpleCountDisplay,
   formatMoney,
   formatDuration,
 } from './cost.js';
@@ -206,6 +207,23 @@ describe('cost calculations and formatting', () => {
 
     it('any non-simple model resolves to per-participant', () => {
       expect(costModelPatch('anythingElse')).toEqual({ costModel: 'perParticipant' });
+    });
+  });
+
+  describe('simpleCountDisplay', () => {
+    it('shows a manual value as-is regardless of availability', () => {
+      expect(simpleCountDisplay({ simpleUserCount: 5, liveCount: 9, participantsAvailable: true })).toBe('5');
+      expect(simpleCountDisplay({ simpleUserCount: 5, liveCount: 0, participantsAvailable: false })).toBe('5');
+    });
+
+    it('tracks the live count when available and no manual value', () => {
+      expect(simpleCountDisplay({ simpleUserCount: null, liveCount: 4, participantsAvailable: true })).toBe('4');
+      expect(simpleCountDisplay({ simpleUserCount: '', liveCount: 4, participantsAvailable: true })).toBe('4');
+    });
+
+    it('is EMPTY (prompt), not 0, when the list is unavailable and nothing entered', () => {
+      expect(simpleCountDisplay({ simpleUserCount: null, liveCount: 0, participantsAvailable: false })).toBe('');
+      expect(simpleCountDisplay({ simpleUserCount: '', liveCount: 0, participantsAvailable: false })).toBe('');
     });
   });
 });

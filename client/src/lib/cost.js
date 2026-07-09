@@ -86,6 +86,22 @@ export function costModelPatch(model) {
     : { costModel: 'perParticipant' };
 }
 
+/**
+ * What the Simple-mode attendee-count field should display.
+ * - A manual value (non-blank simpleUserCount) always shows as-is.
+ * - Otherwise, when the live participant list IS available, prefill/track the live count.
+ * - When the list is UNAVAILABLE (the non-host case, liveCount is a meaningless 0), show
+ *   an EMPTY field so the presenter is prompted to enter their best-guess headcount —
+ *   never a misleading 0 that would peg the meter at $0 silently.
+ * Returns '' for the empty-prompt case; a numeric string otherwise.
+ */
+export function simpleCountDisplay({ simpleUserCount, liveCount, participantsAvailable }) {
+  const hasManual = simpleUserCount !== '' && simpleUserCount != null;
+  if (hasManual) return String(simpleUserCount);
+  if (participantsAvailable) return String(liveCount ?? 0);
+  return '';
+}
+
 function clampNonNeg(v) {
   const n = Number(v);
   return Number.isFinite(n) && n > 0 ? n : 0;

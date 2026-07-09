@@ -8,6 +8,7 @@ import PresenterControls from './components/PresenterControls.jsx';
 import { usePresenterStore } from './state/usePresenterStore.js';
 import { resolveAll } from './lib/matching.js';
 import { selectActiveTotals } from './lib/cost.js';
+import { isHostRole } from './lib/role.js';
 import { buildOverlayState } from './lib/overlayState.js';
 import { quantizeForDisplay } from './lib/displayCadence.js';
 import { seedPresenterName } from './lib/presenterName.js';
@@ -96,17 +97,25 @@ export default function App({ adapter, self, initialParticipants = [] }) {
     () => resolveAll(participants, { ...config, overrides }),
     [participants, config, overrides]
   );
+  // Only a host/co-host can read the participant list, so only they can use the
+  // per-participant model; everyone else is Simple-locked. The EFFECTIVE model drives the
+  // readout and the availability gate: in Simple mode the meter calculates from the manual
+  // attendee count and never needs the participant list (so no "can't calculate" block).
+  const canPerParticipant = isHostRole(self?.role);
+  const effectiveCostModel = canPerParticipant ? config.costModel : 'simple';
+  const participantListRequired = effectiveCostModel !== 'simple';
+
   const totals = useMemo(
     () =>
       selectActiveTotals({
-        costModel: config.costModel,
+        costModel: effectiveCostModel,
         resolved,
         simpleAverageRate: config.simpleAverageRate,
         simpleUserCount: config.simpleUserCount,
         liveCount: participants.length,
       }),
     [
-      config.costModel,
+      effectiveCostModel,
       config.simpleAverageRate,
       config.simpleUserCount,
       resolved,
@@ -299,7 +308,7 @@ export default function App({ adapter, self, initialParticipants = [] }) {
 
       <main className="layout presenter">
         <div className="screen-col">
-          {!participantsAvailable ? (
+          {participantListRequired && !participantsAvailable ? (
             <div className="cost-screen empty" role="status">
               <p>
                 <strong>Participants unavailable.</strong>
@@ -344,6 +353,8 @@ export default function App({ adapter, self, initialParticipants = [] }) {
             stopOverlay={stopOverlay}
             resolved={resolved}
             previewDisplay={previewDisplay}
+            canPerParticipant={canPerParticipant}
+            participantsAvailable={participantsAvailable}
           />
         </aside>
       </main>

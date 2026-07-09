@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { formatMoney, simpleCountCommit } from '../lib/cost.js';
+import { formatMoney, simpleCountCommit, simpleCountDisplay } from '../lib/cost.js';
 import { displayDraft } from '../lib/numberInputDraft.js';
 import { saveToListTarget } from '../lib/saveToList.js';
 import { MAX_RATES } from '../lib/rateTable.js';
@@ -24,12 +24,17 @@ export default function PresenterControls({
   stopOverlay,
   resolved,
   previewDisplay,
+  canPerParticipant = true,
+  participantsAvailable = true,
 }) {
   // Which session controls to show for the current status. `ended` now offers a
   // way out (start new / resume) instead of being a dead-end. Overlay Show/Hide is
   // independent of session status and always available.
   const c = sessionControls(session.status);
   const ended = session.status === 'ended';
+  // Non-hosts can't read the participant list, so they get ONLY the Simple model:
+  // no cost-model toggle, no per-participant editors. Hosts/co-hosts see the full UI.
+  const showSimple = !canPerParticipant || config.costModel === 'simple';
 
   return (
     <div className="controls">
@@ -73,12 +78,9 @@ export default function PresenterControls({
           )}
         </div>
         <p className="muted small">
-          Overlay: <strong>{overlayOn ? 'on your video' : 'hidden'}</strong> ·
-          counting: <strong>{session.status}</strong>
-        </p>
-        <p className="muted small">
-          The meter renders on your camera feed, so everyone sees it natively —
-          no app install needed for other participants.
+          Overlay <strong>{overlayOn ? 'on your video' : 'hidden'}</strong> · counting{' '}
+          <strong>{session.status}</strong> · renders on your camera feed, so everyone sees it —
+          keep this panel open while counting.
         </p>
 
         {/* --- Display cadence + viewer preview ------------------------- */}
@@ -96,50 +98,50 @@ export default function PresenterControls({
               </button>
             ))}
           </div>
-          <p className="muted small">
-            Slows how often the on-camera number changes so it doesn&rsquo;t draw the
-            eye. The running total stays exact underneath.
-          </p>
         </div>
 
         <div className="overlay-preview">
-          <span className="muted small">What viewers see</span>
+          <span className="muted small">What viewers see — aggregate only, never names</span>
           <div className="overlay-preview-stage">
             <CostOverlay display={previewDisplay} />
           </div>
+        </div>
+      </section>
+
+      {/* --- Cost model toggle: host/co-host only (non-hosts are Simple-locked) --- */}
+      {canPerParticipant && (
+        <section className="panel">
+          <h3>Cost model</h3>
+          <div className="btn-row">
+            <button
+              className={`btn ${config.costModel !== 'simple' ? 'primary' : ''}`}
+              onClick={() => actions.setCostModel('perParticipant')}
+            >
+              Per-participant
+            </button>
+            <button
+              className={`btn ${config.costModel === 'simple' ? 'primary' : ''}`}
+              onClick={() => actions.setCostModel('simple')}
+            >
+              Simple (N × rate)
+            </button>
+          </div>
           <p className="muted small">
-            Aggregate only — never names or per-person values.
+            {config.costModel === 'simple'
+              ? 'Flat estimate: attendees × average opportunity cost.'
+              : 'Per-person opportunity cost from your private table.'}
           </p>
-        </div>
-      </section>
+        </section>
+      )}
 
-      {/* --- Cost model toggle (shown in BOTH modes) ---------------------- */}
-      <section className="panel">
-        <h3>Cost model</h3>
-        <div className="btn-row">
-          <button
-            className={`btn ${config.costModel !== 'simple' ? 'primary' : ''}`}
-            onClick={() => actions.setCostModel('perParticipant')}
-          >
-            Per-participant
-          </button>
-          <button
-            className={`btn ${config.costModel === 'simple' ? 'primary' : ''}`}
-            onClick={() => actions.setCostModel('simple')}
-          >
-            Simple (N × rate)
-          </button>
-        </div>
-        <p className="muted small">
-          {config.costModel === 'simple'
-            ? 'Flat estimate: attendees × average opportunity cost.'
-            : 'Per-person opportunity cost from your private table.'}
-        </p>
-      </section>
-
-      {config.costModel === 'simple' ? (
+      {showSimple ? (
         /* --- Simple cost model (replaces the per-participant editors) ----- */
-        <SimpleCostPanel config={config} actions={actions} liveCount={resolved.length} />
+        <SimpleCostPanel
+          config={config}
+          actions={actions}
+          liveCount={resolved.length}
+          participantsAvailable={participantsAvailable}
+        />
       ) : (
         <>
           {/* --- Global rate settings ------------------------------------- */}
@@ -179,13 +181,18 @@ export default function PresenterControls({
   );
 }
 
-function SimpleCostPanel({ config, actions, liveCount }) {
+function SimpleCostPanel({ config, actions, liveCount, participantsAvailable = true }) {
+  const countValue = simpleCountDisplay({
+    simpleUserCount: config.simpleUserCount,
+    liveCount,
+    participantsAvailable,
+  });
   return (
     <section className="panel">
-      <h3>Simple cost estimate</h3>
+      <h3>Meeting cost estimate</h3>
       <p className="muted small">
-        Drives the meter from a flat estimate instead of the per-person table.
-        These values are independent of your per-participant settings.
+        Your best guess of the average hourly opportunity cost per participant × the number of
+        participants.
       </p>
       <div className="field-row">
         <label>
@@ -199,14 +206,16 @@ function SimpleCostPanel({ config, actions, liveCount }) {
         <label>
           Number of attendees
           <NumberInput
-            value={config.simpleUserCount ?? liveCount}
+            value={countValue}
+            placeholder="# of attendees"
             onCommit={(v) => actions.setSimpleUserCount(simpleCountCommit(v, liveCount))}
           />
         </label>
       </div>
       <p className="muted small">
-        Attendees is prefilled from the live count ({liveCount}); edit to override,
-        clear to track the meeting.
+        {participantsAvailable
+          ? `Prefilled from the live count (${liveCount}); edit to override, clear to track it.`
+          : 'Enter the number of attendees — the live count isn’t available to you in this meeting.'}
       </p>
     </section>
   );
@@ -233,14 +242,13 @@ function RateTableEditor({ config, actions }) {
   return (
     <section className="panel">
       <h3>Private per-person values</h3>
-      <p className="muted small">Your best-guess hourly opportunity cost for each person. Never shown to participants.</p>
+      <p className="muted small">
+        Your best-guess hourly opportunity cost per person — never shown to participants.
+      </p>
       <p className="muted small" role="note">
-        ⚠️ Saved to the server, encrypted, and tied to your Zoom identity so it loads in
-        your future meetings — along with aggregate <strong>past-meeting summaries</strong>
-        (ended time, duration, total cost, attendee count; no names or per-person values). It
-        is <strong>not</strong> end-to-end encrypted — the app operator can decrypt it, and it
-        is included in export/delete. Don&rsquo;t enter anything you wouldn&rsquo;t want stored
-        server-side.
+        ⚠️ Stored server-side (encrypted, but <strong>operator-decryptable</strong> — not
+        end-to-end) and included in export/delete. Don&rsquo;t enter anything you wouldn&rsquo;t
+        want stored.
       </p>
       <table className="edit-table">
         <tbody>
@@ -466,7 +474,7 @@ function PastMeetings({ history = [] }) {
 }
 
 // Number input that commits on blur / Enter so typing isn't fought by clamping.
-function NumberInput({ value, onCommit, step = '1', prefix, suffix }) {
+function NumberInput({ value, onCommit, step = '1', prefix, suffix, placeholder }) {
   // Local draft so typing isn't fought by clamping; re-synced from `value` on
   // focus and committed on blur/Enter.
   const [draft, setDraft] = useState(String(value ?? ''));
@@ -504,6 +512,7 @@ function NumberInput({ value, onCommit, step = '1', prefix, suffix }) {
         type="number"
         step={step}
         min="0"
+        placeholder={placeholder}
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         onFocus={() => {

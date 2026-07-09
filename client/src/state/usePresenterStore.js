@@ -31,8 +31,9 @@ const DEFAULT_CONFIG = {
   // Cost model: which source drives the live meter. 'simple' uses a flat
   // N × simpleAverageRate estimate, independent of the per-participant
   // defaultRate above. simpleUserCount === null means "track the live
-  // attendee count".
-  costModel: 'perParticipant',
+  // attendee count". Default is 'simple' — it works for every role (per-participant
+  // needs the host/co-host-only participant list). See simple-default-role-gate.
+  costModel: 'simple',
   simpleAverageRate: 75,
   simpleUserCount: null,
   // How often the ON-CAMERA cost number is allowed to change (seconds). Only
@@ -83,10 +84,10 @@ export function usePresenterStore(adapter) {
         // save the healed config ONCE so the corruption is fixed server-side, not just in
         // memory. A clean load does no save (no echo). See lib/rateTable.
         const { config: fixed, changed } = repairConfig({ ...persistedRef.current, ...server });
-        // Every session boots in per-participant ("listed-member") mode — a persisted 'simple'
-        // never carries across sessions. Combined with the switch-to-simple count reset, this
-        // makes a stale simpleUserCount unreachable.
-        const booted = { ...fixed, costModel: 'perParticipant' };
+        // Every session boots in Simple mode — it works for every role, and a persisted
+        // 'perParticipant' never carries across sessions (non-hosts can't use it anyway).
+        // See simple-default-role-gate.
+        const booted = { ...fixed, costModel: 'simple' };
         setPersisted(booted);
         // Mark the booted config as already-persisted so the debounced effect does not echo it
         // back (a clean load writes zero times, incl. this boot-mode override). On a dirty load,
