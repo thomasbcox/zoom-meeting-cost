@@ -130,6 +130,20 @@ _All resolved at the frame consult — see Design decisions._
 - **Error model:** unchanged. Role is best-effort (missing → Simple-locked, the safe path); nothing
   new throws.
 
+## Build note (2026-07-08)
+
+AC → file map:
+- **AC1** (boot Simple) → `client/src/state/usePresenterStore.js` (DEFAULT_CONFIG + `booted`).
+- **AC2/2b** (role-gate + effective-model) → `client/src/lib/role.js` (`isHostRole`),
+  `client/src/App.jsx` (`canPerParticipant`/`effectiveCostModel`/`participantListRequired` + gated
+  banner + props), `client/src/components/PresenterControls.jsx` (toggle + panels gated on
+  `canPerParticipant`/`showSimple`), `client/src/zoom/zoomAdapter.js` (mock `self.role`).
+- **AC3** (role parsing) → `role.js` + `role.test.js`.
+- **AC4** (empty-prompt count) → `client/src/lib/cost.js` (`simpleCountDisplay`) + `cost.test.js`;
+  `PresenterControls.jsx` (`SimpleCostPanel` + `NumberInput` placeholder).
+- **AC5** (shrink) → `PresenterControls.jsx` (gating + one-line copy, disclosure preserved).
+- **AC6** (docs) → `PresenterControls.jsx` copy + `docs/documentation.html`.
+
 ## Codex design review (2026-07-08)
 
 **Verdict:** *"The role source is the right one: `getUserContext().role` is the privilege signal,
