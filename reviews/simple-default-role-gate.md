@@ -176,6 +176,16 @@ disclosure."*
 >   concise single note.
 > - **win:** shrinks the panel without removing the consent notice for persisted per-person data.
 
+## Codex approach review (2026-07-08, base main, HEAD 0d6c0a2)
+
+**Verdict:** *"I would solve the ACs with a pure role helper, one App-level
+`effectiveCostModel`/`participantListRequired` invariant, declarative conditional rendering in
+`PresenterControls`, a tiny pure `simpleCountDisplay` helper, and content-only docs/copy edits. The
+implementation matches that shape. It does not add an unnecessary dependency, reimplement a framework
+feature, or introduce a larger architecture than the problem needs. No approach-level concerns."*
+
+**Findings:** none.
+
 ## Design decisions (2026-07-08)
 
 Thomas approved scope (Simple-by-default for everyone + non-host lockdown + panel shrink + docs
