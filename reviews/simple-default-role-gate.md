@@ -209,6 +209,16 @@ field then reads empty but the meter runs on the stale count. Small, two-way fix
 (thread an availability-aware `simpleLiveCount = participantsAvailable ? participants.length : 0`
 into both `selectActiveTotals` and `SimpleCostPanel`, extracted as a tiny tested helper).
 
+## Decisions (2026-07-08)
+
+- **Approach pass:** clean (empty findings) — shape blessed.
+- **Correctness BLOCKER (unavailable Simple accrues from cached live count)** → **fix**. Thread an
+  availability-aware `simpleLiveCount = participantsAvailable ? participants.length : 0` (tiny tested
+  helper) into `selectActiveTotals` and `SimpleCostPanel`, so an unavailable list makes the meter
+  read $0 until a manual count is entered. Add the regression test codex asked for.
+
+Applied in `/close`; because a fix lands, `/close` stops at the re-review/merge fork.
+
 ## Design decisions (2026-07-08)
 
 Thomas approved scope (Simple-by-default for everyone + non-host lockdown + panel shrink + docs
