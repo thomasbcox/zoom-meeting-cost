@@ -95,6 +95,20 @@ pattern, or dependency. Per `/frame` step 6, the codex design review is a noted 
 decryptable wording will mirror the in-app disclosure (`PresenterControls.jsx`) and the roadmap
 Phase-6A requirement — a factual clarification of the existing posture, not a new commitment.
 
+## Build note (2026-07-09)
+
+AC → file map:
+- **AC1** → `BACKLOG.md` (BUG-1, OPS-1).
+- **AC2/AC3** → `README.md`, `server/zoom-app-config.md`, `dev-docs/opportunity-cost-rate.md`.
+- **AC4** → `docs/index.html`, `docs/documentation.html`, `docs/privacy.html`, `docs/security.html`,
+  `docs/support.html`, `docs/terms.html` (Security nav on all; card + operator-decryptable
+  disclosure on the content pages).
+- **AC5** → `dev-docs/roadmap.md`, `dev-docs/camera-overlay-no-draw.md`,
+  `dev-docs/camera-overlay-no-update.md`.
+- **AC6** → date bumps (`docs/documentation.html`/`privacy.html`/`security.html`),
+  `dev-docs/railway-setup.md`, `dev-docs/dependency-review.md`.
+- **AC7** → docs + `BACKLOG.md` only; no product code.
+
 ## Design decisions (2026-07-09)
 
 Thomas approved the full scope — all audited findings (MUST + SHOULD + NIT), including the
