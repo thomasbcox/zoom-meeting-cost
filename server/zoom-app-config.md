@@ -135,7 +135,7 @@ Add **every** API below under **Features → Zoom App SDK → Add APIs**. This l
   `RealZoom` implementation (wraps `@zoom/appssdk`). The app talks only to the
   adapter interface, so switching is a config flag.
 - The presenter's private rate config (rate table, aliases, default rate,
-  multiplier, cost-model settings) is persisted **server-side, encrypted at rest**
+  cost-model settings) is persisted **server-side, encrypted at rest**
   via `GET`/`PUT /api/rates` — keyed to the presenter's stable Zoom identity (the
   `uid` decrypted from the `getAppContext()` the client sends in the
   `x-zoom-app-context` header). At-rest encryption is AES-256-GCM with a per-user

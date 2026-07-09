@@ -17,6 +17,7 @@
       <nav class="site-nav">
         <a href="documentation.html">Docs</a>
         <a href="privacy.html">Privacy</a>
+        <a href="security.html">Security</a>
         <a href="terms.html">Terms</a>
         <a href="support.html">Support</a>
       </nav>
@@ -27,7 +28,7 @@
     <div class="wrap">
       <p class="eyebrow">Trust</p>
       <h1>Security overview</h1>
-      <p class="meta">Effective date: 1 June 2026 · Meeting Cost Meter</p>
+      <p class="meta">Effective date: 9 July 2026 · Meeting Cost Meter</p>
 
       <p class="lede">Meeting Cost Meter is built to handle the little data it touches
         carefully — encrypted, minimal, and never shared. This page summarizes how the app
@@ -52,7 +53,10 @@
         <li>All traffic is served over <strong>HTTPS/TLS</strong> (HSTS enforced).</li>
         <li>The presenter's configuration is stored <strong>AES-256-GCM encrypted at
           rest</strong>, with a per-user key tied to their Zoom account; plaintext never
-          touches disk.</li>
+          touches disk. This is encryption at rest, <strong>not end-to-end</strong>: the running
+          service (and therefore the app operator) can decrypt it. A leaked volume or backup
+          alone is useless without the separate encryption secret, and no meeting participant or
+          other user can access it.</li>
         <li>The live on-camera total is an aggregate computed inside the Zoom client and is
           <strong>never sent to our server</strong>.</li>
         <li>Responses set Content-Security-Policy, <code>nosniff</code>, and no-store cache
@@ -84,7 +88,7 @@
       <p>Meeting Cost Meter is provided by <strong>Transformative Leadership Lab LLC</strong>.</p>
       <p><a href="index.html">← All documents</a> ·
          <a href="mailto:thomas+mcsupport@txl-lab.com">thomas+mcsupport@txl-lab.com</a></p>
-      <p class="fineprint">Effective date: 1 June 2026</p>
+      <p class="fineprint">Effective date: 9 July 2026</p>
     </div>
   </footer>
 </body>

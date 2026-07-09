@@ -30,9 +30,10 @@ them. Semantically, every one of these holds an **hourly opportunity-cost** figu
 - `simpleAverageRate` — average opportunity cost in the simple (N × rate) model
 - `overrides[participantId]` — a per-meeting opportunity-cost override
 
-The `multiplier` field is a legacy compensation concept (overhead on pay) that no
-longer fits this framing; its removal is flagged in [`reviews/backlog.md`](../reviews/backlog.md).
-Until then, treat it as a neutral scaling factor.
+The `multiplier` field — a legacy compensation concept (overhead on pay) that no longer fit
+this framing — has been **removed** (see [`reviews/remove-cost-multiplier.md`](../reviews/remove-cost-multiplier.md)).
+The current schema has no multiplier; `rateStore` tolerates but ignores a stray legacy value on
+an old saved config.
 
 ## What never leaves the design
 
