@@ -94,7 +94,9 @@ export class MockZoom {
   async init() {
     return {
       context: { runningContext: 'inMeeting', meetingID: 'demo-meeting' },
-      self: { id: 'p1', displayName: 'Thomas Cox' },
+      // role:'host' so local dev exercises the full (per-participant-capable) UI; real
+      // role comes from getUserContext() in RealZoom. See lib/role + simple-default-role-gate.
+      self: { id: 'p1', displayName: 'Thomas Cox', role: 'host' },
       participants: this.getParticipants(),
     };
   }

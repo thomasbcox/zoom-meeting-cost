@@ -5,6 +5,8 @@ import {
   selectActiveTotals,
   simpleCountCommit,
   costModelPatch,
+  simpleCountDisplay,
+  simpleLiveCount,
   formatMoney,
   formatDuration,
 } from './cost.js';
@@ -206,6 +208,41 @@ describe('cost calculations and formatting', () => {
 
     it('any non-simple model resolves to per-participant', () => {
       expect(costModelPatch('anythingElse')).toEqual({ costModel: 'perParticipant' });
+    });
+  });
+
+  describe('simpleCountDisplay', () => {
+    it('shows a manual value as-is regardless of availability', () => {
+      expect(simpleCountDisplay({ simpleUserCount: 5, liveCount: 9, participantsAvailable: true })).toBe('5');
+      expect(simpleCountDisplay({ simpleUserCount: 5, liveCount: 0, participantsAvailable: false })).toBe('5');
+    });
+
+    it('tracks the live count when available and no manual value', () => {
+      expect(simpleCountDisplay({ simpleUserCount: null, liveCount: 4, participantsAvailable: true })).toBe('4');
+      expect(simpleCountDisplay({ simpleUserCount: '', liveCount: 4, participantsAvailable: true })).toBe('4');
+    });
+
+    it('is EMPTY (prompt), not 0, when the list is unavailable and nothing entered', () => {
+      expect(simpleCountDisplay({ simpleUserCount: null, liveCount: 0, participantsAvailable: false })).toBe('');
+      expect(simpleCountDisplay({ simpleUserCount: '', liveCount: 0, participantsAvailable: false })).toBe('');
+    });
+  });
+
+  describe('simpleLiveCount', () => {
+    it('passes the live count through when the list is available', () => {
+      expect(simpleLiveCount(true, 5)).toBe(5);
+      expect(simpleLiveCount(true, 0)).toBe(0);
+    });
+
+    it('is 0 when unavailable, even with a stale non-empty cached count', () => {
+      // The regression: an unavailable list must not accrue on a cached snapshot.
+      expect(simpleLiveCount(false, 3)).toBe(0);
+      expect(simpleLiveCount(false, 99)).toBe(0);
+    });
+
+    it('coerces junk to 0', () => {
+      expect(simpleLiveCount(true, undefined)).toBe(0);
+      expect(simpleLiveCount(true, NaN)).toBe(0);
     });
   });
 });
