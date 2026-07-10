@@ -1,6 +1,9 @@
 # Backlog
 
-Tracked work items. Ids: `AUDIT-` (from `/dev-audit`), `BUG-`, `OPS-`.
+The **canonical tracked-work list** for the `/dev-audit` → `/frame` → `/close` loop. Ids:
+`AUDIT-` (from `/dev-audit`), `BUG-`, `OPS-`. The detailed product/strategy backlog (roadmap
+deep-links) lives in [`reviews/backlog.md`](reviews/backlog.md); the strategy above both is
+[`dev-docs/roadmap.md`](dev-docs/roadmap.md).
 
 ## Open
 

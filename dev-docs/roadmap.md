@@ -3,8 +3,11 @@
 Status: **draft** · Created 2026-06-10 · Owner: Thomas
 
 A living strategic roadmap for turning Meeting Cost from a prototype into a production
-Zoom App with free and paid tiers. Tactical, per-feature work is tracked in
-[`reviews/backlog.md`](../reviews/backlog.md); this file is the strategy above it.
+Zoom App with free and paid tiers. This file is the strategy above two backlogs:
+[`BACKLOG.md`](../BACKLOG.md) is the **canonical tracked-work list** (workflow items from the
+`/dev-audit` → `/frame` → `/close` loop: `AUDIT-`/`BUG-`/`OPS-`), and
+[`reviews/backlog.md`](../reviews/backlog.md) is the **detailed product/strategy backlog** the
+execution plan below deep-links into. Check both.
 
 > **Terminology.** Throughout this repo, "rate" means each person's hourly **opportunity
 > cost** (value of their best alternative work), not pay. The identifier name is historical;
@@ -64,7 +67,8 @@ presenter's stable Zoom identity.
 > updated for these; the authoritative *ordering* of all remaining work now lives in the new
 > **[Execution plan](#execution-plan-orderly-development)** section, which supersedes the old
 > one-line "Rough sequence." Tactical per-item detail stays in
-> [`reviews/backlog.md`](../reviews/backlog.md).
+> [`reviews/backlog.md`](../reviews/backlog.md); workflow-tracked items (`AUDIT-`/`BUG-`/`OPS-`)
+> live in the canonical [`BACKLOG.md`](../BACKLOG.md).
 
 The path to a paid product is therefore **mostly product + commerce work, not core
 re-architecture**:

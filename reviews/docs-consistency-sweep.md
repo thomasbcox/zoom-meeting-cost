@@ -152,6 +152,25 @@ round — approved fixes reshape the docs deliverable, so it goes back through `
 - **IMPORTANT (split backlog)** → **fix**: make root `BACKLOG.md` canonical — update
   `dev-docs/roadmap.md`'s work-source references to point there.
 
+## Fixes (2026-07-09)
+
+Applied the three approved approach findings:
+- **BLOCKER (stale diagram)** → removed the embedded `meeting-cost-architecture.png` and the
+  "Full diagram source" `.svg` link from `README.md`; the updated ASCII diagram is now the single
+  source. No live doc references the old images (only historical review artifacts do); the unused
+  asset files are left in place.
+- **IMPORTANT (public copy)** → neutralized the per-person-only framing on `docs/privacy.html`
+  (lede, summary, "What the app is", "The figures you enter") and `docs/support.html` ("What number
+  do I enter?") to Simple-default + optional host-only per-person; repointed Support's "Where are my
+  settings stored?" from "only you can retrieve" to the operator-decryptable clarification.
+- **IMPORTANT (split backlog)** → implemented the *intent* (no invisible items) rather than a literal
+  single-file merge: `reviews/backlog.md` holds ~15 roadmap-deep-linked detailed items, so moving
+  them into `BACKLOG.md` would break those links. Instead, `dev-docs/roadmap.md` now names **both**
+  backlogs and their roles — `BACKLOG.md` = canonical tracked-work list (`AUDIT-`/`BUG-`/`OPS-`),
+  `reviews/backlog.md` = detailed product/strategy backlog — and `BACKLOG.md` cross-links back. So
+  BUG-1/OPS-1 are now discoverable from the roadmap. (Flagging the deviation from "make BACKLOG.md
+  the *one* canonical" for the re-review.)
+
 ## Design decisions (2026-07-09)
 
 Thomas approved the full scope — all audited findings (MUST + SHOULD + NIT), including the

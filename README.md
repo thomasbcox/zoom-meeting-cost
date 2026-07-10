@@ -125,8 +125,6 @@ cost model ─► selectActiveTotals()
   scaffold, `/api/health`, and serving the built client. State flows entirely
   through Zoom's in-client message bridge — there is no server-side WebSocket.
 
-![Meeting Cost Meter — architecture and data flow](dev-docs/meeting-cost-architecture.png)
-
 ## Technology stack
 
 - **Frontend:** React 18 single-page app built with Vite 6, running inside the Zoom
@@ -147,8 +145,6 @@ cost model ─► selectActiveTotals()
   on all responses.
 - **Hosting:** Railway (Node service, auto-deploy from GitHub); GitHub Pages serves the
   static legal/support pages.
-
-Full diagram source: [`dev-docs/meeting-cost-architecture.svg`](dev-docs/meeting-cost-architecture.svg).
 
 ## Going live in Zoom (later)
 
