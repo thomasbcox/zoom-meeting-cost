@@ -171,6 +171,33 @@ Applied the three approved approach findings:
   BUG-1/OPS-1 are now discoverable from the roadmap. (Flagging the deviation from "make BACKLOG.md
   the *one* canonical" for the re-review.)
 
+## Codex approach re-review (2026-07-10, base main, HEAD 41b09cb)
+
+**Verdict:** *"Not fully sound yet. The README diagram, multiplier removal, operator-decryptable
+disclosure, and privacy/support copy fixes are directionally resolved. The two-backlog approach is
+acceptable in principle … but the roadmap still overclaims that its execution plan inventories every
+open unit of work while omitting the root BACKLOG BUG/OPS queue. I also found remaining
+per-person-only wording in canonical/public docs and one stale Support effective date."*
+
+### IMPORTANT — Canonical/public docs still define input as per-person-only _(two-way · dated)_
+> `dev-docs/opportunity-cost-rate.md:6` ("for each person"), `docs/documentation.html:38` ("The
+> figure you enter for each person"), and `docs/terms.html:45` still frame the input per-person —
+> conflicting with the Simple default (average rate + count; non-hosts can't use per-person).
+> - **alternative:** rewrite around "the rate(s) you enter — an average in Simple mode, or per-person
+>   values in host/co-host per-person mode"; make the default-rate tip explicitly per-person-only.
+
+### IMPORTANT — Execution-plan "every open unit" claim too broad _(two-way · nonstandard)_
+> Naming both backlogs helped, but `dev-docs/roadmap.md:463` still says the execution plan
+> inventories *every* open unit from `reviews/backlog.md`, while BUG-1/OPS-1/AUDIT-4 live only in
+> root `BACKLOG.md`; `reviews/backlog.md:5` also calls the roadmap the authoritative inventory.
+> - **alternative:** narrow the execution-plan language to product/strategy work and say AUDIT/BUG/OPS
+>   workflow items are tracked separately in `BACKLOG.md` (or add a root-BACKLOG queue row).
+
+### NIT — Support effective date stayed stale after copy changes _(two-way · dated)_
+> `docs/support.html:31` still says "1 June 2026" despite the new Simple-default + operator-decryptable
+> copy.
+> - **alternative:** bump Support's header/footer date to 9 July 2026.
+
 ## Design decisions (2026-07-09)
 
 Thomas approved the full scope — all audited findings (MUST + SHOULD + NIT), including the
