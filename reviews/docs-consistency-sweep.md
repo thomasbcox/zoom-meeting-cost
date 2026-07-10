@@ -267,6 +267,13 @@ public-doc consistency issues plus one date NIT."*
 > `docs/index.html:67` — footer still "1 June 2026" while the other touched pages are 9 July.
 > → bump index to 9 July.
 
+## Decisions (2026-07-10, correctness)
+
+All three correctness findings → **fix** (bounded one-line doc edits): reword the `docs/index.html`
+Security card off "what never leaves the Zoom client"; scope the `docs/documentation.html`
+default-rate tip to per-person mode; bump `docs/index.html`'s effective date to 9 July. Correctness
+fixes → `/close` reaches the re-review/merge fork.
+
 Thomas approved the full scope — all audited findings (MUST + SHOULD + NIT), including the
 operator-decryptable disclosure on the public legal pages (privacy.html/security.html), and the two
 BACKLOG follow-ups. Mechanical story → codex design review skipped (`N/A — mechanical`).
