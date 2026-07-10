@@ -1,5 +1,9 @@
 # Consult brief — camera overlay draws but never updates (data channel)
 
+> **✅ RESOLVED — reference only.** Fixed: the overlay updates via direct `postMessage`/`onMessage`
+> between the panel and the `inCamera` instance (no server relay) — see the Tier-2 "simplification"
+> section below, which matches the current design. Kept as a historical consult record.
+
 **For:** independent review (Codex). **Date:** 2026-06-07.
 **Repo:** `zoom-meeting-cost` — Zoom App showing live meeting cost on the presenter's video.
 **Branch state:** `main` @ `322cad3` (includes the merged `camera-overlay-context-shape`

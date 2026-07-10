@@ -17,6 +17,7 @@
       <nav class="site-nav">
         <a href="documentation.html">Docs</a>
         <a href="privacy.html">Privacy</a>
+        <a href="security.html">Security</a>
         <a href="terms.html">Terms</a>
         <a href="support.html">Support</a>
       </nav>
@@ -27,22 +28,25 @@
     <div class="wrap">
       <p class="eyebrow">Policy</p>
       <h1>Privacy Policy</h1>
-      <p class="meta">Effective date: 25 June 2026 · Meeting Cost Meter</p>
+      <p class="meta">Effective date: 9 July 2026 · Meeting Cost Meter</p>
 
       <p class="lede">Meeting Cost Meter is built to protect everyone's privacy. The
-        figures you enter are your own private estimates of each person's hourly
-        opportunity cost — never their pay — and participants never see them.</p>
+        figures you enter are your own private estimates of hourly opportunity cost —
+        never anyone's pay — and participants never see them.</p>
 
       <h2>Summary</h2>
       <div class="callout">
-        <p><strong>You estimate opportunity cost, not pay.</strong> For each person you
-          enter your own estimate of their hourly opportunity cost — the value of the
-          highest and best work they could be doing instead of being in the meeting. It is
-          deliberately not their wage or salary: pay is private (we never want it), and pay
-          understates the meeting's cost.</p>
+        <p><strong>You estimate opportunity cost, not pay.</strong> You enter your own
+          estimate of hourly opportunity cost — an average across participants, or per person if
+          you use the host-only per-person model — the value of the highest and best work someone
+          could be doing instead of being in the meeting. It is deliberately not their wage or
+          salary: pay is private (we never want it), and pay understates the meeting's cost.</p>
         <p><strong>Your settings are stored encrypted, for you.</strong> The names and
           values you enter are saved on our server, encrypted at rest and tied to your
-          Zoom account, so your setup is there next time. Only you can retrieve it.</p>
+          Zoom account, so your setup is there next time. No meeting participant or other user
+          can see it. It is <strong>not end-to-end encrypted</strong> — the running service, and
+          therefore the app operator, can decrypt it, so don&rsquo;t enter anything you
+          wouldn&rsquo;t want stored where the operator could read it.</p>
         <p><strong>Participants only see a combined total.</strong> The on-camera overlay
           shows aggregate numbers only — never individual values or names.</p>
         <p><strong>No HR or identity systems.</strong> The app does not connect to HR,
@@ -51,34 +55,40 @@
 
       <h2>What the app is</h2>
       <p>Meeting Cost Meter is a Zoom App that displays the live estimated cost of a
-        meeting. The presenter privately estimates each person's <strong>hourly
-        opportunity cost</strong> — the value of the highest and best work they could be
-        doing instead of being in the meeting, not their pay — with a default for anyone not
-        listed. The app totals everyone's hourly opportunity cost and accrues it over the
-        elapsed time to produce a running figure, which can be shown as an overlay on the
-        presenter's camera feed.</p>
+        meeting. By default, the presenter enters a simple estimate — an average <strong>hourly
+        opportunity cost</strong> (the value of the highest and best work someone could be doing
+        instead of being in the meeting, not their pay) and the number of participants. Meeting
+        hosts and co-hosts can optionally switch to a per-person model that assigns each named
+        attendee their own value, with a default for anyone not listed. Either way, the app
+        accrues the cost over the elapsed time to produce a running figure, which can be shown as
+        an overlay on the presenter's camera feed.</p>
 
       <h2>The figures you enter</h2>
-      <p>For each person, you enter your own estimate of their hourly opportunity cost. You
-        can also set a default for anyone you have not listed. These figures:</p>
+      <p>You enter your own estimate(s) of hourly opportunity cost — an average in the simple
+        model, or per person (with a default for anyone not listed) if you are a host/co-host
+        using the per-person model. These figures:</p>
       <ul>
         <li>are your own estimates of opportunity cost, <strong>never actual pay</strong>
           — we do not ask for, and do not want, anyone's wage or salary;</li>
         <li>are saved on our server, <strong>encrypted at rest</strong> and tied to your
           Zoom account, so your setup persists across your sessions and devices;</li>
-        <li>can be retrieved only by you, through your own Zoom account;</li>
+        <li>are retrievable by you through your own Zoom account and are not exposed to other
+          users (though not end-to-end encrypted — see <a href="#server-stores">What our server
+          stores</a>);</li>
         <li>are never shown to other meeting participants; and</li>
         <li>can be deleted at any time (see <a href="#removing">Removing the app and your
           data</a>).</li>
       </ul>
 
-      <h2>What our server stores</h2>
+      <h2 id="server-stores">What our server stores</h2>
       <p>Our server stores your saved configuration. The names and
         opportunity-cost values you enter are sent to our server and kept
         <strong>encrypted at rest</strong>, tied to your Zoom account, so your setup is
-        there next time. This is the only place individual values are kept, and only you can
-        retrieve them. We do not build profiles and do not track individuals across
-        meetings.</p>
+        there next time. This is the only place individual values are kept, and no meeting
+        participant or other user can access them. The store is <strong>encrypted at rest but
+        not end-to-end</strong>: the running service — and therefore the app operator — can
+        decrypt it, so please don&rsquo;t enter anything you would not want the operator to be
+        able to read. We do not build profiles and do not track individuals across meetings.</p>
       <p>When you end a session, we also save an <strong>aggregate past-meeting summary</strong>
         alongside your configuration — the end time, duration, final total, attendee count, and
         cost model. These summaries contain <strong>no names and no per-person values</strong>,
@@ -145,7 +155,7 @@
       <p>Meeting Cost Meter is provided by <strong>Transformative Leadership Lab LLC</strong>.</p>
       <p><a href="index.html">← All documents</a> ·
          <a href="mailto:thomas+mcsupport@txl-lab.com">thomas+mcsupport@txl-lab.com</a></p>
-      <p class="fineprint">Effective date: 25 June 2026</p>
+      <p class="fineprint">Effective date: 9 July 2026</p>
     </div>
   </footer>
 </body>

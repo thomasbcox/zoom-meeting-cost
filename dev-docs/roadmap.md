@@ -3,11 +3,15 @@
 Status: **draft** · Created 2026-06-10 · Owner: Thomas
 
 A living strategic roadmap for turning Meeting Cost from a prototype into a production
-Zoom App with free and paid tiers. Tactical, per-feature work is tracked in
-[`reviews/backlog.md`](../reviews/backlog.md); this file is the strategy above it.
+Zoom App with free and paid tiers. This file is the strategy above two backlogs:
+[`BACKLOG.md`](../BACKLOG.md) is the **canonical tracked-work list** (workflow items from the
+`/dev-audit` → `/frame` → `/close` loop: `AUDIT-`/`BUG-`/`OPS-`), and
+[`reviews/backlog.md`](../reviews/backlog.md) is the **detailed product/strategy backlog** the
+execution plan below deep-links into. Check both.
 
-> **Terminology.** Throughout this repo, "rate" means each person's hourly **opportunity
-> cost** (value of their best alternative work), not pay. The identifier name is historical;
+> **Terminology.** Throughout this repo, "rate" means an hourly **opportunity cost** (value of
+> the best alternative work) — an average across participants in the default simple model, or a
+> per-person value in the host-only per-person model — not pay. The identifier name is historical;
 > the canonical definition is [`opportunity-cost-rate.md`](opportunity-cost-rate.md).
 
 > **Legend.** ✅ **verified from repo** (grounded in current code/commits) ·
@@ -64,7 +68,8 @@ presenter's stable Zoom identity.
 > updated for these; the authoritative *ordering* of all remaining work now lives in the new
 > **[Execution plan](#execution-plan-orderly-development)** section, which supersedes the old
 > one-line "Rough sequence." Tactical per-item detail stays in
-> [`reviews/backlog.md`](../reviews/backlog.md).
+> [`reviews/backlog.md`](../reviews/backlog.md); workflow-tracked items (`AUDIT-`/`BUG-`/`OPS-`)
+> live in the canonical [`BACKLOG.md`](../BACKLOG.md).
 
 The path to a paid product is therefore **mostly product + commerce work, not core
 re-architecture**:
@@ -94,7 +99,7 @@ re-architecture**:
 | Cost meter + overlay | ✅ shipped · min-version 7.1.0+ | camera Layers API; `buildOverlayState` emits aggregates only (`status, totalCost, costPerSecond, elapsedSeconds, attendees, currency, prefs:{}`). `drawWebView` may no-op on Zoom Workplace 6.7.8/7.0.2 (ZSEE-195647) → **accepted risk on clients < 7.1.0**, documented as a min-version requirement (see live-render callout above); no matrix |
 | Overlay data channel (panel→camera) | ✅ verified live 1:1 (prior build) | `postMessage`→`onMessage` matches the canonical sample; **verified live 1:1** (panel `postMessage ok` ↔ camera `overlay-message`, per-second) at PR #17 (`overlay-payload-parse`, `overlay-logging-quiet`). Rendering on old builds is **accepted risk** (min-version 7.1.0+; matrix dropped), not a channel issue |
 | **Privacy invariant** | ✅ holds | overlay payload carries **no** names/rates/aliases; `prefs:{}` "never carries private data" (`lib/overlayState.js`) |
-| Cost models | ✅ shipped · 🔄 2026-06-26 | per-participant table **and** simple `N × averageRate` (`lib/cost.js`, `usePresenterStore.js`). The loaded-cost **multiplier was removed** (PR #49); legacy blobs round-trip and the field is ignored |
+| Cost models | ✅ shipped · 🔄 2026-07-09 | **Simple `N × averageRate` is the default for everyone** and boots every session; **per-participant** table is a **host/co-host-only** opt-in — non-hosts are Simple-locked, gated by `getUserContext().role` (`lib/role.js`, `simple-default-role-gate`). Simple's attendee count is an empty prompt when the participant list is unavailable. The loaded-cost **multiplier was removed** (PR #49); legacy blobs round-trip and the field is ignored |
 | Matching / dedupe primitives | ✅ shipped | `lib/normalize.js`, `lib/matching.js` (`buildRateIndex`, `buildAliasIndex`, `resolveAll`); rate rules + aliases + per-meeting overrides |
 | Session lifecycle | ✅ shipped | start / pause / resume / end + start-new / resume (`session-restart-controls`) |
 | Overlay auto-recover | ✅ shipped | polls `getVideoState` on camera off→on (`overlay-rearm-reopen`) |
@@ -456,11 +461,13 @@ one-line sequence with a dependency- and gate-annotated inventory of every open 
 
 ## Execution plan (orderly development)
 
-The single authoritative answer to *"what's next, in what order, and what blocks what."* It
-inventories **every open unit of work** — open items from [`reviews/backlog.md`](../reviews/backlog.md)
+The authoritative sequencing for **product/strategy work** — *"what's next, in what order, and what
+blocks what."* It inventories the open product items from [`reviews/backlog.md`](../reviews/backlog.md)
 (the tactical detail store), the unbuilt future phases above, and the keystone overlay gate.
 **Each item links to its detail** (backlog heading or review/roadmap section); this section owns
 only the *sequence* — phase, dependencies, gate. The *what/why* stays in the linked source (DRY).
+**Workflow-tracked items** (`AUDIT-`/`BUG-`/`OPS-`) live in [`BACKLOG.md`](../BACKLOG.md) and are
+**not** ordered here — they are picked up ad hoc via the `/frame` loop, not roadmap-sequenced.
 
 > **Gate legend.** ⛔ **publishing gate** — blocks Marketplace submission / first paid user ·
 > 🚧 **build step** — on the path to launch, not itself a gate · ✨ **feature** ·

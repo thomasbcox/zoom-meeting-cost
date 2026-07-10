@@ -3,6 +3,10 @@
 A point-in-time decision record for the project's dependencies: what to upgrade, what to
 hold, and why holding is safe. Refresh when Dependabot opens new PRs, or quarterly.
 
+> **Note (2026-07-09):** this snapshot trails the current tree — `dev-docs/roadmap.md` carries
+> newer dependency notes (e.g. later esbuild/vite pins). Cross-check the roadmap until this doc is
+> refreshed on the next Dependabot batch.
+
 **Bottom line:** hold every breaking major (React 19, Express 5, Vite 8, plugin-react 6);
 take patches and the CI-action updates; review `@zoom/appssdk` updates by hand. **No open
 security alerts.**

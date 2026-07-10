@@ -1,5 +1,10 @@
 # Hypothesis brief — camera overlay enters the rendering context but never composites
 
+> **✅ RESOLVED — reference only.** The overlay now composites correctly on supported clients; the
+> fix shipped (context-shape routing so the `inCamera` instance draws; plus the Zoom Workplace
+> 7.1.0+ floor for the ZSEE-195647 regression). Kept as a historical consult record — see the
+> resolution at the end of this brief.
+
 **For:** independent review (Codex). **Date:** 2026-06-06.
 **Repo:** `zoom-meeting-cost` (Zoom App showing live meeting cost on the presenter's video).
 **Branch state:** `main` @ `82b53f4` — includes the merged `camera-overlay-draws-panel`

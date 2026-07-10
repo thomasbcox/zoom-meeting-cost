@@ -1,18 +1,22 @@
 # Meeting Cost — Zoom App (MVP prototype)
 
 Shows the **live estimated cost of a Zoom meeting** as a "taxi meter" overlay on
-the presenter's video, exactly like Zoom's Timer app. The presenter owns a
-private, best-guess table of per-person **hourly opportunity cost** in the in-meeting
-**side panel** and clicks **Show cost on video**; the live total then renders onto
-their camera feed (via Zoom's camera rendering context) so every participant sees it
-natively — no second app, no shared screen, no collaborate space.
+the presenter's video, exactly like Zoom's Timer app. By default the presenter enters a
+**simple** best-guess estimate — the average **hourly opportunity cost** per participant ×
+the number of participants — in the in-meeting **side panel** and clicks **Show cost on
+video**; the live total then renders onto their camera feed (via Zoom's camera rendering
+context) so every participant sees it natively — no second app, no shared screen.
+Meeting **hosts and co-hosts** can optionally switch to a **per-person** model that assigns
+each named attendee their own value; non-hosts (who can't read the participant list) stay on
+the simple model.
 
 > **"Rate" means hourly opportunity cost, not pay** — see
 > [`dev-docs/opportunity-cost-rate.md`](dev-docs/opportunity-cost-rate.md) for the canonical definition.
 
 > The app does **not** integrate with HR, payroll, SSO, or any employee
-> directory. The presenter is asked to estimate each person's hourly opportunity
-> cost; the app computes the cost from those numbers and does not verify them.
+> directory. The presenter estimates the hourly opportunity cost — an average (simple
+> model) or per person (per-person model); the app computes the cost from those numbers
+> and does not verify them.
 
 > **Requirements — Zoom Workplace desktop 7.1.0 or later.** The on-camera overlay
 > relies on Zoom's camera rendering context (Layers API). On desktop clients **older
@@ -33,8 +37,9 @@ This is a **runnable browser prototype** with **Zoom-ready structure**:
 - The Zoom Apps SDK, OAuth, and Marketplace config are scaffolded behind
   adapters so you can flip to a real in-Zoom app without rewriting the app.
 
-**Where the rate table lives (privacy).** The presenter's private rate table
-(names + estimated rates) is **stored on the server**, **encrypted at rest**
+**Where the config lives (privacy).** The presenter's private configuration
+(simple-model settings plus the per-person rate table, aliases, and aggregate
+past-meeting summaries) is **stored on the server**, **encrypted at rest**
 (AES-256-GCM, a per-user key derived from the `RATE_STORE_KEY` secret + the
 presenter's Zoom user id), keyed to that Zoom identity so it loads in their future
 meetings. It is **not** end-to-end encrypted: the running server — and therefore the
@@ -62,8 +67,9 @@ readout:
 
 1. Click **Show cost on video**. The taxi meter appears in the corner of the
    simulated camera frame and starts ticking.
-2. Add/remove simulated participants and edit rates — the readout and the
-   overlay update together.
+2. In **Simple** mode, set the average rate and attendee count; or (as a host/co-host in
+   mock mode) switch to **per-person** and edit the rate table — the readout and the overlay
+   update together.
 3. **Hide from video** stops the overlay; **End session** stops counting.
 
 Inside real Zoom, "Show cost on video" enters the camera rendering context and
@@ -75,22 +81,31 @@ composites the same overlay onto your actual video feed for all participants.
 elapsed time, and attendee count — composited onto the presenter's video. No
 private rates or participant names are ever sent to the overlay.
 
-**Presenter side panel (private):** show/hide the overlay, pause/resume counting,
-end session, default rate, loaded-cost multiplier, add/edit/delete private rate
-rules, name aliases, and per-participant overrides for the current meeting.
+**Cost model (default: Simple).** **Simple** — attendees × an average opportunity cost — is
+the default for everyone and boots every session. **Hosts/co-hosts** can switch to
+**per-person**: a private rate table, name aliases, and per-participant overrides, with a
+default rate for anyone unlisted. Non-hosts (who can't read the participant list) see only the
+Simple model.
 
-**Matching logic:** normalize names (trim, lowercase, collapse spaces, strip
-punctuation/accents) → exact match → alias → manual override → default rate.
-Each row reports its source: `matched`, `default`, or `manual override`.
+**Presenter side panel (private):** show/hide the overlay, pause/resume counting, end session,
+the cost-model controls above, and display cadence; Past meetings (aggregate summaries) persist
+across sessions. The accrual runs in the panel, so **keep the panel open while counting** —
+closing it freezes the on-camera meter (tracked as **BUG-1**).
+
+**Matching logic (per-person model):** normalize names (trim, lowercase, collapse spaces, strip
+punctuation/accents) → exact match → alias → manual override → default rate. Each row reports
+its source: `matched`, `default`, or `manual override`.
 
 ## Architecture
 
 ```
 Side panel (presenter)                         Camera context (all participants)
 ──────────────────────                         ─────────────────────────────────
-private rate table ─┐
-participants  ──────┤ resolveAll() → computeTotals()
-overrides ──────────┘            │
+cost model ─► selectActiveTotals()
+  ├ simple  : attendees × avg rate ─► computeSimpleTotals()
+  └ per-person (host): rate table + participants + overrides
+              ─► resolveAll() ─► computeTotals()
+                                 │
                                  ▼  buildOverlayState() (aggregate only)
                         adapter.postMessage() ──► Zoom ──► adapter.onMessage()
                                                               │
@@ -110,8 +125,6 @@ overrides ──────────┘            │
   scaffold, `/api/health`, and serving the built client. State flows entirely
   through Zoom's in-client message bridge — there is no server-side WebSocket.
 
-![Meeting Cost Meter — architecture and data flow](dev-docs/meeting-cost-architecture.png)
-
 ## Technology stack
 
 - **Frontend:** React 18 single-page app built with Vite 6, running inside the Zoom
@@ -120,7 +133,8 @@ overrides ──────────┘            │
   feed (Zoom camera/Layers rendering context). Plain CSS; no UI framework, web fonts,
   CDN, or analytics.
 - **Backend:** Node.js 22 + Express, serving the built client and a minimal API
-  (`/api/health`, `/api/log`, `/api/rates`). No database.
+  (`/api/health`, `/api/log`, `/api/rates`, and `/api/me/export` + `/api/me/data` for the
+  presenter's own data export/delete). No database.
 - **Auth:** Zoom OAuth 2.0; requests authenticated via the signed Zoom App Context
   header, decrypted server-side (AES-256-GCM).
 - **Storage:** each presenter's config saved as a per-user AES-256-GCM-encrypted JSON
@@ -131,8 +145,6 @@ overrides ──────────┘            │
   on all responses.
 - **Hosting:** Railway (Node service, auto-deploy from GitHub); GitHub Pages serves the
   static legal/support pages.
-
-Full diagram source: [`dev-docs/meeting-cost-architecture.svg`](dev-docs/meeting-cost-architecture.svg).
 
 ## Going live in Zoom (later)
 

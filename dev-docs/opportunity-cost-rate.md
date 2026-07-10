@@ -3,9 +3,10 @@
 **Canonical definition — the single source of truth for this concept.** Public docs,
 in-app copy, and code comments all defer to this note.
 
-> The **rate** you enter for each person is their **hourly opportunity cost** — the
-> value of the highest and best work they could be doing instead of being in this
-> meeting. It is deliberately **not** their wage or salary, because:
+> The **rate** you enter — an average across participants (the default simple model) or a
+> per-person value (the host/co-host-only per-person model) — is an **hourly opportunity
+> cost**: the value of the highest and best work someone could be doing instead of being in
+> this meeting. It is deliberately **not** their wage or salary, because:
 >
 > - **(A) Pay is private.** We never ask for it, never want it, and never store it.
 > - **(B) Pay understates the meeting's cost.** An hour of someone's best work is
@@ -30,9 +31,10 @@ them. Semantically, every one of these holds an **hourly opportunity-cost** figu
 - `simpleAverageRate` — average opportunity cost in the simple (N × rate) model
 - `overrides[participantId]` — a per-meeting opportunity-cost override
 
-The `multiplier` field is a legacy compensation concept (overhead on pay) that no
-longer fits this framing; its removal is flagged in [`reviews/backlog.md`](../reviews/backlog.md).
-Until then, treat it as a neutral scaling factor.
+The `multiplier` field — a legacy compensation concept (overhead on pay) that no longer fit
+this framing — has been **removed** (see [`reviews/remove-cost-multiplier.md`](../reviews/remove-cost-multiplier.md)).
+The current schema has no multiplier; `rateStore` tolerates but ignores a stray legacy value on
+an old saved config.
 
 ## What never leaves the design
 

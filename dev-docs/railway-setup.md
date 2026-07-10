@@ -47,7 +47,7 @@ reading of them: `server/.env.example`, `server/src/zoom/oauth.js`,
 | `ZOOM_REDIRECT_URI` | yes | runtime | `https://<this-env-domain>/auth/callback` — must equal the redirect URL set on the matching Zoom credential block. |
 | `VITE_USE_ZOOM` | yes (`1`) | **build** | Makes the client bundle use the **real** Zoom SDK. Without it the deployed app silently runs in mock mode. **Changing it requires a rebuild.** |
 | `RATE_STORE_KEY` | yes for persistence | runtime | Master secret that encrypts each presenter's saved rate config (AES-256-GCM, per-user key derived from this). **If unset, the store returns 503 and the app saves nothing (session-only).** Keep it **separate** from `ZOOM_CLIENT_SECRET`. |
-| `DATA_DIR` | recommended | runtime | Where encrypted rate files are written. **Default `/data`** — set it to your Volume's mount path (use `/data` and mount the Volume there). |
+| `DATA_DIR` | required for persistence | runtime | Where encrypted rate files are written. **Default `/data`** — set it to your Volume's mount path (use `/data` and mount the Volume there). Without a Volume mounted here, saved config is wiped on every redeploy (the app still runs, session-only). |
 | `PORT` | **do NOT set** | — | Railway injects it; the server reads it automatically. Setting it yourself can break the health check. |
 
 Generate a strong `RATE_STORE_KEY`:
