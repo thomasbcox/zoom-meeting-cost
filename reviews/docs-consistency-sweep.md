@@ -138,6 +138,20 @@ because it leaves a stale README visual, stale public-page copy, and split backl
 > - **alternative:** pick one canonical backlog — update the roadmap to point at root `BACKLOG.md`,
 >   or also link the items in `reviews/backlog.md`.
 
+## Decisions (2026-07-09, approach)
+
+All three approach findings → **fix** (applied in `/close`; correctness pass does not run this
+round — approved fixes reshape the docs deliverable, so it goes back through `/review` after):
+- **BLOCKER (stale README diagram)** → **drop the embedded PNG + the stale SVG link**; the updated
+  ASCII diagram is the single source of truth (no in-repo diagram-regen tooling — regeneration not
+  worth it).
+- **IMPORTANT (stale public copy)** → **fix**: neutralize the use/data-entry copy on
+  `docs/privacy.html` + `docs/support.html` (Simple default = average rate + count; per-person is
+  host/co-host optional), and repoint Support's "only you can retrieve" at the operator-decryptable
+  explanation.
+- **IMPORTANT (split backlog)** → **fix**: make root `BACKLOG.md` canonical — update
+  `dev-docs/roadmap.md`'s work-source references to point there.
+
 ## Design decisions (2026-07-09)
 
 Thomas approved the full scope — all audited findings (MUST + SHOULD + NIT), including the
