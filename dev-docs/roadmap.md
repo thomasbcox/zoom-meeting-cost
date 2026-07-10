@@ -9,8 +9,9 @@ Zoom App with free and paid tiers. This file is the strategy above two backlogs:
 [`reviews/backlog.md`](../reviews/backlog.md) is the **detailed product/strategy backlog** the
 execution plan below deep-links into. Check both.
 
-> **Terminology.** Throughout this repo, "rate" means each person's hourly **opportunity
-> cost** (value of their best alternative work), not pay. The identifier name is historical;
+> **Terminology.** Throughout this repo, "rate" means an hourly **opportunity cost** (value of
+> the best alternative work) — an average across participants in the default simple model, or a
+> per-person value in the host-only per-person model — not pay. The identifier name is historical;
 > the canonical definition is [`opportunity-cost-rate.md`](opportunity-cost-rate.md).
 
 > **Legend.** ✅ **verified from repo** (grounded in current code/commits) ·
@@ -460,11 +461,13 @@ one-line sequence with a dependency- and gate-annotated inventory of every open 
 
 ## Execution plan (orderly development)
 
-The single authoritative answer to *"what's next, in what order, and what blocks what."* It
-inventories **every open unit of work** — open items from [`reviews/backlog.md`](../reviews/backlog.md)
+The authoritative sequencing for **product/strategy work** — *"what's next, in what order, and what
+blocks what."* It inventories the open product items from [`reviews/backlog.md`](../reviews/backlog.md)
 (the tactical detail store), the unbuilt future phases above, and the keystone overlay gate.
 **Each item links to its detail** (backlog heading or review/roadmap section); this section owns
 only the *sequence* — phase, dependencies, gate. The *what/why* stays in the linked source (DRY).
+**Workflow-tracked items** (`AUDIT-`/`BUG-`/`OPS-`) live in [`BACKLOG.md`](../BACKLOG.md) and are
+**not** ordered here — they are picked up ad hoc via the `/frame` loop, not roadmap-sequenced.
 
 > **Gate legend.** ⛔ **publishing gate** — blocks Marketplace submission / first paid user ·
 > 🚧 **build step** — on the path to launch, not itself a gate · ✨ **feature** ·

@@ -209,6 +209,20 @@ round):
   (no roadmap ordering); soften `reviews/backlog.md`'s "authoritative inventory" claim.
 - **Support date NIT** → **fix**: bump `docs/support.html` to 9 July 2026.
 
+## Fixes (2026-07-10, round 2)
+
+Applied the three approach-re-review findings:
+- **Per-person wording** → neutralized via a repo-wide grep: `dev-docs/opportunity-cost-rate.md`
+  (canonical definition), `docs/documentation.html` ("What you enter"), `docs/terms.html` (estimates
+  callout), and `dev-docs/roadmap.md` terminology gloss now read "average (simple) or per-person
+  (host-only)". Left the legit "no per-person values shown to participants" statements as-is.
+- **Execution-plan overclaim** → `dev-docs/roadmap.md` execution plan now scopes to product/strategy
+  work and states `AUDIT-`/`BUG-`/`OPS-` items live in `BACKLOG.md` (not roadmap-ordered);
+  `reviews/backlog.md`'s reciprocal claim scoped to "product item below" + a `BACKLOG.md` pointer.
+- **Support date NIT** → `docs/support.html` bumped to 9 July; `docs/terms.html` also bumped (its
+  content changed this round). Verified: no residual per-person input-framing; all `docs/*.html`
+  well-formed.
+
 ## Design decisions (2026-07-09)
 
 Thomas approved the full scope — all audited findings (MUST + SHOULD + NIT), including the

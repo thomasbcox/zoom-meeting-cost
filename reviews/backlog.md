@@ -4,9 +4,10 @@ Deferred work, tracked so it isn't lost. Each item becomes its own `/frame`
 story when picked up.
 
 > **Sequencing & priority live in [`dev-docs/roadmap.md` → Execution plan](../dev-docs/roadmap.md#execution-plan-orderly-development)**
-> — the authoritative ordered inventory (dependencies + publishing gates) of every open item
-> below. This file is the **tactical detail store**: the *what/why* per item. The roadmap is the
-> *when/in-what-order*.
+> — the authoritative ordered inventory (dependencies + publishing gates) of every open **product
+> item below**. This file is the **tactical detail store**: the *what/why* per item. The roadmap is
+> the *when/in-what-order*. (Workflow-tracked `AUDIT-`/`BUG-`/`OPS-` items live in
+> [`BACKLOG.md`](../BACKLOG.md), not here.)
 
 ## Zoom deauthorization / data-compliance webhook
 - **Requested:** 2026-06-26 (Thomas), deferred from `reviews/data-delete-export.md`.

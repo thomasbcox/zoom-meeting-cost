@@ -3,9 +3,10 @@
 **Canonical definition — the single source of truth for this concept.** Public docs,
 in-app copy, and code comments all defer to this note.
 
-> The **rate** you enter for each person is their **hourly opportunity cost** — the
-> value of the highest and best work they could be doing instead of being in this
-> meeting. It is deliberately **not** their wage or salary, because:
+> The **rate** you enter — an average across participants (the default simple model) or a
+> per-person value (the host/co-host-only per-person model) — is an **hourly opportunity
+> cost**: the value of the highest and best work someone could be doing instead of being in
+> this meeting. It is deliberately **not** their wage or salary, because:
 >
 > - **(A) Pay is private.** We never ask for it, never want it, and never store it.
 > - **(B) Pay understates the meeting's cost.** An hour of someone's best work is
