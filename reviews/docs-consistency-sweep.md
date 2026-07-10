@@ -267,6 +267,15 @@ public-doc consistency issues plus one date NIT."*
 > `docs/index.html:67` — footer still "1 June 2026" while the other touched pages are 9 July.
 > → bump index to 9 July.
 
+## Fixes (2026-07-10, round 3 — correctness)
+
+Applied the three correctness findings:
+- Reworded the `docs/index.html` Security card to "encryption, secure headers, and aggregate-only
+  overlay data" (off the ambiguous "what never leaves the Zoom client").
+- Scoped the `docs/documentation.html` default-rate tip to the host-only per-person model, with a
+  simple-model note (non-hosts are Simple-locked).
+- Bumped `docs/index.html`'s effective date to 9 July 2026.
+
 ## Decisions (2026-07-10, correctness)
 
 All three correctness findings → **fix** (bounded one-line doc edits): reword the `docs/index.html`
