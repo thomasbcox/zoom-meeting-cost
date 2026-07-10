@@ -241,6 +241,13 @@ tactical backlog, which now functions as part of the docs source of truth."*
 >   `dev-docs/`/server config); it surfaced only because this story's backlog-reconciliation named it
 >   the "detailed product backlog." Convergence tail — see decision below.
 
+## Decisions (2026-07-10, approach re-review r3)
+
+- **IMPORTANT (stale claims in `reviews/backlog.md`)** → **defer + track**. Out of the original
+  sweep scope (README/`docs/`/`dev-docs/`/server config); pulled in only by this story's
+  backlog-reconciliation. Tracked as **OPS-2** (refresh `reviews/backlog.md` current-state notes).
+  Deferring blesses the shape → the correctness pass runs this round.
+
 ## Design decisions (2026-07-09)
 
 Thomas approved the full scope — all audited findings (MUST + SHOULD + NIT), including the

@@ -18,6 +18,11 @@ deep-links) lives in [`reviews/backlog.md`](reviews/backlog.md); the strategy ab
   retry poll (like the overlay's `getVideoState` recovery) so availability self-heals. Only worth
   building if the participant-fetch breadcrumb shows the role/recovery case (vs a config `40316`).
   _(deferred from simple-count-and-breadcrumb)_
+- **OPS-2** — Refresh `reviews/backlog.md`'s stale per-item current-state notes: several entries
+  still say config persists to `localStorage` / "rates never leave the browser", reference the
+  removed `multiplier`, and gate deauth behind the dropped overlay live-test matrix. Bring them in
+  line with the server-side encrypted-but-operator-decryptable store + matrix-dropped decision.
+  _(deferred from docs-consistency-sweep — that file was out of the original docs-sweep scope)_
 - **AUDIT-4** — _(optional)_ Add `eslint`/`prettier` + a CI lint step for the JS. Split out
   of AUDIT-2 (much larger diff: config + first-run reformat across all JS). _(from /dev-audit
   2026-07-02)_
