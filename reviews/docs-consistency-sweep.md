@@ -223,6 +223,24 @@ Applied the three approach-re-review findings:
   content changed this round). Verified: no residual per-person input-framing; all `docs/*.html`
   well-formed.
 
+## Codex approach re-review (2026-07-10, base main, HEAD d3ce1f5)
+
+**Verdict:** *"Mostly sound. The public docs, README, operator-decryptable disclosure,
+Simple-default/non-host lock copy, multiplier removal, endpoint list, dates, and two-backlog
+top-level roles now line up with the code. I found one remaining real inconsistency in the linked
+tactical backlog, which now functions as part of the docs source of truth."*
+
+### IMPORTANT — Tactical backlog carries obsolete product-state claims _(two-way · dated)_
+> `reviews/backlog.md` (:31 deauth gated behind an overlay live-test matrix "not yet run"; :243
+> `rateTable`/`defaultRate`/`multiplier` persist to `localStorage`; :255 browser-only "rates/names
+> never leave the browser") contradicts the matrix-dropped decision, the removed multiplier, and the
+> server-backed/operator-decryptable store.
+> - **alternative:** refresh those entries in place (matrix dropped; server-side encrypted-at-rest
+>   but operator-decryptable; drop `multiplier`/`localStorage` current-state claims).
+> - **note (Claude):** `reviews/backlog.md` was **not** in the original sweep scope (README/`docs/`/
+>   `dev-docs/`/server config); it surfaced only because this story's backlog-reconciliation named it
+>   the "detailed product backlog." Convergence tail — see decision below.
+
 ## Design decisions (2026-07-09)
 
 Thomas approved the full scope — all audited findings (MUST + SHOULD + NIT), including the
