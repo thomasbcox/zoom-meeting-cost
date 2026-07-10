@@ -198,6 +198,17 @@ per-person-only wording in canonical/public docs and one stale Support effective
 > copy.
 > - **alternative:** bump Support's header/footer date to 9 July 2026.
 
+## Decisions (2026-07-10, approach re-review)
+
+All three residuals → **fix** (applied in `/close`; approach fixes → re-review again, no merge this
+round):
+- **Per-person wording** → **fix comprehensively**: a repo-wide grep for remaining per-person-only
+  phrasing across all docs, neutralized in one pass (not just the 3 cited files), to converge.
+- **Execution-plan overclaim** → **fix**: narrow the roadmap execution-plan language to
+  product/strategy work and state AUDIT/BUG/OPS workflow items are tracked in `BACKLOG.md`
+  (no roadmap ordering); soften `reviews/backlog.md`'s "authoritative inventory" claim.
+- **Support date NIT** → **fix**: bump `docs/support.html` to 9 July 2026.
+
 ## Design decisions (2026-07-09)
 
 Thomas approved the full scope — all audited findings (MUST + SHOULD + NIT), including the
