@@ -248,7 +248,24 @@ tactical backlog, which now functions as part of the docs source of truth."*
   backlog-reconciliation. Tracked as **OPS-2** (refresh `reviews/backlog.md` current-state notes).
   Deferring blesses the shape → the correctness pass runs this round.
 
-## Design decisions (2026-07-09)
+## Codex review (2026-07-10, base main, HEAD f326043)
+
+**Summary:** *"The branch is mostly aligned with the docs-consistency sweep … I found two remaining
+public-doc consistency issues plus one date NIT."*
+
+### IMPORTANT — Security index card reintroduces client-only wording
+> `docs/index.html:49` — the new card says Security covers "what never leaves the Zoom client,"
+> which can read like the retired browser-only privacy claim now that config is server-stored +
+> operator-decryptable. → reword to "encryption, headers, and aggregate-only overlay data."
+
+### IMPORTANT — Default-rate tip is still per-person-only
+> `docs/documentation.html:107` — "Set a sensible default so people you have not listed are still
+> counted" assumes per-person mode; non-hosts are Simple-locked and have no default/listed people.
+> → scope the tip to per-person mode.
+
+### NIT — Index effective date stayed stale
+> `docs/index.html:67` — footer still "1 June 2026" while the other touched pages are 9 July.
+> → bump index to 9 July.
 
 Thomas approved the full scope — all audited findings (MUST + SHOULD + NIT), including the
 operator-decryptable disclosure on the public legal pages (privacy.html/security.html), and the two
