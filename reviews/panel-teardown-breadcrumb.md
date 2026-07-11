@@ -80,7 +80,9 @@ breadcrumb** — only `panel-mounted`. Without it, a live run can't correlate "p
    module (`client/src/lib/lifecycleLog.js`) + its test, `client/src/App.jsx`, the overlay teardown
    logger (`client/src/components/OverlayApp.jsx`) + its test, the log transport
    (`client/src/lib/postLog.js`) + a transport test, and the runbook doc
-   (`dev-docs/panel-close-teardown.md`) — plus this story file and its `.design.json`.
+   (`dev-docs/panel-close-teardown.md`) — plus this story file and the review-loop artifacts it
+   generates (`.design.json`, `.approach.json`, `.codex.json`). *(Amended 2026-07-10, see Decisions:
+   the review-pass JSONs are `/review`'s own committed outputs, not product-scope files.)*
 6. **Gate green.** `npm test && npm run build` passes.
 
 ## Test notes
@@ -243,3 +245,15 @@ sandbox — passes outside it.)
 > `.design.json`. `git diff --name-only main...HEAD` also includes this `.approach.json`, so the
 > branch does not satisfy the stated criterion. *Suggestion: remove it, or record Thomas's explicit
 > amendment to AC5 allowing this artifact.*
+
+## Decisions (2026-07-10)
+
+Thomas: *"amend ac5 and push + open a PR"*.
+
+- **Approach pass** — clean, nothing to decide.
+- **Correctness BLOCKER (AC5 allowlist vs `.approach.json`)** → **amend AC5** (answer, no code change).
+  AC5 above now covers the review loop's own artifacts (`.approach.json`, `.codex.json`) alongside
+  `.design.json`; these are process outputs `/review` generates and commits, not product-scope creep —
+  the implementation diff touches exactly the enumerated code/test/doc files. Nothing is removed. No
+  shape-changing fix was approved this round, so the review is complete.
+- **PR** → push the branch + open a PR targeting `main` now, so CI runs ahead of `/close`.
