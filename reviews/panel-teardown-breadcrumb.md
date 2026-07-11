@@ -201,3 +201,32 @@ Thomas: *"approve, fix both, standalone runbook."*
 - **OQ2 resolved**: runbook is a standalone `dev-docs/panel-close-teardown.md`.
 
 The approved shape above is binding on implementation.
+
+## Build note (2026-07-10)
+
+AC → file map:
+
+- **AC1** (panel-teardown reaches `/api/log`, PII-free) → [client/src/App.jsx](../client/src/App.jsx)
+  (pagehide effect beside `panel-mounted`); [client/src/lib/lifecycleLog.js](../client/src/lib/lifecycleLog.js)
+  (`registerTeardownLog` + keepalive `teardownLog` sink).
+- **AC2** (shared, testable helper) → [client/src/lib/lifecycleLog.js](../client/src/lib/lifecycleLog.js);
+  [client/src/lib/lifecycleLog.test.js](../client/src/lib/lifecycleLog.test.js) (register/fire/cleanup/
+  no-target/throwing-sink/default-keepalive).
+- **AC3** (overlay breadcrumb preserved) → [client/src/components/OverlayApp.jsx](../client/src/components/OverlayApp.jsx)
+  (`registerOverlayTeardownLog` delegates); [OverlayApp.test.js](../client/src/components/OverlayApp.test.js)
+  unchanged, still green.
+- **AC4** (runbook) → [dev-docs/panel-close-teardown.md](../dev-docs/panel-close-teardown.md).
+- **AC5** (scope containment) → the diff itself.
+- **Finding 1 fix** (keepalive delivery) → [client/src/lib/postLog.js](../client/src/lib/postLog.js);
+  [client/src/lib/postLog.test.js](../client/src/lib/postLog.test.js).
+
+## Codex approach review (2026-07-10, base main, HEAD b2aaaf4)
+
+Verdict: *"Sound and idiomatic. I would build it this way: a shared injectable pagehide registrar,
+an unload-safe sink using the existing transport, thin React effects/wrappers, focused tests, and a
+standalone runbook. It adds no dependency and does not hand-roll a framework feature."*
+
+**Findings: none** (empty array). The shape is blessed → continued to the correctness pass in the
+same round. (Codex noted it couldn't run the gate itself because its read-only sandbox blocked
+Vitest's temp-config write — an environment limitation, not a finding; the gate passes outside the
+sandbox.)
