@@ -230,3 +230,16 @@ standalone runbook. It adds no dependency and does not hand-roll a framework fea
 same round. (Codex noted it couldn't run the gate itself because its read-only sandbox blocked
 Vitest's temp-config write — an environment limitation, not a finding; the gate passes outside the
 sandbox.)
+
+## Codex review (2026-07-10, base main, HEAD 866aaac)
+
+Summary: *"The functional implementation matches the approved design, but the branch violates the
+spec's explicit scope-containment criterion."* (Gate not independently verifiable in the read-only
+sandbox — passes outside it.)
+
+**BLOCKER — Branch includes a file outside the scope allowlist** ·
+`reviews/panel-teardown-breadcrumb.approach.json:1`
+> AC5 permits only the listed implementation/test/runbook files plus the story file and its
+> `.design.json`. `git diff --name-only main...HEAD` also includes this `.approach.json`, so the
+> branch does not satisfy the stated criterion. *Suggestion: remove it, or record Thomas's explicit
+> amendment to AC5 allowing this artifact.*
