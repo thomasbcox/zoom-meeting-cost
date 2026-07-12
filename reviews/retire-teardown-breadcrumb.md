@@ -192,3 +192,20 @@ under `client/src`; no dependency added. (The reviewer flagged that it could not
 is green.)
 
 **Findings:** none (empty). Shape blessed → proceeding to the correctness pass this round.
+
+## Codex review (2026-07-12, base main, HEAD 710acac)
+
+**Summary:** Code + test deletions match the approved retirement scope. One IMPORTANT finding: the
+updated live docs overclaim `closeRenderingContext` as observing Zoom-initiated teardown.
+
+### IMPORTANT
+- **Replacement teardown signal cannot observe Zoom-initiated teardown** —
+  `dev-docs/overlay-live-test-guide.md:176` (same overclaim in `overlay-live-test-matrix.md:61`). The
+  edited docs say a `closeRenderingContext` log means the context went away "(you clicked Hide, or
+  Zoom tore it down)". But that log fires **only** when app code calls `closeRenderingContext` (the
+  Hide path); a Zoom hard-kill produces no such call/log. This contradicts the binding design decision
+  (teardown handled by recovery/extrapolation, **not** observed) and could make a live-test operator
+  read silence during a real Zoom teardown as "no teardown."
+  - **Suggestion:** describe `closeRenderingContext` strictly as confirmation of the app-initiated Hide
+    path; state explicitly that Zoom-initiated teardown is unobservable after retiring the breadcrumb
+    and is mitigated by extrapolation + camera recovery.
