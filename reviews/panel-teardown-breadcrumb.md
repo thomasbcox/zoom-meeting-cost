@@ -257,3 +257,10 @@ Thomas: *"amend ac5 and push + open a PR"*.
   the implementation diff touches exactly the enumerated code/test/doc files. Nothing is removed. No
   shape-changing fix was approved this round, so the review is complete.
 - **PR** → push the branch + open a PR targeting `main` now, so CI runs ahead of `/close`.
+
+## Fixes (2026-07-10)
+
+**No code fixes.** The single correctness BLOCKER was resolved by the AC5 wording amendment (a
+doc-only change already applied in the Decisions round above) — not an approach/redesign fix and not
+a line-level code change. The implementation is unchanged since the reviewed HEAD. Gate re-run green;
+proceeding to the step-4 re-review/merge fork.
