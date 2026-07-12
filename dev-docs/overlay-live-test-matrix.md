@@ -58,7 +58,7 @@ All client events POST to `/api/log` (kind shown). De-interleave by timestamp.
 | **Meter drawn** | `zoom-overlay` / `drawWebView` `ok` | **call accepted — NOT that pixels rendered** (see trap) |
 | Panel → camera send | `zoom-overlay` / `postMessage` `ok` (**first success only** + every failure) | panel is pushing snapshots |
 | **Camera received** | `overlay-message` (first + each status change) | **the channel actually reaches `inCamera`** |
-| Teardown | `overlay-teardown`, `closeRenderingContext` | the camera instance/context went away |
+| Teardown | `closeRenderingContext` | the camera instance/context went away |
 | Camera on/off poll | `media-change` (+ overlay-rearm) | auto-recover sampling |
 
 **Important — steady-state sends/receipts are silent by design** (`overlay-logging-quiet`,
@@ -128,7 +128,7 @@ Record the **exact** client build string (Zoom → About) for each run — "late
    with the changed `status`. This proves the live channel, not just extrapolation.
 7. Toggle the camera off → on (>2 s). **Expect:** overlay auto-recovers (rearm), meter
    returns. (Already confirmed on baseline; re-confirm per build.)
-8. Click **Hide**. **Expect:** `closeRenderingContext` / `overlay-teardown`; meter disappears.
+8. Click **Hide**. **Expect:** `closeRenderingContext`; meter disappears.
 
 Record each row's outcome in the results table below.
 

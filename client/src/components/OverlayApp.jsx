@@ -3,24 +3,10 @@ import CostOverlay from './CostOverlay.jsx';
 import { extrapolateOverlay } from '../lib/overlayState.js';
 import { quantizeForDisplay } from '../lib/displayCadence.js';
 import { runCameraDraw } from '../lib/cameraDraw.js';
-import { logLifecycle, registerTeardownLog } from '../lib/lifecycleLog.js';
+import { logLifecycle } from '../lib/lifecycleLog.js';
 
 // Sentinel for "no snapshot received yet", so the very first message always logs.
 const NO_STATUS = Symbol('no-status');
-
-// Trace THIS camera-overlay instance's teardown so its disappearance leaves a
-// timestamped log instead of silence. Zoom closes the camera rendering context on
-// some media/lifecycle changes, destroying this webview with no other signal — the
-// `pagehide` on the way out is our last chance to record it. Only the REAL camera
-// mount registers (shouldLog === transparentBody): the panel never mounts OverlayApp
-// and the mock preview mounts it with transparentBody=false. Delegates to the shared
-// registerTeardownLog so the pagehide/cleanup contract — and the keepalive transport
-// that survives teardown — lives in one tested place (the panel logs 'panel-teardown'
-// the same way).
-export function registerOverlayTeardownLog(shouldLog, opts = {}) {
-  if (!shouldLog) return () => {};
-  return registerTeardownLog('overlay-teardown', opts);
-}
 
 // Runs in the camera rendering context (and, in mock dev, inside the simulated
 // camera frame). It subscribes to overlay state pushed from the side panel via
@@ -35,10 +21,6 @@ export default function OverlayApp({ adapter, transparentBody = true }) {
   useEffect(() => {
     logLifecycle('overlay-mounted', { transparentBody });
   }, [transparentBody]);
-
-  // Trace this instance's teardown (real camera mount only) so a silent overlay
-  // disappearance — Zoom closing the rendering context — shows up in the log.
-  useEffect(() => registerOverlayTeardownLog(transparentBody), [transparentBody]);
 
   // Log the first received snapshot and thereafter only on a status change (e.g.
   // running→paused) — not every tick. Shape/status only, never the aggregate values.
