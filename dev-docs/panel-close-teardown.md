@@ -1,51 +1,38 @@
-# Runbook — does closing the panel tear down the camera overlay? (BUG-1 diagnosis)
+# Panel-close teardown diagnosis (BUG-1) — RESOLVED / breadcrumbs retired
 
-> **Diagnose-first step for BUG-1** ("Panel-close stops the meter", [BACKLOG.md](../BACKLOG.md)).
-> This confirms the *mechanism* of the freeze before any fix is written. Landed by
-> `panel-teardown-breadcrumb`; the fix is a follow-up story chosen by the outcome below.
+> **Outcome recorded 2026-07-12.** This runbook described a live diagnostic that has now been run and
+> concluded. The `pagehide` teardown breadcrumbs it relied on were **retired** (see
+> [reviews/retire-teardown-breadcrumb.md](../reviews/retire-teardown-breadcrumb.md)); this file is
+> kept as the record of what the run established. The procedure is no longer live.
 
-## The hypothesis
+## What we were testing
 
-BUG-1 says closing the side panel freezes the on-camera meter, and proposes making the overlay
-"self-accrue from the last cost-rate." But the overlay **already** self-accrues:
-[`extrapolateOverlay`](../client/src/lib/overlayState.js) advances the total as
-`costPerSecond × (now − updatedAt)`, unbounded, while `status === 'running'` — and that shipped
-before BUG-1. So the freeze is most likely **not** a data problem but a **lifecycle** one: the
-panel is the instance that calls `runRenderingContext({ view: 'camera' })`, so closing it may tear
-down the spawned camera rendering context, destroying the overlay webview and leaving its last
-frame frozen on the video.
+BUG-1 ("Panel-close stops the meter") suspected that closing the side panel unmounts the panel's
+accrual `setInterval` ([client/src/App.jsx](../client/src/App.jsx)) and tears down the spawned camera
+rendering context, freezing the on-camera meter. To settle the *mechanism*, two `pagehide` lifecycle
+breadcrumbs were shipped — `panel-teardown` (side panel) and `overlay-teardown` (camera mount),
+delivered with `keepalive` so a final beacon could survive the webview unloading.
 
-We can't tell from code — it's a real-Zoom runtime fact. This runbook settles it.
+## What the live run found (dev Railway env, commit `260f48b`, real Zoom session)
 
-## The two breadcrumbs
+- Across ~20 min covering several **panel close→reopen** cycles **and** a deliberate right-click
+  **"Close the app"**, `/api/log` recorded **zero** `panel-teardown` / `overlay-teardown` and **zero**
+  new panel `boot` on reopen — while ordinary beacons (`boot`, `panel-mounted`, `overlay-mounted`)
+  delivered within seconds.
+- **Delivery works; `pagehide` does not fire.** Zoom hard-kills the embedded webview without
+  dispatching/flushing `pagehide`, so a teardown breadcrumb can never observe a Zoom teardown.
+- **No new `boot` on reopen ⇒ a normal panel "close" is a HIDE, not a destroy.** The panel webview
+  survives, its 1 s tick keeps accruing, and the meter keeps running and re-syncs on reopen — **BUG-1's
+  freeze symptom did not reproduce.**
 
-Both are `logLifecycle` entries to `/api/log`, emitted on the browser `pagehide` event via
-[`registerTeardownLog`](../client/src/lib/lifecycleLog.js) (keepalive delivery, so the final beacon
-survives the webview unloading). They carry only `{ kind:'lifecycle', event, instanceId }` — no PII.
+## Conclusion
 
-| event | instance | fired when |
-| --- | --- | --- |
-| `panel-teardown` | side panel (`App`) | the panel webview is destroyed (e.g. panel closed) |
-| `overlay-teardown` | camera (`OverlayApp`, real mount) | the camera rendering context / overlay webview is destroyed |
-
-`instanceId` differs per webview, so the two lines are attributable to distinct instances.
-
-## Procedure (real Zoom)
-
-1. Deploy the branch (every merge to `main` deploys to Railway).
-2. In a Zoom meeting, open the app panel and **Show cost on video** so the overlay is running.
-3. Tail the log: `mcp__railway__get_logs` (or the Railway dashboard) filtered to `/api/log` for
-   `panel-teardown` and `overlay-teardown`.
-4. **Close the app panel** (not the camera — leave your camera on).
-5. Read the last few log lines.
-
-## Decision table
-
-| What the log shows on panel close | Diagnosis | BUG-1 fix direction |
-| --- | --- | --- |
-| `panel-teardown`, then `overlay-teardown` right after | Closing the panel tears down the camera rendering context too — overlay lifetime is **coupled** to the panel. Extrapolation can't help a destroyed webview. | Decouple the overlay's lifetime from the panel (keep the rendering context alive independent of the panel), not "add accrual" — accrual already exists. |
-| `panel-teardown` only; **no** `overlay-teardown`; meter still frozen | The overlay **survives** but stops advancing. The freeze is downstream — extrapolation stalling, or Zoom compositing a static last frame. | Re-diagnose the overlay's own tick / `extrapolateOverlay` path; the panel is not the cause. |
-| **No `panel-teardown` line at all** | `pagehide` did not fire on panel close (or keepalive delivery failed). The breadcrumb itself is wrong. | Fix the diagnostic first: try `visibilitychange`/another hook, re-run — do not draw a conclusion from a missing line. |
-
-The third row is why delivery is keepalive: without it, a dropped POST would look identical to
-"`pagehide` never fired," and the whole table would be untrustworthy.
+- **BUG-1 closed — not currently replicable** (see [BACKLOG.md](../BACKLOG.md)).
+- **The `pagehide` teardown breadcrumbs were retired** — they cannot instrument Zoom teardown, and the
+  user-facing freeze risk is already covered by *resilience* (`extrapolateOverlay` self-accrual + the
+  camera off/on recovery poll), not by *observing* teardown.
+- **If teardown observability is ever wanted** — to measure whether an unrecovered teardown-freeze
+  actually happens in the field, or to actively blank/recover the overlay when it dies — the candidate
+  instrument is **heartbeat + server-side gap detection**: the panel/overlay POST a periodic alive-ping
+  and the server infers teardown when the pings stop. That survives a hard webview kill, which
+  `pagehide` does not. Deferred; not built.

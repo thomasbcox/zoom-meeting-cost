@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { postLog } from './postLog.js';
 
-// Transport contract for the /api/log sink. The keepalive option is what lets a
-// teardown breadcrumb (pagehide) survive the webview unloading — an ordinary fetch
-// is canceled at that moment. See registerTeardownLog / dev-docs/panel-close-teardown.md.
+// Transport contract for the /api/log sink. The keepalive option lets a caller's beacon
+// survive the webview unloading — an ordinary fetch is canceled at that moment. (General
+// capability; its former teardown-breadcrumb caller was retired.)
 
 describe('postLog', () => {
   afterEach(() => vi.unstubAllGlobals());
@@ -27,7 +27,7 @@ describe('postLog', () => {
     const fetchMock = vi.fn(() => Promise.resolve());
     vi.stubGlobal('fetch', fetchMock);
 
-    await postLog({ event: 'panel-teardown' }, { keepalive: true });
+    await postLog({ kind: 'lifecycle', event: 'boot' }, { keepalive: true });
 
     expect(fetchMock.mock.calls[0][1].keepalive).toBe(true);
   });

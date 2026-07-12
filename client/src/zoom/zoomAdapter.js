@@ -200,7 +200,7 @@ function isOverlaySnapshot(p) {
 // Shape-only summary of an onMyMediaChange event for the lifecycle log. Records the
 // event's top-level keys plus, for known media sub-keys, a boolean derived from a
 // `.state` flag where present — NEVER media content. Just enough to correlate a media
-// toggle (e.g. video off->on) with an overlay-teardown log. The `keys` field also
+// toggle (e.g. video off->on) with the overlay going away (closeRenderingContext). The `keys` field also
 // reveals the event's real shape on the next live run, so a wrong guess here about
 // sub-keys is self-correcting rather than blinding.
 function summarizeMediaEvent(evt) {
@@ -351,7 +351,7 @@ export class RealZoom {
     // rendering context on some media changes (camera off/on, screen share, virtual-
     // background swap), killing the overlay webview. Log each media event (shape only,
     // never content) via the lifecycle channel so a live run can line a media toggle up
-    // against the overlay-teardown log. No behavior change — purely an observer.
+    // against the overlay's closeRenderingContext teardown. No behavior change — purely an observer.
     // Diagnostic only. A live log proved onMyMediaChange does NOT fire in the panel
     // (self-media events reach only the inCamera instance, which Zoom destroys on
     // camera-off), so overlay auto-recovery does NOT depend on it — the panel polls

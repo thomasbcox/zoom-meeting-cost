@@ -1,23 +1,6 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { logLifecycle, registerTeardownLog } from './lifecycleLog.js';
+import { describe, it, expect, vi } from 'vitest';
+import { logLifecycle } from './lifecycleLog.js';
 import { instanceId } from './instanceId.js';
-
-// Injectable fake event target + sink so the register/fire/cleanup contract is
-// testable without jsdom — mirrors the pattern in components/OverlayApp.test.js.
-function fakeTarget() {
-  const listeners = {};
-  return {
-    addEventListener: vi.fn((type, cb) => {
-      (listeners[type] ||= []).push(cb);
-    }),
-    removeEventListener: vi.fn((type, cb) => {
-      listeners[type] = (listeners[type] || []).filter((c) => c !== cb);
-    }),
-    fire(type, evt) {
-      (listeners[type] || []).forEach((c) => c(evt));
-    },
-  };
-}
 
 describe('instanceId', () => {
   it('is a stable, prefixed alphanumeric id', () => {
@@ -55,63 +38,3 @@ describe('logLifecycle', () => {
   });
 });
 
-describe('registerTeardownLog', () => {
-  afterEach(() => vi.unstubAllGlobals());
-
-  it('logs the given event on pagehide and cleans up its listener', () => {
-    const log = vi.fn();
-    const target = fakeTarget();
-
-    const cleanup = registerTeardownLog('panel-teardown', { target, log });
-    expect(target.addEventListener).toHaveBeenCalledWith('pagehide', expect.any(Function));
-
-    target.fire('pagehide');
-    expect(log).toHaveBeenCalledTimes(1);
-    expect(log).toHaveBeenCalledWith('panel-teardown');
-
-    cleanup();
-    expect(target.removeEventListener).toHaveBeenCalledWith('pagehide', expect.any(Function));
-  });
-
-  it('is generic over the event name', () => {
-    const log = vi.fn();
-    const target = fakeTarget();
-    registerTeardownLog('overlay-teardown', { target, log });
-    target.fire('pagehide');
-    expect(log).toHaveBeenCalledWith('overlay-teardown');
-  });
-
-  it('is a safe callable no-op when no event target is available', () => {
-    const log = vi.fn();
-    const cleanup = registerTeardownLog('panel-teardown', { target: null, log });
-    expect(typeof cleanup).toBe('function');
-    expect(() => cleanup()).not.toThrow();
-    expect(log).not.toHaveBeenCalled();
-  });
-
-  it('never lets a throwing log sink escape the teardown handler', () => {
-    const boom = () => {
-      throw new Error('sink down');
-    };
-    const target = fakeTarget();
-    registerTeardownLog('panel-teardown', { target, log: boom });
-    expect(() => target.fire('pagehide')).not.toThrow();
-  });
-
-  it('default sink delivers the breadcrumb with keepalive (survives teardown)', () => {
-    const fetchMock = vi.fn(() => Promise.resolve());
-    vi.stubGlobal('fetch', fetchMock);
-    const target = fakeTarget();
-
-    // No injected log -> exercises the real keepalive-safe teardownLog default.
-    registerTeardownLog('panel-teardown', { target });
-    target.fire('pagehide');
-
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    const [url, init] = fetchMock.mock.calls[0];
-    expect(url).toBe('/api/log');
-    expect(init.keepalive).toBe(true);
-    const body = JSON.parse(init.body);
-    expect(body).toEqual({ kind: 'lifecycle', event: 'panel-teardown', instanceId });
-  });
-});

@@ -7,11 +7,18 @@ deep-links) lives in [`reviews/backlog.md`](reviews/backlog.md); the strategy ab
 
 ## Open
 
-- **BUG-1** — **Panel-close stops the meter.** The cost-accrual loop is a `setInterval` in the
-  side panel (`client/src/App.jsx`), so closing the app panel unmounts it and the on-camera meter
-  freezes at its last value. Re-architect so the camera-overlay instance self-accrues from the last
-  cost-rate (accrual independent of the panel). Documented as a "keep the panel open" limitation for
-  now. _(deferred from simple-default-role-gate)_
+- **BUG-2** — **Overlay refreshes ~4×/second at the "Every second" cadence (panel refreshes 1×/s).**
+  The camera overlay (`client/src/components/OverlayApp.jsx`) force-re-renders every 250 ms
+  (`setInterval(() => force(...), 250)`) and, per render, extrapolates the live total then calls
+  `quantizeForDisplay`. At the 1-second cadence that helper is a pass-through
+  (`stepSeconds ≤ 1 ⇒ no quantization`, `client/src/lib/displayCadence.js:46`), so the on-camera
+  dollar figure updates at the full ~4 Hz render rate, while the side-panel meter advances on its own
+  1000 ms tick (`client/src/App.jsx:215`). The two surfaces disagree on refresh rate for the *same*
+  selected cadence. Accrual accuracy is unaffected (extrapolation stays continuous) and the 10s/60s
+  cadences are fine (quantization holds them steady) — this is a display-only mismatch at "Every
+  second." Fix direction: floor the display to whole seconds at the 1s cadence too (quantize when
+  `stepSeconds ≥ 1`) or throttle the overlay's visible update to the cadence, so the overlay changes
+  at most once per second. _(observed in dev 2026-07-12)_
 - **OPS-1** — **Participant list self-heal poll.** `RealZoom._refresh()` marks the list unavailable
   on a `getMeetingParticipants` failure and only retries on the next `onParticipantChange` event or
   a panel reopen, so a transient failure can leave "Participants unavailable" stuck. Add a periodic
@@ -29,6 +36,15 @@ deep-links) lives in [`reviews/backlog.md`](reviews/backlog.md); the strategy ab
 
 ## Done
 
+- **BUG-1** — **Panel-close stops the meter — closed: not currently replicable.** Live run
+  2026-07-12 (dev Railway env, real Zoom session): a normal panel "close" is a **hide, not a destroy**
+  — the panel webview survives, its 1 s tick keeps accruing, so the meter keeps running and re-syncs
+  on reopen; the freeze did not reproduce (nor on a deliberate "Close the app"). The `pagehide`
+  teardown breadcrumbs (`panel-teardown`/`overlay-teardown`) never fired on any close path (Zoom
+  hard-kills the webview without flushing `pagehide`), so they were **retired**. Candidate instrument
+  if teardown observability is ever wanted: heartbeat + server-side gap detection (deferred, not
+  built). See [dev-docs/panel-close-teardown.md](dev-docs/panel-close-teardown.md).
+  _(PR #71 / merge: retire-teardown-breadcrumb)_
 - **AUDIT-3** — Added a repo-root `.gitleaksignore` with the 3 immutable finding fingerprints
   for the synthetic secret-scan fixtures (`scripts/secret-scan/detect.test.mjs`,
   `server/test/loadEnv.test.js`, `reviews/secret-scan-guardrails.codex.json`) so external
