@@ -167,3 +167,28 @@ BUG-2 backlog addition: **committed on this branch** (Thomas's choice).
     the live-test docs at the surviving `closeRenderingContext` `zoom-overlay` SDK-call log instead.
     This makes AC5 definitely include `overlay-live-test-guide.md`, `overlay-live-test-matrix.md`,
     and the `zoomAdapter.js` observer comments.
+
+## Build note (2026-07-12)
+
+AC → file map:
+- **AC1** (machinery removed) → `client/src/lib/lifecycleLog.js`
+- **AC2** (panel breadcrumb removed) → `client/src/App.jsx`
+- **AC3** (overlay breadcrumb removed) → `client/src/components/OverlayApp.jsx`
+- **AC4** (dead tests gone, survivors green) → `client/src/lib/lifecycleLog.test.js`,
+  `client/src/components/OverlayApp.test.js` (deleted), `client/src/lib/postLog.test.js`
+- **AC5** (no dangling refs; live docs reconciled) → `client/src/zoom/zoomAdapter.js`,
+  `dev-docs/panel-close-teardown.md`, `dev-docs/overlay-live-test-guide.md`,
+  `dev-docs/overlay-live-test-matrix.md`
+- **AC6** (BUG-1 closed) → `BACKLOG.md`
+- **AC7** (gate green) → whole suite
+
+## Codex approach review (2026-07-12, base main, HEAD 710acac)
+
+**Verdict:** Sound and idiomatic — *"I would build this as implemented: pure deletion of the disproven
+`pagehide` instrumentation, its effects and dedicated tests, plus declarative documentation/backlog
+reconciliation. No replacement abstraction or dependency is warranted."* No removed symbols remain
+under `client/src`; no dependency added. (The reviewer flagged that it could not itself rerun the gate
+— its read-only sandbox blocked Vite's temp dir — an environment limitation, not a finding; our gate
+is green.)
+
+**Findings:** none (empty). Shape blessed → proceeding to the correctness pass this round.
