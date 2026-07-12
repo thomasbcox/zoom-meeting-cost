@@ -58,7 +58,7 @@ All client events POST to `/api/log` (kind shown). De-interleave by timestamp.
 | **Meter drawn** | `zoom-overlay` / `drawWebView` `ok` | **call accepted — NOT that pixels rendered** (see trap) |
 | Panel → camera send | `zoom-overlay` / `postMessage` `ok` (**first success only** + every failure) | panel is pushing snapshots |
 | **Camera received** | `overlay-message` (first + each status change) | **the channel actually reaches `inCamera`** |
-| Teardown | `closeRenderingContext` | the camera instance/context went away |
+| Teardown (Hide only) | `closeRenderingContext` | app-initiated Hide only; a Zoom-initiated hard kill emits nothing — unobservable post-retirement, mitigated by extrapolation + camera recovery |
 | Camera on/off poll | `media-change` (+ overlay-rearm) | auto-recover sampling |
 
 **Important — steady-state sends/receipts are silent by design** (`overlay-logging-quiet`,

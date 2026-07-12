@@ -173,9 +173,13 @@ Recovery / teardown lines you'll also see:
 
 - `{"kind":"lifecycle","event":"media-change",…}` + `overlay-rearm:begin` / `overlay-rearm:done` —
   the camera off→on auto‑recover poll firing and re‑opening the context.
-- `{"kind":"zoom-overlay","method":"closeRenderingContext",…}` — the camera instance/context went away
-  (you clicked Hide, or Zoom tore it down). (The former `overlay-teardown` `pagehide` breadcrumb was
-  retired — Zoom doesn't fire `pagehide` on webview teardown; see reviews/retire-teardown-breadcrumb.md.)
+- `{"kind":"zoom-overlay","method":"closeRenderingContext",…}` — confirms the **app-initiated Hide**
+  path only (the presenter clicked Hide, so app code called `closeRenderingContext`). A
+  **Zoom-initiated** teardown (a hard webview kill) emits **no** log and is **unobservable** since the
+  `pagehide` `overlay-teardown` breadcrumb was retired — it's mitigated by `extrapolateOverlay`
+  self-accrual + the camera off/on recovery poll, **not** observed. So during a real Zoom teardown you
+  will see nothing here — silence is not evidence that no teardown occurred. See
+  reviews/retire-teardown-breadcrumb.md.
 
 A missing **#2 (`overlay-mounted`)**, or a `{"kind":"client-error",…}` on **stderr**, means a
 routing/init failure — **not** the ZSEE regression. That's branch **D1** in the matrix.

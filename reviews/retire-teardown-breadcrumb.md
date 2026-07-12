@@ -220,3 +220,13 @@ Correctness pass (base main, HEAD 710acac):
   Zoom-initiated teardown is **unobservable** after retiring the breadcrumb (mitigated by
   `extrapolateOverlay` + camera off/on recovery). Applies to `dev-docs/overlay-live-test-guide.md`
   and `dev-docs/overlay-live-test-matrix.md`.
+
+## Fixes (2026-07-12)
+
+Applied the one approved correctness fix (base main):
+- **IMPORTANT — docs overclaim `closeRenderingContext` observes Zoom teardown** → **fixed.** Reworded
+  `dev-docs/overlay-live-test-guide.md` and `dev-docs/overlay-live-test-matrix.md` so
+  `closeRenderingContext` is scoped to the **app-initiated Hide** path only; both now state a
+  Zoom-initiated (hard-kill) teardown emits nothing and is **unobservable** post-retirement (mitigated
+  by `extrapolateOverlay` + camera off/on recovery, not observed), and the guide adds that silence is
+  not evidence no teardown occurred.
