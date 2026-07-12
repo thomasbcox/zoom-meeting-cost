@@ -209,3 +209,14 @@ updated live docs overclaim `closeRenderingContext` as observing Zoom-initiated 
   - **Suggestion:** describe `closeRenderingContext` strictly as confirmation of the app-initiated Hide
     path; state explicitly that Zoom-initiated teardown is unobservable after retiring the breadcrumb
     and is mitigated by extrapolation + camera recovery.
+
+## Decisions (2026-07-12)
+
+Approach pass: clean — nothing to decide.
+
+Correctness pass (base main, HEAD 710acac):
+- **IMPORTANT — docs overclaim `closeRenderingContext` observes Zoom teardown** → **FIX** (Thomas:
+  "fix it"). Scope `closeRenderingContext` to the app-initiated **Hide** path only, and state that
+  Zoom-initiated teardown is **unobservable** after retiring the breadcrumb (mitigated by
+  `extrapolateOverlay` + camera off/on recovery). Applies to `dev-docs/overlay-live-test-guide.md`
+  and `dev-docs/overlay-live-test-matrix.md`.
