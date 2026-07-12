@@ -3,7 +3,7 @@ import CostOverlay from './CostOverlay.jsx';
 import { extrapolateOverlay } from '../lib/overlayState.js';
 import { quantizeForDisplay } from '../lib/displayCadence.js';
 import { runCameraDraw } from '../lib/cameraDraw.js';
-import { logLifecycle } from '../lib/lifecycleLog.js';
+import { logLifecycle, registerTeardownLog } from '../lib/lifecycleLog.js';
 
 // Sentinel for "no snapshot received yet", so the very first message always logs.
 const NO_STATUS = Symbol('no-status');
@@ -13,23 +13,13 @@ const NO_STATUS = Symbol('no-status');
 // some media/lifecycle changes, destroying this webview with no other signal — the
 // `pagehide` on the way out is our last chance to record it. Only the REAL camera
 // mount registers (shouldLog === transparentBody): the panel never mounts OverlayApp
-// and the mock preview mounts it with transparentBody=false. Returns a cleanup that
-// removes the listener; the log call can never break teardown. Extracted as a plain
-// function so it is unit-testable without jsdom (mirrors runCameraDraw).
-export function registerOverlayTeardownLog(
-  shouldLog,
-  { target = typeof window !== 'undefined' ? window : null, log = logLifecycle } = {}
-) {
-  if (!shouldLog || typeof target?.addEventListener !== 'function') return () => {};
-  const onPageHide = () => {
-    try {
-      log('overlay-teardown');
-    } catch {
-      /* logging must never break teardown */
-    }
-  };
-  target.addEventListener('pagehide', onPageHide);
-  return () => target.removeEventListener('pagehide', onPageHide);
+// and the mock preview mounts it with transparentBody=false. Delegates to the shared
+// registerTeardownLog so the pagehide/cleanup contract — and the keepalive transport
+// that survives teardown — lives in one tested place (the panel logs 'panel-teardown'
+// the same way).
+export function registerOverlayTeardownLog(shouldLog, opts = {}) {
+  if (!shouldLog) return () => {};
+  return registerTeardownLog('overlay-teardown', opts);
 }
 
 // Runs in the camera rendering context (and, in mock dev, inside the simulated

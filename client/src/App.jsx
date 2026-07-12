@@ -13,7 +13,7 @@ import { buildOverlayState } from './lib/overlayState.js';
 import { quantizeForDisplay } from './lib/displayCadence.js';
 import { seedPresenterName } from './lib/presenterName.js';
 import { buildMeetingSummary, isRecordable } from './lib/meetingSummary.js';
-import { logLifecycle } from './lib/lifecycleLog.js';
+import { logLifecycle, registerTeardownLog } from './lib/lifecycleLog.js';
 import { createVideoRecovery } from './lib/overlayRecover.js';
 
 // The in-meeting SIDE PANEL: the presenter privately configures opportunity-cost values, sees a
@@ -172,6 +172,14 @@ export default function App({ adapter, self, initialParticipants = [] }) {
   useEffect(() => {
     logLifecycle('panel-mounted');
   }, []);
+
+  // Diagnostic (BUG-1): trace this panel instance's teardown on `pagehide`, mirroring the
+  // camera instance's `overlay-teardown`. A live run can then tell whether closing the side
+  // panel ALSO tears down the spawned camera rendering context (the suspected freeze cause):
+  // an `overlay-teardown` right after this `panel-teardown` means they're coupled. keepalive
+  // (in registerTeardownLog's sink) lets the final beacon survive the panel unloading. See
+  // dev-docs/panel-close-teardown.md.
+  useEffect(() => registerTeardownLog('panel-teardown'), []);
 
   const startOverlay = useCallback(async () => {
     // Diagnostic checkpoints: if 'begin' logs but 'context-started' does not, the panel
