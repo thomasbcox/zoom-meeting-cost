@@ -44,7 +44,7 @@ deep-links) lives in [`reviews/backlog.md`](reviews/backlog.md); the strategy ab
   hard-kills the webview without flushing `pagehide`), so they were **retired**. Candidate instrument
   if teardown observability is ever wanted: heartbeat + server-side gap detection (deferred, not
   built). See [dev-docs/panel-close-teardown.md](dev-docs/panel-close-teardown.md).
-  _(merge: retire-teardown-breadcrumb)_
+  _(PR #71 / merge: retire-teardown-breadcrumb)_
 - **AUDIT-3** — Added a repo-root `.gitleaksignore` with the 3 immutable finding fingerprints
   for the synthetic secret-scan fixtures (`scripts/secret-scan/detect.test.mjs`,
   `server/test/loadEnv.test.js`, `reviews/secret-scan-guardrails.codex.json`) so external
