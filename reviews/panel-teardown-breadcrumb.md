@@ -264,3 +264,20 @@ Thomas: *"amend ac5 and push + open a PR"*.
 doc-only change already applied in the Decisions round above) — not an approach/redesign fix and not
 a line-level code change. The implementation is unchanged since the reviewed HEAD. Gate re-run green;
 proceeding to the step-4 re-review/merge fork.
+
+## Build note (2026-07-11, re-review)
+
+Re-review round (Thomas chose re-review over merge). No redesign last round → **correctness-only**,
+base = last-reviewed SHA `866aaac`. AC→file map **unchanged** from the Build note above:
+`git diff --name-only 866aaac...HEAD` is review bookkeeping only
+(`reviews/panel-teardown-breadcrumb.{md,codex.json}`) — **no product/code delta** to re-map.
+
+## Codex review (2026-07-11, base 866aaac, HEAD 80408bc)
+
+Correctness-only re-review (base = last-reviewed SHA). Summary: *"The branch changes since 866aaac
+correctly record Thomas's decision, amend AC5 to permit review-loop artifacts, and document that the
+prior scope-containment finding is resolved. No new code or behavioral changes were introduced, and
+no unresolved issues were found."*
+
+**Findings: none** (empty array). The AC5-wording BLOCKER from the prior round is confirmed resolved;
+nothing new to decide.
