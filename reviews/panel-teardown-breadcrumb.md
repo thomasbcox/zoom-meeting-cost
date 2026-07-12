@@ -281,3 +281,10 @@ no unresolved issues were found."*
 
 **Findings: none** (empty array). The AC5-wording BLOCKER from the prior round is confirmed resolved;
 nothing new to decide.
+
+## Decisions (2026-07-11)
+
+Re-review round: **correctness pass clean, zero findings — nothing to decide.** The branch is
+review-clean (both prior BLOCKERs resolved: approach clean, AC5 wording amended) with no code delta
+since the last-reviewed SHA. Ready for the `/close` merge fork; merge still requires Thomas's
+distinct instruction.
