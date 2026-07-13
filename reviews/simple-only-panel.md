@@ -178,3 +178,22 @@ both findings fixed.
 - **Open questions — resolved per recommendation (scope approved):** (1) keep as one story; (2) remove
   `role.js` entirely; (3) leave `zoomDiagnostics` unless it imports a deleted module; (4) delete
   `ratesApi.js` in this story.
+
+## Build note (2026-07-12)
+
+AC → file map:
+- **AC1** (simple-only cost) → `lib/cost.js` (+test); deletions `lib/matching.js`, `lib/rateTable.js`,
+  `lib/saveToList.js`; `App.jsx` computes `computeSimpleTotals` directly.
+- **AC2** (manual count; no participant list) → `zoom/zoomAdapter.js` (+test: participant list, `_refresh`,
+  `onParticipantChange`, list-match fallback removed; self-UUID via `getUserContext` only), `App.jsx`.
+- **AC3** (session-only + dead identity) → `state/usePresenterStore.js`, `lib/ratesApi.js` (deleted),
+  `zoom/zoomAdapter.js` (`getAppContext` + `getAppContext`/`getMeetingParticipants`/`onParticipantChange`
+  dropped from `ZOOM_CAPABILITIES`).
+- **AC4** (defaults 2 × $100/hr, 10 s) → `state/usePresenterStore.js` (`DEFAULT_CONFIG`).
+- **AC5** (cadence {1,10} default 10) → `lib/displayCadence.js`.
+- **AC6** (BUG-2 fix) → `lib/displayCadence.js` (`quantizeForDisplay` floors at `stepSeconds ≥ 1`).
+- **AC7** (roles + history dropped) → deletions `components/RoleBar.jsx`, `components/SharedCostScreen.jsx`,
+  `lib/role.js`, `lib/meetingSummary.js`, `lib/presenterName.js`; `App.jsx`, `PresenterControls.jsx`.
+- **AC8** (panel rebuilt) → `components/PresenterControls.jsx`.
+- **AC9** (backlog) → `BACKLOG.md` (OPS-1, BUG-2 → Done).
+- **AC10** (dead tests gone; gate green) → deleted/rewritten `*.test.js`; `CostOverlay.test.js` 60 s test dropped.
