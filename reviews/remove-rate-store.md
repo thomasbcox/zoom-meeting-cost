@@ -411,3 +411,12 @@ Round 4 — re-run after the accepted round-3 redesign. Server teardown + depend
 - **Claim:** Four residual references imply the product still saves settings/config or still has the deleted app-context identity path. These are live, current-facing docs (not the archived roadmap or historical review records).
 - **Verified:** all four confirmed in the working tree.
 - **Alternative + win:** "saved settings/figures" → "side-panel controls" (or "session-only settings"); incident example → operational logs / credentials; drop "app context" from the current data classification (keep OAuth-token handling). Removes four references that could make a reader infer persistence or deleted identity machinery still exists.
+
+## Decisions (2026-07-13) — round 4
+
+Both approach findings **approved to FIX** (Thomas: *"fix both then re-review"*).
+
+- **① SVG categorical storage claim — FIX.** Reword both byte-identical copies to the narrow invariant: the server stores no presenter configuration, rates, names, or meeting history — and acknowledge the operational request/diagnostic logs (or point at the Privacy Policy) so the diagram matches the qualified posture everywhere else. Edit the canonical `dev-docs/` copy, then re-sync `docs/` byte-identical.
+- **② 4 residual persistence / app-context phrasings — FIX.** `README.md:23` "saved settings" → session-only/side-panel controls; `docs/documentation.html:68` "saved figures … work regardless" → side-panel controls; `dev-docs/policies/incident-response.md:11` "exposure of stored configuration" → operational logs / credentials; `dev-docs/policies/security-policy.md:17` "Zoom OAuth tokens / app context" → drop "app context" (keep OAuth-token handling).
+
+Correctness pass: **NOT run this round** — approach fixes approved → the branch re-enters `/review` after `/close`. No merge offered at the `/close` fork (re-review only).
