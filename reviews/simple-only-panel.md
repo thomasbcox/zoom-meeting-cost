@@ -197,3 +197,14 @@ AC → file map:
 - **AC8** (panel rebuilt) → `components/PresenterControls.jsx`.
 - **AC9** (backlog) → `BACKLOG.md` (OPS-1, BUG-2 → Done).
 - **AC10** (dead tests gone; gate green) → deleted/rewritten `*.test.js`; `CostOverlay.test.js` 60 s test dropped.
+
+## Codex approach review (2026-07-12, base main, HEAD 1cbe830)
+
+**Verdict:** Shape sound and idiomatic — *"I would build this substantially the same way: a thin
+session-only React state hook, direct pure cost/cadence helpers, and deletion of participant,
+persistence, role, and history machinery. No dependency or declarative framework feature would
+materially simplify it further."* Notes the binding live `getUserContext().participantUUID`
+pre-merge gate remains outstanding. (The reviewer could not run Vite in its read-only sandbox — an
+environment limitation, not a finding; our gate is green.)
+
+**Findings:** none (empty). Shape blessed → proceeding to the correctness pass this round.
