@@ -447,3 +447,11 @@ Round 5 — re-run after the accepted round-4 redesign. Verdict: shape sound; ma
 - **Claim:** "The app persists no user data" is unqualified and conflicts with the unchanged `/api/log` sink + Railway retention. **Now internally contradictory:** the round-4 edit made the same policy's incident example "exposure of operational logs," so the policy recognizes retained log data exists while line 35 categorically denies persisted user data.
 - **Verified:** confirmed — line 35 reads "…The app persists no user data, so there is no stored-data encryption key to rotate." (Note: this is the line I judged an "accurate persistence negation" in round 4 and left; the reviewer's internal-contradiction argument is correct and was sharpened by my own round-4 "operational logs" edit two lines above.)
 - **Alternative + win:** Scope it to the removed store — "The app persists no presenter configuration or per-user record, so there is no presenter-data encryption key to rotate." Eliminates the final unqualified no-user-data guarantee while keeping the accurate reason no rate-store key exists.
+
+## Decisions (2026-07-13) — round 5
+
+Sole approach finding **approved to FIX** (Thomas: *"fix then re-review"*).
+
+- **① incident-response.md:35 categorical "persists no user data" — FIX.** Scope to the removed store: "The app persists no presenter configuration or per-user record, so there is no presenter-data encryption key to rotate." Keeps the accurate reason no rate-store key exists; removes the last unqualified no-user-data guarantee (and resolves the internal contradiction with the round-4 "operational logs" incident example).
+
+Correctness pass: **NOT run this round** — approach fix approved → the branch re-enters `/review` after `/close`. No merge offered at the `/close` fork (re-review only).
