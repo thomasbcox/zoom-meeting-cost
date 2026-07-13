@@ -3,10 +3,6 @@ import { fileURLToPath } from 'node:url';
 import express from 'express';
 
 import { createOAuthRouter, zoomConfigured } from './zoom/oauth.js';
-import { resolveUid, AppContextError } from './zoom/appContext.js';
-import { isConfigured as rateStoreConfigured } from './store/rateCrypto.js';
-import * as rateStore from './store/rateStore.js';
-import * as userData from './userData.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -75,7 +71,7 @@ export function createApp({
   // them — this is what unblocks rendering inside the Zoom client.
   app.use(securityHeaders);
 
-  // Bounded JSON body — the rate config is small; cap it so a PUT can't be huge.
+  // Bounded JSON body — cap it so a POST (e.g. the /api/log diagnostics) can't be huge.
   app.use(express.json({ limit: '100kb' }));
 
   app.use((req, _res, next) => {
@@ -118,101 +114,6 @@ export function createApp({
     if (isError) console.error(line);
     else console.log(line);
     res.sendStatus(204);
-  });
-
-  // --- Server-backed rate store (encrypted, keyed to the Zoom presenter) -----
-  // Identity: the client sends its Zoom app context (getAppContext()) in the
-  // x-zoom-app-context header; we decrypt it → the presenter's stable uid.
-  //
-  // Two gates, deliberately split (see reviews/data-delete-export.md): identity verification
-  // (needs the Zoom client id/secret) is separate from rate-blob crypto readiness (needs
-  // RATE_STORE_KEY). So a privacy DELETE can succeed on identity alone even when the crypto
-  // key is lost/misconfigured — exactly when a user may most need to delete their data.
-
-  //   503 → Zoom identity config absent (no client id/secret) — can't verify the presenter.
-  //   401 → no valid app context (can't identify the presenter).
-  function requireIdentity(req, res, next) {
-    const clientSecret = process.env.ZOOM_CLIENT_SECRET;
-    const clientId = process.env.ZOOM_CLIENT_ID;
-    if (!clientSecret || !clientId) {
-      return res.status(503).json({ error: 'identity-unconfigured' });
-    }
-    try {
-      req.uid = resolveUid(req.get('x-zoom-app-context'), { clientId, clientSecret });
-      return next();
-    } catch (err) {
-      // Log WHY the context was rejected so a 401 is diagnosable (decrypt failed /
-      // aud mismatch / expired / no uid). AppContextError.message is a fixed reason
-      // string (or `decrypt failed: <node crypto message>`) — it never embeds the
-      // context blob or the client secret, so logging it is safe. Guard on the type
-      // so an unexpected non-context throw can't spill an arbitrary message. The
-      // reason is server-log-only: the client still gets an opaque 401.
-      const reason = err instanceof AppContextError ? err.message : 'non-context error';
-      console.error(`[server] app-context rejected: ${reason}`);
-      return res.status(401).json({ error: 'invalid-app-context' });
-    }
-  }
-
-  //   503 → the rate-blob crypto key (RATE_STORE_KEY) isn't configured; the client degrades to
-  //         session-only state (no plaintext ever written). Layered AFTER requireIdentity on
-  //         paths that read/write or decrypt the encrypted config.
-  function requireRateStore(_req, res, next) {
-    if (!rateStoreConfigured()) {
-      return res.status(503).json({ error: 'rate-store-unconfigured' });
-    }
-    return next();
-  }
-
-  app.get('/api/rates', requireIdentity, requireRateStore, async (req, res, next) => {
-    try {
-      res.json(await rateStore.load(req.uid));
-    } catch (err) {
-      next(err);
-    }
-  });
-
-  app.put('/api/rates', requireIdentity, requireRateStore, async (req, res, next) => {
-    try {
-      // Validate the config shape + numeric rates before persisting (don't trust the body).
-      const cfg = rateStore.validateConfig(req.body);
-      if (!cfg) return res.status(400).json({ error: 'invalid-config' });
-      // Meeting history is server-owned: merge-preserve it so a settings-only or stale client
-      // can only ADD summaries, never wipe stored ones (see meeting-summary-history.md). Only
-      // touch the field when either side actually has history — a config that never carried it
-      // still round-trips verbatim.
-      const existing = await rateStore.load(req.uid);
-      if (cfg.meetingHistory !== undefined || existing?.meetingHistory !== undefined) {
-        cfg.meetingHistory = rateStore.mergeHistory(cfg.meetingHistory, existing?.meetingHistory);
-      }
-      return res.json(await rateStore.save(req.uid, cfg));
-    } catch (err) {
-      return next(err);
-    }
-  });
-
-  // --- Account-scoped data rights (delete / export everything for this uid) --
-  // userData.js is the single enumeration point across all per-user stores.
-
-  // DELETE is identity-only (no requireRateStore): purging a file needs no decryption, so a
-  // user can delete their data even when the rate-blob crypto is unavailable.
-  app.delete('/api/me/data', requireIdentity, async (req, res, next) => {
-    try {
-      const stores = await userData.purgeUser(req.uid);
-      return res.json({ deleted: true, stores });
-    } catch (err) {
-      return next(err);
-    }
-  });
-
-  // Export DOES need crypto (it decrypts the stored config), so it layers requireRateStore.
-  app.get('/api/me/export', requireIdentity, requireRateStore, async (req, res, next) => {
-    try {
-      const data = await userData.exportUser(req.uid);
-      res.setHeader('Content-Disposition', 'attachment; filename="meeting-cost-data.json"');
-      return res.json({ exportedAt: new Date().toISOString(), data });
-    } catch (err) {
-      return next(err);
-    }
   });
 
   // --- Zoom OAuth (scaffold; inert until configured) ------------------------
