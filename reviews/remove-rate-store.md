@@ -367,3 +367,13 @@ Round 3 — re-run of the approach pass on the round-2-reconciled docs (fresh re
 - **Claim:** The tactical backlog still points at `dev-docs/roadmap.md` (now archived to `roadmap-archive.md`) as the authoritative ordered inventory, and its deauth item says to reuse the **deleted** `userData.purgeUser`, map identity through the removed **app-context / rate-store `uid`** key, and wait for **"the store being turned on."** This conflicts with the canonical OPS-3 no-op-purge design in `BACKLOG.md` and could cause the follow-up story to resurrect the removed architecture.
 - **Verified:** confirmed — `reviews/backlog.md` lines 6, 17, 19, 25–27, 31–33 read as described; `BACKLOG.md` OPS-3 is already the correct no-op framing.
 - **Alternative + win:** Make `BACKLOG.md`'s OPS-3 the sole current definition — replace `reviews/backlog.md`'s obsolete deauth design notes with a short pointer to OPS-3 (or clearly mark them superseded), and fix the roadmap reference to `roadmap-archive.md` without calling it authoritative. Removes a broken planning authority so the marketplace follow-up isn't framed against deleted modules.
+
+## Decisions (2026-07-13) — round 3
+
+All three approach findings **approved to FIX** (Thomas: *"fix all three, fold in the orphan svg as I created it on purpose"*).
+
+- **① Public SVG copy — FIX (in place, not delete).** The `docs/meeting-cost-architecture.svg` orphan is an **intentional** public asset (Thomas created it on purpose), so reconcile it in place to the session-only / single-rate model — bring its visible side-panel box (L40) and legend (L101) into line with the canonical `dev-docs/` copy. (Two copies still risk drift; keeping both is Thomas's call — the durable single-source cleanup is not taken now.)
+- **② Logging over-claims — FIX.** Bring `README.md:121` ("PII-free client-diagnostics sink") and `ssdlc.md:51` ("no secrets, no presenter figures") in line with the qualified `/api/log` posture; soften the residual absolute "never contain secrets" in the two policies to the "not intentionally populated" framing.
+- **③ Stale product backlog — FIX.** Point `reviews/backlog.md`'s deauth section at the canonical OPS-3 no-op design (drop the deleted `userData.purgeUser` / app-context-`uid` / "store turned on" plan) and fix its roadmap reference to `roadmap-archive.md` (not "authoritative `roadmap.md`").
+
+Correctness pass: **NOT run this round** — approach fixes approved → the branch re-enters `/review` after `/close` applies them. No merge offered at the `/close` fork (re-review only).
