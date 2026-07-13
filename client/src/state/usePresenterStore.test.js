@@ -1,33 +1,22 @@
 import { describe, it, expect } from 'vitest';
-import { shouldPersistConfig } from './usePresenterStore.js';
+import { DEFAULT_CONFIG, clampNum } from './usePresenterStore.js';
 
-// The persistence guard that fixes the hydration double-save / clean-load echo
-// (rate-list-dedupe review). The store marks the loaded/healed config as `lastSaved`
-// at hydration; the debounced effect saves only a genuinely changed config (a new
-// object), never echoing what was just loaded or just saved.
+// The store is a thin session-only useState hook (no persistence). Its unit-testable
+// surface is the shipped default config and the clamp its setters apply.
 
-describe('shouldPersistConfig', () => {
-  const cfg = { rateTable: [] };
-
-  it('does not save before hydration', () => {
-    expect(shouldPersistConfig(false, cfg, null)).toBe(false);
-    expect(shouldPersistConfig(false, cfg, cfg)).toBe(false);
+describe('usePresenterStore config', () => {
+  it('defaults to 2 attendees × $100/hr at the 10s cadence', () => {
+    expect(DEFAULT_CONFIG).toEqual({
+      simpleAverageRate: 100,
+      simpleUserCount: 2,
+      displayIntervalSeconds: 10,
+    });
   });
 
-  it('does not echo a just-hydrated config (clean load writes zero, dirty double-save suppressed)', () => {
-    // Hydration sets lastSaved to the exact loaded/healed object → same reference → skip.
-    expect(shouldPersistConfig(true, cfg, cfg)).toBe(false);
-  });
-
-  it('saves a genuine user edit after a clean load (a new object ≠ lastSaved)', () => {
-    const edited = { ...cfg, defaultRate: 120 }; // an edit always produces a new object
-    expect(shouldPersistConfig(true, edited, cfg)).toBe(true);
-  });
-
-  it('saves again on a subsequent distinct edit', () => {
-    const first = { ...cfg, defaultRate: 120 };
-    const second = { ...first, defaultRate: 130 };
-    // After `first` was saved, lastSaved advances to `first`; the next edit still differs.
-    expect(shouldPersistConfig(true, second, first)).toBe(true);
+  it('clamps setter input to a numeric value at or above the floor', () => {
+    expect(clampNum('42', 0)).toBe(42);
+    expect(clampNum(-5, 0)).toBe(0);
+    expect(clampNum('nope', 0)).toBe(0);
+    expect(clampNum('', 0)).toBe(0);
   });
 });
