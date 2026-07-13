@@ -11,7 +11,7 @@ This policy complements the public Privacy Policy
 |---|---|---|---|
 | Presenter configuration — attendee count + one hourly **opportunity-cost** estimate + display cadence | Confidential | **Browser session only — never sent to or stored by our server** | Not persisted server-side |
 | Zoom OAuth tokens (install flow) | Secret | Server memory / environment | In transit (TLS); not persisted in plaintext |
-| Operational logs + client diagnostics (via `/api/log`) | Low — minimized to exclude participant PII (data-shape + technical fields only) | Hosting platform logs | In transit (TLS) |
+| Operational logs — `[server] METHOD path` request lines + client diagnostics (via `/api/log`) | Low — minimized at the source; not intentionally populated with PII (shape + technical fields) | Hosting platform logs | In transit (TLS) |
 
 We do **not** collect wages or salaries, audio/video/chat, or any HR/payroll/directory data, and
 we **do not persist presenter configuration** server-side — it is session-only. The live on-camera
@@ -31,14 +31,15 @@ our server.
   discarded when the meeting ends.
 - **Aggregate meeting totals:** not retained — they exist only during the active meeting,
   in-client.
-- **Operational logs:** the app logs runtime errors and client-reported diagnostics (via
-  `/api/log`) to the hosting platform's logs. **Client diagnostics are minimized at the source
-  so they exclude participant personal data:** the in-Zoom diagnostics probe transmits only the
-  *shape* of Zoom SDK responses (field names, lengths, counts) — never participant names or
-  other values — and error reports carry only error text plus a fixed set of technical fields
-  (no arbitrary payloads; the request URL is reduced to its path). Logs do **not** include the
-  presenter's opportunity-cost figures or any secrets. They follow the hosting platform's standard
-  retention and are accessible only to the operator.
+- **Operational logs:** the server logs `[server] METHOD path` request lines (query strings
+  stripped) and the client-reported diagnostics/errors POSTed to `/api/log`. **Those client
+  diagnostics are minimized at the source:** the in-Zoom diagnostics probe transmits only the
+  *shape* of Zoom SDK responses (field names, lengths, counts) — never participant names or other
+  values — and error reports carry a fixed set of technical fields (error text/stack, the request
+  path, the browser user agent). Because the endpoint records the body the client sends, the logs
+  are **not intentionally populated** with the presenter's opportunity-cost figures or participant
+  personal data rather than guaranteed free of them; they never contain secrets. They follow the
+  hosting platform's standard retention and are accessible only to the operator.
 
 ## Deletion / data-subject requests
 The app stores no presenter configuration server-side, so there is nothing to delete for an

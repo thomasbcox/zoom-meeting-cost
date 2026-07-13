@@ -16,11 +16,13 @@ entrusted to it.
   server-side**. Never wages/salaries — we do not request or store pay data.
 - **Zoom OAuth tokens / app context:** secret; used only to authenticate and operate;
   not exposed to other users.
-- **Operational logs / client diagnostics:** low sensitivity; logged to the hosting platform
-  via `/api/log`. **Minimized at the source to exclude participant PII** — the diagnostics
-  probe sends only the data *shape* of Zoom SDK responses (field names/lengths/counts, never
-  values) and error reports carry only error text plus fixed technical fields; they exclude the
-  presenter's opportunity-cost figures and secrets. See `data-retention-and-protection.md`.
+- **Operational logs / client diagnostics:** low sensitivity; the server logs `[server] METHOD
+  path` request lines plus the client diagnostics/errors POSTed to `/api/log`. **The client
+  diagnostics are minimized at the source** — the probe sends only the data *shape* of Zoom SDK
+  responses (field names/lengths/counts, never values) and error reports carry a fixed field set
+  (error text/stack, path, user agent). The endpoint records the submitted body, so logs are **not
+  intentionally populated** with the presenter's figures or participant data rather than guaranteed
+  free of them; they never contain secrets. See `data-retention-and-protection.md`.
 
 ## Controls
 - **Encryption in transit:** HTTPS/TLS enforced (HSTS).

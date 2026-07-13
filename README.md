@@ -40,10 +40,12 @@ for the duration of the meeting and **resets each meeting**. **No presenter
 configuration, rates, names, or meeting history are persisted — those values are
 session-only.** There is no server-side rate store and no browser `localStorage`; only
 resolved, sanitized aggregate numbers go to the overlay, and nothing is shared with
-meeting participants or other users. *(The server does write PII-free operational
-diagnostics — `/api/log` client reports and `[server] METHOD path` request lines — to
-its Railway host's logs, which Railway retains; those carry no presenter names or
-rates.)*
+meeting participants or other users. *(The server does write operational diagnostics to its
+Railway host's logs — `[server] METHOD path` request lines and the client-sent `/api/log`
+reports, minimized at the source: shape-only Zoom diagnostics and error reports carrying a fixed
+field set (error text/stack, path, user agent). Because the endpoint records the body the client
+sends, the logs are **not intentionally populated** with presenter figures or participant data
+rather than guaranteed free of them; Railway retains them for a limited period.)*
 
 ## Quick start
 

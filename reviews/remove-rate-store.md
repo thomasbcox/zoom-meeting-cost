@@ -326,3 +326,20 @@ Approach pass round 2 (base main, HEAD bfdee75) — Thomas: **"fix all three, ru
   `dev-docs/policies/*` + `README.md` + the SVG; fix every remaining hit in one pass.
 
 Correctness pass: **NOT run this round** — approach fixes approved → the branch re-enters `/review`.
+
+## Fixes (2026-07-13) — round 2
+
+Applied the three approved round-2 approach fixes + the comprehensive scan (all doc-only):
+- **① `docs/security.html`** → rewrote the data-handling + retention sections to session-only (no
+  server store, no per-account encryption); kept the TLS/headers/OAuth/logging disclosures; bumped the
+  effective date to 13 July 2026.
+- **② architecture SVG** → the visible side-panel box now reads "manual attendee count × one rate
+  (session-only)"; the legend's navy entry now describes OAuth install + session-only config (was
+  "Individual config … encrypted, stored on our server").
+- **③ logging over-claim propagated** → `README.md`, `data-retention-and-protection.md`, and
+  `security-policy.md` now disclose **both** the `[server] METHOD path` request lines and the `/api/log`
+  client diagnostics, enumerate the fields (error text/stack, path, user agent), and say logs are "not
+  intentionally populated with your figures" rather than "PII-free / no arbitrary payloads."
+- **Comprehensive scan** → also caught + fixed `docs/index.html`'s two card descriptions ("stored and
+  encrypted" → session-only). Final full-vocabulary scan across all public pages + policies + README +
+  the SVG shows only intentional "no/never/session-only" mentions.
