@@ -393,3 +393,21 @@ Correctness pass: **NOT run this round** — approach fixes approved → the bra
 
 Doc-only reconciliation round; server teardown unchanged/blessed. AC→file map for this round's changes (full detail in `## Fixes (2026-07-13) — round 3`):
 - **AC "docs reconciled to session-only"** → `docs/meeting-cost-architecture.svg` (synced to canonical `dev-docs/` copy), `README.md`, `dev-docs/policies/{ssdlc,data-retention-and-protection,security-policy}.md` (logging claims qualified), `reviews/backlog.md` (deauth → OPS-3; roadmap → archive), `dev-docs/overlay-live-test-{guide,matrix}.md` (stale `getAppContext` capability refs removed).
+
+## Codex approach review (2026-07-13, base main, HEAD 7e206ad)
+
+Round 4 — re-run after the accepted round-3 redesign. Server teardown + dependency shape sound again; the two architecture SVGs confirmed byte-identical. Two remaining findings, both the same doc-honesty theme, now at its last residuals.
+
+**Verdict:** *NOT merge-ready. The server teardown and dependency shape remain sound, and the two architecture SVGs are byte-identical. However, the synchronized diagram still overstates the server's no-data guarantee, and several live documents retain current-sounding persistence/app-context language.*
+
+### BLOCKER (one-way · nonstandard) — Synchronized SVGs still overclaim server data handling
+- **Locus:** `docs/meeting-cost-architecture.svg:69` + `:101`; identical in `dev-docs/meeting-cost-architecture.svg`.
+- **Claim:** Both now-identical diagrams say the server "Stores no user data" (L69) and "nothing is stored on our server" (L101) — categorical, while the unchanged `/api/log` records arbitrary submitted JSON ≤100 KB and Railway retains those logs. This is the last artifact that contradicts the qualified logging posture now in Privacy / README / policies.
+- **Verified:** confirmed — L69 `(OAuth). Stores no user data.`; L101 legend `… nothing is stored on our server.`
+- **Alternative + win:** State the narrow invariant — "stores no presenter configuration, rates, names, or meeting history" — and either acknowledge operational request/diagnostic logs or link the diagram to the Privacy Policy. Removes two categorical public/security claims in both copies while keeping them byte-identical; no code change.
+
+### IMPORTANT (two-way · kludgy) — Live docs retain persistence / deleted-app-context language
+- **Locus:** `README.md:23` ("saved settings"); `docs/documentation.html:68` ("saved figures … work regardless"); `dev-docs/policies/incident-response.md:11` ("exposure of stored configuration" as an incident example); `dev-docs/policies/security-policy.md:17` ("Zoom OAuth tokens / app context").
+- **Claim:** Four residual references imply the product still saves settings/config or still has the deleted app-context identity path. These are live, current-facing docs (not the archived roadmap or historical review records).
+- **Verified:** all four confirmed in the working tree.
+- **Alternative + win:** "saved settings/figures" → "side-panel controls" (or "session-only settings"); incident example → operational logs / credentials; drop "app context" from the current data classification (keep OAuth-token handling). Removes four references that could make a reader infer persistence or deleted identity machinery still exists.
