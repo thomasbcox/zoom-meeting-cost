@@ -243,3 +243,22 @@ claims overstate what the unchanged `/api/log` sink guarantees.
   as verified. **Alternative:** fully rewrite the SVG + opportunity-cost note declaratively around the
   single-rate session model; archive the old persistence roadmap or replace its current-state tables
   (not just a banner). **Win:** one dependable source of truth for marketplace review.
+
+## Decisions (2026-07-13)
+
+Approach pass (base main, HEAD 1fce780) — Thomas: **"fix all three, archive the roadmap."**
+- **① Terms still promise the encrypted store (BLOCKER)** → **FIX.** Reconcile `docs/terms.html`'s
+  store/account clauses to session-only (not account-tied, not persisted); keep the aggregate-overlay +
+  operational-data disclosures.
+- **② Live doc inventory unreconciled (IMPORTANT)** → **FIX.** Fully rewrite the architecture SVG +
+  `dev-docs/opportunity-cost-rate.md` to the single-rate session model; **ARCHIVE** `dev-docs/roadmap.md`
+  (mark it a historical/superseded planning doc) rather than banner-over-current-state-tables. Re-run a
+  repo-wide current-claim scan as the check.
+- **③ "PII-free" logging claims over-reach (BLOCKER)** → **FIX.** Narrow `docs/privacy.html`'s
+  operational-logging section: disclose both the `[server] METHOD path` request lines AND the
+  client-diagnostic sink; enumerate intended fields (error text/stack, path, user agent); say "minimized,
+  not intentionally populated with presenter config" rather than "PII-free"; keep retention/access/rights
+  language. (This is the privacy copy Thomas ratifies at re-review — Open Q2.)
+
+Correctness pass: **NOT run this round** — approach fixes approved, so the branch re-enters `/review`
+(fresh approach pass) after the fixes land.
