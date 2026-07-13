@@ -22,10 +22,10 @@ deep-links) lives in [`reviews/backlog.md`](reviews/backlog.md); the strategy ab
   `quantizeForDisplay` now floors at every allowed cadence (`stepSeconds ≥ 1`), so the 1 s cadence
   changes at most once per second — the overlay's 250 ms re-render shows the same floored value
   between second boundaries. Landed with the simple-only-panel cadence trim ({1,10}s, default 10).
-  _(merge: simple-only-panel)_
+  _(PR #72 / merge: simple-only-panel)_
 - **OPS-1** — **Participant list self-heal poll — obsolete.** The participant list was removed
   entirely in simple-only-panel (the attendee count is now a manual input), so there is no
-  `getMeetingParticipants` fetch left to self-heal. _(merge: simple-only-panel)_
+  `getMeetingParticipants` fetch left to self-heal. _(PR #72 / merge: simple-only-panel)_
 - **BUG-1** — **Panel-close stops the meter — closed: not currently replicable.** Live run
   2026-07-12 (dev Railway env, real Zoom session): a normal panel "close" is a **hide, not a destroy**
   — the panel webview survives, its 1 s tick keeps accruing, so the meter keeps running and re-syncs
