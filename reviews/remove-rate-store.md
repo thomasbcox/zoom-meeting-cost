@@ -388,3 +388,8 @@ Applied the three approved round-3 approach fixes + the scoped full-vocabulary s
 - **Scan-caught extras (same rate-store reconciliation).** The full-vocabulary scan surfaced two dev-docs test guides still listing `getAppContext` as a required Marketplace capability "mirroring `config()`" — but the client's `ZOOM_CAPABILITIES` no longer includes it (test asserts `not.toContain('getAppContext')`) and the rate store that needed it is gone. Fixed `overlay-live-test-guide.md` ("plus `getAppContext` (needed by the rate store / identity)" → "plus `getUserContext` (the presenter's own participantUUID for the base-video layer)") and `overlay-live-test-matrix.md` (dropped the wrong "(incl. `getAppContext`)" parenthetical). Final scan: every remaining vocabulary hit is an intentional negation ("nothing to encrypt", "no per-person rate table"), a "removed / since removed" history note, or points to `roadmap-archive.md`.
 
 Correctness pass: **NOT run this round** — approach fixes approved → the branch re-enters `/review` (approach pass re-runs on the reconciled docs). No merge at the `/close` fork.
+
+## Build note (2026-07-13) — round 4 (re-review after round-3 redesign)
+
+Doc-only reconciliation round; server teardown unchanged/blessed. AC→file map for this round's changes (full detail in `## Fixes (2026-07-13) — round 3`):
+- **AC "docs reconciled to session-only"** → `docs/meeting-cost-architecture.svg` (synced to canonical `dev-docs/` copy), `README.md`, `dev-docs/policies/{ssdlc,data-retention-and-protection,security-policy}.md` (logging claims qualified), `reviews/backlog.md` (deauth → OPS-3; roadmap → archive), `dev-docs/overlay-live-test-{guide,matrix}.md` (stale `getAppContext` capability refs removed).
