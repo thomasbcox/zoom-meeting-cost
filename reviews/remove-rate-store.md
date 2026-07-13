@@ -210,3 +210,36 @@ contradictory claims beyond the spec's file list: `docs/terms.html`, `dev-docs/o
 `README.md`/`docs/documentation.html`/`docs/support.html` was swept up so the doc set isn't
 self-contradictory (privacy said single-rate while README said per-person). So the actual diff exceeds
 the enumerated scope-containment list — a deliberate, consistency-driven expansion, flagged here.
+
+## Codex approach review (2026-07-13, base main, HEAD 1fce780)
+
+**Verdict:** the server deletion cascade is clean and deletion-only (OAuth/health/log/headers/static
+undisturbed; no dependency change). **NOT merge-ready:** the public legal copy still asserts encrypted
+account storage, several live docs still present the removed architecture as current, and the logging
+claims overstate what the unchanged `/api/log` sink guarantees.
+
+### BLOCKER
+- **① Terms still promise the removed encrypted account store** — [one-way · nonstandard] —
+  `docs/terms.html:62`. Still says saved config is retrieved through the Zoom account and stored
+  encrypted tied to it — contradicts session-only + the new Privacy Policy + AC6 (I fixed only the
+  per-person clause in Terms, not the store clauses). **Alternative:** rewrite the responsibilities/
+  privacy clauses to session-only, not account-tied, not persisted; keep the aggregate-overlay +
+  operational-data disclosures. **Win:** Terms and Privacy describe the same product.
+- **③ PII-free logging claims exceed the sink's guarantees** — [one-way · nonstandard] —
+  `docs/privacy.html:79` + `server/src/app.js:107`. The policy calls telemetry "the only recorded
+  server data," "excludes participant PII," "only errors/diagnostics" — but the server also writes
+  `[server] METHOD path` request lines, and `/api/log` serializes any ≤100 KB JSON body verbatim
+  (minimization is client-side only). **Alternative:** disclose both request-line + client-diagnostic
+  logs; enumerate fields (error text/stack, path, UA); say "minimized, not intentionally populated with
+  presenter config" rather than "PII-free"; keep retention/rights language. **Win:** removes a false
+  security invariant without expanding code scope.
+
+### IMPORTANT
+- **② Live doc inventory still structurally unreconciled** — [two-way · kludgy] —
+  `meeting-cost-architecture.svg:3`, `opportunity-cost-rate.md:23`, `roadmap.md:43`. The SVG still
+  says names/rates → AES-GCM file on a volume + per-person inputs + participant-count SDK; the
+  opportunity-cost note still documents `rateTable`/overrides/`rateStore`/cross-device persistence;
+  the roadmap's banner sits over current-state tables still labeling the store/identity/endpoints/scopes
+  as verified. **Alternative:** fully rewrite the SVG + opportunity-cost note declaratively around the
+  single-rate session model; archive the old persistence roadmap or replace its current-state tables
+  (not just a banner). **Win:** one dependable source of truth for marketplace review.
