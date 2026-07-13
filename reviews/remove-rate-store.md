@@ -280,3 +280,30 @@ Applied the three approved approach-review fixes (all doc-only; server code unch
   client-diagnostic sink, enumerate the intended fields (error text/stack, path, user agent), and say
   logs are "minimized at the source / not intentionally populated with your figures" rather than
   guaranteeing PII-free.
+
+## Codex approach review (2026-07-13, base main, HEAD bfdee75) — round 2
+
+**Verdict:** NOT merge-ready. The Terms rewrite, opportunity-cost note, roadmap archive, and
+privacy.html logging qualification are **genuinely resolved** — but the reconciled live docs remain
+internally inconsistent in three more spots. Server deletion shape sound; no dependency change.
+
+### BLOCKER
+- **① `docs/security.html` still promises the encrypted store** — [one-way · nonstandard]. The public,
+  nav-linked Security page (54–70) still says config is AES-256-GCM encrypted under a per-user
+  Zoom-account key, retained until deletion. **I missed this page entirely.** **Alternative:** rewrite
+  its data-handling + retention to session-only; keep the TLS/headers/OAuth/logging disclosures.
+  **Win:** every marketplace page describes the same product.
+- **③ "PII-free" logging guarantees remain outside privacy.html** — [one-way · nonstandard]. `README.md:43`
+  still calls logs "PII-free" / "no names or rates"; the data-retention + security policies still say
+  "exclude participant PII" / "no arbitrary payloads." These conflict with the unchanged `/api/log`
+  sink (accepts any ≤100 KB body) and the now-qualified privacy.html. **Alternative:** propagate
+  privacy.html's qualified wording (intended fields, source minimization, the sink records the
+  submitted body, no categorical PII-free/no-arbitrary-payload) across README + the policies.
+  **Win:** one truthful logging posture everywhere.
+
+### IMPORTANT
+- **② Architecture SVG's visible model + legend still stale** — [two-way · kludgy]. I updated the SVG
+  `<desc>` + one SDK bullet, but the visible side-panel box still says the presenter sets each
+  person's rate (per-person) and the legend (~line 101) still says names/values are encrypted + stored
+  on the server. **Alternative:** update the visible box copy + legend, not only the metadata.
+  **Win:** the diagram becomes a dependable review artifact.
