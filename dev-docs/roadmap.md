@@ -2,6 +2,15 @@
 
 Status: **draft** · Created 2026-06-10 · Owner: Thomas
 
+> **⚠️ SUPERSEDED IN PART (2026-07-13) — the dead-simple pivot.** Meeting Cost pivoted to a
+> **dead-simple, session-only** MVP: a manual attendee count × one hourly rate, no per-participant
+> model, and **no server-side persistence**. Stories `simple-only-panel` (client) and `remove-rate-store`
+> (server) **removed** the rate store, its encryption / `RATE_STORE_KEY` / Railway Volume, the
+> app-context identity path, and the export/delete endpoints. Wherever the plan below says the
+> "persistence foundation" / "encrypted server-side store" is shipped or planned, **that has been
+> reversed** — the app now persists nothing. The paid-tier/persistence phases are on hold pending a
+> fresh plan.
+
 A living strategic roadmap for turning Meeting Cost from a prototype into a production
 Zoom App with free and paid tiers. This file is the strategy above two backlogs:
 [`BACKLOG.md`](../BACKLOG.md) is the **canonical tracked-work list** (workflow items from the

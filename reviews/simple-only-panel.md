@@ -237,3 +237,10 @@ Correctness pass (base main, HEAD 1cbe830):
   `drawParticipant ok:true`. If it reports `no self participantUUID`, **fix-forward at once** (restore/
   replace the UUID-resolution path). Degraded base video (bare meter), not a crash; prod is
   pre-release — a conscious, bounded risk acceptance.
+
+## Post-merge verification (2026-07-13, folded in via remove-rate-store)
+
+The binding live gate (Finding ①, accepted post-merge at /close) is **CLEARED**. On the merged build
+(dev commit `804e66c`), a real Zoom session logged `drawParticipant ok:true` ×4 with zero `no self
+participantUUID` — so `getUserContext().participantUUID` resolves in real Zoom and the base video
+composites. The removed participant-list fallback was unnecessary; no fix-forward was needed.

@@ -6,9 +6,7 @@
 // URL in the Zoom Marketplace — no architectural rework.
 //
 // Zoom Apps use the standard authorization-code OAuth flow. The in-client app
-// is launched with a short-lived code that you exchange for an access token;
-// you also verify requests using the `x-zoom-app-context` header (decrypted
-// with your client secret) to learn the meeting/user context securely.
+// is launched with a short-lived code that you exchange for an access token.
 //
 // Docs: https://developers.zoom.us/docs/zoom-apps/authentication/
 

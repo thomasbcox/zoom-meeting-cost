@@ -36,26 +36,14 @@ Mixing them (e.g. a Dev `client_id` with a Prod secret) yields
 point at the deployment that holds the matching secret. Full walkthrough:
 [`dev-docs/railway-setup.md`](../dev-docs/railway-setup.md).
 
-## Persistent storage (required for saved rate tables)
+## Server-side storage — none
 
-The presenter's rate config is persisted **server-side, encrypted at rest** — this needs
-two things on **each** environment, or it silently degrades:
-
-> Note: "rate" here is hourly **opportunity cost**, not pay — see
-> [`dev-docs/opportunity-cost-rate.md`](../dev-docs/opportunity-cost-rate.md).
-
-- **`RATE_STORE_KEY`** (a strong secret, e.g. `openssl rand -base64 32`) — the master
-  encryption key. **If unset, `GET/PUT /api/rates` returns `503` and the app runs
-  session-only (nothing is saved).** Keep it separate from `ZOOM_CLIENT_SECRET`, use a
-  **different** value per environment, and **never lose it** — all stored data is
-  derived from it and becomes undecryptable if it changes.
-- **A Railway Volume** mounted at **`/data`**, with `DATA_DIR=/data`. Railway's normal
-  filesystem is **wiped on every redeploy**, so without the Volume saved rate tables
-  vanish on the next deploy.
-
-Quick check: `curl -s -i https://<domain>/api/rates | head -1` →
-`503` means persistence is **off** (set `RATE_STORE_KEY`); `401` means it's configured.
-Setup steps: [`dev-docs/railway-setup.md`](../dev-docs/railway-setup.md) Part C.
+Meeting Cost persists **no** presenter data server-side. The attendee count, hourly rate, and display
+cadence live only in the browser session (they reset each meeting). There is no rate store,
+`RATE_STORE_KEY`, or Railway Volume to configure — the server only serves the built client,
+`/api/health`, the `/api/log` diagnostics sink, and the OAuth callback. *(The encrypted rate store was
+removed in `remove-rate-store`; see [`dev-docs/opportunity-cost-rate.md`](../dev-docs/opportunity-cost-rate.md)
+for what "rate" means — hourly opportunity cost, not pay.)*
 
 > **Deployment host.** The app is served from the **Railway** deploy
 > (`railway.json`; see the README's "Deploy to Railway"), **not** a local tunnel.
@@ -99,12 +87,8 @@ Add **every** API below under **Features → Zoom App SDK → Add APIs**. This l
 **Context & participants**
 - `getRunningContext` — route the instance (panel vs. camera rendering context)
 - `getMeetingContext` — meeting info
-- `getMeetingParticipants` — read display names / the participant list (host/co-host)
-- `getUserContext` — the presenter's own identity (seeds the name + base-video UUID)
-- `getAppContext` — the signed Zoom app context; the client sends it to the server,
-  which decrypts it (with the client secret) to the presenter's stable `uid` to key the
-  encrypted server-side rate store (see `server/src/zoom/appContext.js`)
-- `onParticipantChange` — live participant join/leave/rename
+- `getUserContext` — the presenter's own identity; supplies the `participantUUID` for the base-video
+  layer (`drawParticipant`)
 
 **Camera overlay (Layers API)**
 - `runRenderingContext` — enter the camera rendering context (`view: 'camera'`)
@@ -134,23 +118,11 @@ Add **every** API below under **Features → Zoom App SDK → Add APIs**. This l
 - `client/src/zoom/zoomAdapter.js` has a `MockZoom` (used now) and a
   `RealZoom` implementation (wraps `@zoom/appssdk`). The app talks only to the
   adapter interface, so switching is a config flag.
-- The presenter's private rate config (rate table, aliases, default rate,
-  cost-model settings) is persisted **server-side, encrypted at rest**
-  via `GET`/`PUT /api/rates` — keyed to the presenter's stable Zoom identity (the
-  `uid` decrypted from the `getAppContext()` the client sends in the
-  `x-zoom-app-context` header). At-rest encryption is AES-256-GCM with a per-user
-  key derived (HKDF-SHA256) from a dedicated `RATE_STORE_KEY` secret salted by the
-  `uid`, so a leaked volume/backup is useless without the env secret. The posture is
-  **operator-decryptable** (the running server can decrypt; true zero-knowledge would
-  need a user passphrase this app has nowhere durable to anchor). If the store is
-  unconfigured or unreachable the client degrades to **session-only** state — no
-  plaintext is ever written. (`localStorage` was removed; it isn't durable inside the
-  Zoom client. The earlier "rates never leave the browser" framing is obsolete.)
-- **Privacy boundary that still holds:** the rate table and per-person rates are never
-  shown to *attendees*. The side panel pushes only sanitized **aggregate display state**
-  via `postMessage` — `buildOverlayState` emits exactly `{ status, totalCost,
-  costPerSecond, elapsedSeconds, attendees, currency, updatedAt, prefs:{} }` and
-  **nothing else**: no names, aliases, rate table, or per-person rates (`prefs` is
-  reserved and never carries private data). The overlay composited on the presenter's
-  video is what every participant sees. (Privacy detail — what's stored, where, and the
-  operator-decryptable posture — belongs in the README / privacy policy.)
+- The presenter's config (attendee count, hourly rate, display cadence) is **session-only** — held in
+  the browser for the meeting and never persisted. There is no server-side store, no presenter
+  identity decryption, and no export/delete endpoint (all removed in `remove-rate-store`).
+- **Privacy boundary that still holds:** the side panel pushes only sanitized **aggregate display
+  state** to the camera overlay via `postMessage` — `buildOverlayState` emits exactly `{ status,
+  totalCost, costPerSecond, elapsedSeconds, attendees, currency, updatedAt, prefs:{} }` and nothing
+  else. The overlay composited on the presenter's video is what every participant sees; there is no
+  per-person data to leak (the model is a single attendee count × one rate).
