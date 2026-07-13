@@ -435,3 +435,15 @@ Correctness pass: **NOT run this round** — approach fixes approved → the bra
 
 Doc-only reconciliation; server teardown unchanged/blessed. AC→file map for round-4 changes (detail in `## Fixes (2026-07-13) — round 4`):
 - **AC "docs reconciled to session-only"** → `dev-docs/meeting-cost-architecture.svg` + `docs/meeting-cost-architecture.svg` (categorical storage claim → presenter-data-scoped, kept byte-identical), `README.md` ("saved settings" → "session-only settings"), `docs/documentation.html` ("saved figures" → "figures you enter"; FAQ "Nothing is stored" → "None of it is stored"), `dev-docs/policies/incident-response.md` ("stored configuration" → "operational logs"), `dev-docs/policies/security-policy.md` (dropped "/ app context").
+
+## Codex approach review (2026-07-13, base main, HEAD 27f1fa0)
+
+Round 5 — re-run after the accepted round-4 redesign. Verdict: shape sound; manifests unchanged; deleted machinery not presented as current; SVG copies byte-identical. **One** finding remains — the last categorical storage claim.
+
+**Verdict:** *The server teardown and overall documentation shape are sound; manifests are unchanged, deleted machinery is not presented as current, and the SVG copies are byte-identical. One categorical storage claim remains, so the doc set is not yet fully reconciled.*
+
+### BLOCKER (one-way · nonstandard) — Incident policy still categorically claims no user data is persisted
+- **Locus:** `dev-docs/policies/incident-response.md:35`.
+- **Claim:** "The app persists no user data" is unqualified and conflicts with the unchanged `/api/log` sink + Railway retention. **Now internally contradictory:** the round-4 edit made the same policy's incident example "exposure of operational logs," so the policy recognizes retained log data exists while line 35 categorically denies persisted user data.
+- **Verified:** confirmed — line 35 reads "…The app persists no user data, so there is no stored-data encryption key to rotate." (Note: this is the line I judged an "accurate persistence negation" in round 4 and left; the reviewer's internal-contradiction argument is correct and was sharpened by my own round-4 "operational logs" edit two lines above.)
+- **Alternative + win:** Scope it to the removed store — "The app persists no presenter configuration or per-user record, so there is no presenter-data encryption key to rotate." Eliminates the final unqualified no-user-data guarantee while keeping the accurate reason no rate-store key exists.
