@@ -1,9 +1,10 @@
 # Backlog
 
 The **canonical tracked-work list** for the `/dev-audit` → `/frame` → `/close` loop. Ids:
-`AUDIT-` (from `/dev-audit`), `BUG-`, `OPS-`. The detailed product/strategy backlog (roadmap
-deep-links) lives in [`reviews/backlog.md`](reviews/backlog.md); the strategy above both is
-[`dev-docs/roadmap.md`](dev-docs/roadmap.md).
+`AUDIT-` (from `/dev-audit`), `BUG-`, `OPS-`. The detailed product/strategy backlog lives in
+[`reviews/backlog.md`](reviews/backlog.md). *(The earlier production roadmap,
+[`dev-docs/roadmap-archive.md`](dev-docs/roadmap-archive.md), is **archived** — the dead-simple
+pivot superseded it.)*
 
 ## Open
 

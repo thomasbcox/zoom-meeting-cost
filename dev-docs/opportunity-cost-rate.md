@@ -20,25 +20,22 @@ question this tool exists to provoke: *is this meeting worth more than what ever
 in it would otherwise be doing?* Opportunity cost is the right input, and it is almost
 always higher than wage.
 
-## How it maps to the code (names unchanged)
+## How it maps to the code (name unchanged)
 
-The identifiers still say `rate` for historical reasons, and we are **not** renaming
-them. Semantically, every one of these holds an **hourly opportunity-cost** figure:
+The identifier still says `rate` for historical reasons, and we are **not** renaming it.
+Semantically it holds an **hourly opportunity-cost** figure:
 
-- `rateTable: [{ id, name, rate }]` — per-person opportunity cost
-- `defaultRate` — opportunity cost for anyone not in the table
-- `simpleAverageRate` — average opportunity cost in the simple (N × rate) model
-- `overrides[participantId]` — a per-meeting opportunity-cost override
+- `simpleAverageRate` — the average opportunity cost per participant in the simple model
+  (cost = attendee count × this rate). This is the app's only rate field.
 
-The `multiplier` field — a legacy compensation concept (overhead on pay) that no longer fit
-this framing — has been **removed** (see [`reviews/remove-cost-multiplier.md`](../reviews/remove-cost-multiplier.md)).
-The current schema has no multiplier; `rateStore` tolerates but ignores a stray legacy value on
-an old saved config.
+(The old per-person model — `rateTable`, `defaultRate`, `overrides`, name matching — and the
+legacy `multiplier` field were removed in the dead-simple pivot; there is no per-person schema
+anymore.)
 
 ## What never leaves the design
 
 - Participants never see individual figures — the camera overlay carries **aggregate
   numbers only** (`buildOverlayState`).
-- The presenter's config (names + opportunity-cost values) is stored **encrypted at
-  rest**, keyed to their Zoom account, only to restore their own settings across
-  sessions and devices. See the Privacy Policy in `docs/privacy.html`.
+- The presenter's config (the attendee count + one rate) is **session-only** — held in the
+  browser for the meeting and never saved on our servers. See the Privacy Policy in
+  `docs/privacy.html`.

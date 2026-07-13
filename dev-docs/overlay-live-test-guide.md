@@ -4,7 +4,7 @@
 > gate: Thomas chose to set a **minimum supported version (Zoom Workplace 7.1.0+)** and document a
 > user-facing warning instead of running the matrix / building a `drawImage` fallback. Keep this
 > guide in case a future regression reopens the question. See
-> [`overlay-live-test-matrix.md`](overlay-live-test-matrix.md) and [`roadmap.md`](roadmap.md).
+> [`overlay-live-test-matrix.md`](overlay-live-test-matrix.md) and [`roadmap-archive.md`](roadmap-archive.md).
 
 Status: **draft (superseded)** · Created 2026-07-01 · Owner: Thomas
 

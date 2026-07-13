@@ -1,6 +1,6 @@
 <svg viewBox="0 0 1000 700" xmlns="http://www.w3.org/2000/svg" role="img" font-family="'Helvetica Neue', Arial, sans-serif">
   <title>Meeting Cost Meter — architecture and data flow</title>
-  <desc>The Meeting Cost Meter app runs inside the Zoom client as a React app via the Zoom Apps SDK. It uses Zoom OAuth 2.0 for install and identity. The presenter's individual configuration (names and hourly opportunity-cost values) is sent over HTTPS to a Node/Express server on Railway and stored as a per-user AES-256-GCM encrypted file on a persistent volume. The live aggregate cost total is computed and rendered onto the presenter's camera entirely inside the Zoom client and is never sent to the server. A GitHub Pages site serves the static legal and support pages.</desc>
+  <desc>The Meeting Cost Meter app runs inside the Zoom client as a React app via the Zoom Apps SDK. It uses Zoom OAuth 2.0 to install the app. The presenter's configuration (a manual attendee count and one hourly opportunity-cost rate) is session-only — held in the browser and never sent to or stored by the server. The live aggregate cost total is computed and rendered onto the presenter's camera entirely inside the Zoom client. The Node/Express server on Railway serves the built client plus /api/health and /api/log; a GitHub Pages site serves the static legal and support pages.</desc>
 
   <defs>
     <marker id="ah-navy" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto-start-reverse"><path d="M0,0 L7,3 L0,6 Z" fill="#234262"/></marker>
@@ -52,7 +52,7 @@
   <rect x="366" y="150" width="260" height="120" rx="8" fill="#ffffff" stroke="#234262"/>
   <text x="380" y="174" class="btitle">Zoom Apps SDK</text>
   <text x="380" y="194" class="bbody">In-client JS bridge:</text>
-  <text x="380" y="210" class="bbody">• meeting context &amp; participant count</text>
+  <text x="380" y="210" class="bbody">• meeting &amp; running context</text>
   <text x="380" y="226" class="bbody">• camera rendering</text>
   <text x="380" y="242" class="bbody">&#160;&#160;(runRenderingContext / drawWebView)</text>
 

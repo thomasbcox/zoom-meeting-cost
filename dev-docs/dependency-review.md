@@ -3,7 +3,7 @@
 A point-in-time decision record for the project's dependencies: what to upgrade, what to
 hold, and why holding is safe. Refresh when Dependabot opens new PRs, or quarterly.
 
-> **Note (2026-07-09):** this snapshot trails the current tree — `dev-docs/roadmap.md` carries
+> **Note (2026-07-09):** this snapshot trails the current tree — `dev-docs/roadmap-archive.md` carries
 > newer dependency notes (e.g. later esbuild/vite pins). Cross-check the roadmap until this doc is
 > refreshed on the next Dependabot batch.
 

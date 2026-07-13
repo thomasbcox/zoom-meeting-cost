@@ -6,10 +6,10 @@
 > rather than running this matrix or building a `drawImage` fallback. The overlay is confirmed
 > working across weeks of real meetings on current builds. This document (and the operator guide)
 > are **kept for reference** in case a future issue reopens the question — they are no longer on the
-> critical path. See [`roadmap.md`](roadmap.md) → live-render callout.
+> critical path. See [`roadmap-archive.md`](roadmap-archive.md) → live-render callout.
 
 Status: **draft (superseded)** · Created 2026-06-11 · Owner: Thomas
-Relates to: `dev-docs/roadmap.md` (🔴 live-render risk), `reviews/camera-overlay-message-bridge.md`,
+Relates to: `dev-docs/roadmap-archive.md` (🔴 live-render risk), `reviews/camera-overlay-message-bridge.md`,
 `dev-docs/camera-overlay-no-draw.md`, `dev-docs/camera-overlay-no-update.md`,
 memory `reference-zoom-prod-unknowns-research`.
 

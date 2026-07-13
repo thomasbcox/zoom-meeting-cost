@@ -262,3 +262,21 @@ Approach pass (base main, HEAD 1fce780) — Thomas: **"fix all three, archive th
 
 Correctness pass: **NOT run this round** — approach fixes approved, so the branch re-enters `/review`
 (fresh approach pass) after the fixes land.
+
+## Fixes (2026-07-13)
+
+Applied the three approved approach-review fixes (all doc-only; server code unchanged):
+- **① Terms store claims (BLOCKER)** → removed the "your Zoom account, through which your saved
+  configuration is retrieved" responsibility bullet; rewrote the Privacy clause to session-only (not
+  saved on our servers, not tied to the Zoom account).
+- **② Doc reconciliation completed + roadmap archived (IMPORTANT)** → rewrote the architecture SVG
+  `<desc>` + the "participant count" SDK bullet to the single-rate session model; rewrote
+  `opportunity-cost-rate.md`'s code-mapping (only `simpleAverageRate` remains — `rateTable`/`defaultRate`/
+  `overrides`/`multiplier` gone) and its "what never leaves" bullet to session-only; **renamed
+  `roadmap.md` → `roadmap-archive.md`** with an ARCHIVED/SUPERSEDED header, and updated its 5 inbound
+  references (BACKLOG + 3 dev docs).
+- **③ privacy.html logging over-claim (BLOCKER)** → the operational-logging + data-retention +
+  server-stores sections now disclose BOTH the `[server] METHOD path` request lines and the `/api/log`
+  client-diagnostic sink, enumerate the intended fields (error text/stack, path, user agent), and say
+  logs are "minimized at the source / not intentionally populated with your figures" rather than
+  guaranteeing PII-free.

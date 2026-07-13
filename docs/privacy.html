@@ -77,8 +77,9 @@
         per-person values kept anywhere on our side. We do not build profiles and do not track
         individuals across meetings.</p>
       <p>The only data our server records is minimal <strong>operational telemetry</strong> — see
-        <a href="#operational-logging">Operational logging</a> below — which is designed to exclude
-        participant personal data and your opportunity-cost figures.</p>
+        <a href="#operational-logging">Operational logging</a> below — which is minimized at the source
+        so it is not intentionally populated with participant personal data or your opportunity-cost
+        figures.</p>
 
       <h2>The on-camera total</h2>
       <p>The live total on the overlay is computed inside the Zoom client and passed
@@ -109,15 +110,22 @@
       <p>We keep no saved configuration — your settings exist only during the active meeting session.
         The live overlay totals likewise exist only during the meeting and are not stored afterward.
         Operational logs (see below) are retained by our hosting provider for a limited period for
-        reliability and are designed to exclude your figures and participant personal data.</p>
+        reliability; they are minimized at the source and are not intentionally populated with your
+        figures or participant personal data.</p>
 
       <h2 id="operational-logging">Operational logging</h2>
-      <p>To keep the app working reliably, we record minimal technical telemetry — runtime
-        errors and diagnostic events — designed to <strong>exclude participant personal
-        data</strong>. Diagnostic events record only the <em>shape</em> of Zoom data (such as
-        field names and counts), never its values. Error reports are limited to the error text
-        and a fixed set of technical details (such as the source file and line number); they do
-        not attach participant lists, names, or other meeting-data fields.</p>
+      <p>To keep the app working reliably, our server records two kinds of operational log to our
+        hosting provider (Railway): <strong>request lines</strong> — the HTTP method and path of
+        requests (for example <code>POST /api/log</code>), with query strings stripped — and
+        <strong>client-reported diagnostics and errors</strong> sent to the <code>/api/log</code>
+        endpoint. Those diagnostics are <strong>minimized at the source</strong>: the in-Zoom
+        diagnostics probe transmits only the <em>shape</em> of Zoom data (field names and counts),
+        never its values, and error reports carry a fixed set of technical fields — the error text and
+        stack, the source file/line, the request path, and the browser user agent. Because the
+        endpoint records the body the client sends, we cannot guarantee it is entirely free of
+        personal data; it is <strong>not intentionally populated with your opportunity-cost figures or
+        participant personal data</strong>. These logs are retained for a limited period and are
+        accessible only to the operator.</p>
 
       <h2 id="removing">Removing the app and your data</h2>
       <p>You can remove Meeting Cost Meter at any time from the Zoom App Marketplace. Because the app
