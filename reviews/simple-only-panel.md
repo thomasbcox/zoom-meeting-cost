@@ -223,3 +223,17 @@ outstanding). No other findings.
   branch has no evidence it was done. **Suggestion:** run a live dev Zoom meeting, confirm the
   `drawParticipant` log reports `ok: true`, and record it; if it reports `no self participantUUID`,
   stop and restore/replace the UUID-resolution path.
+
+## Decisions (2026-07-12)
+
+Approach pass: clean — nothing to decide.
+
+Correctness pass (base main, HEAD 1cbe830):
+- **BLOCKER — binding self-UUID live gate not satisfied** → **ACCEPT, verification moved POST-merge**
+  (Thomas: *"I need you to merge this up to github for auto-deployment — only way I can test it"*).
+  The gate is unsatisfiable pre-merge for this repo's deploy model: the branch can only reach real
+  Zoom by auto-deploying, which requires merging to `main`. Decision: merge to deploy, then verify
+  `getUserContext().participantUUID` live **immediately** post-deploy — watch the dev `/api/log` for
+  `drawParticipant ok:true`. If it reports `no self participantUUID`, **fix-forward at once** (restore/
+  replace the UUID-resolution path). Degraded base video (bare meter), not a crash; prod is
+  pre-release — a conscious, bounded risk acceptance.
