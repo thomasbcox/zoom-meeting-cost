@@ -208,3 +208,18 @@ pre-merge gate remains outstanding. (The reviewer could not run Vite in its read
 environment limitation, not a finding; our gate is green.)
 
 **Findings:** none (empty). Shape blessed → proceeding to the correctness pass this round.
+
+## Codex review (2026-07-12, base main, HEAD 1cbe830)
+
+**Summary:** The client simplification matches the spec. One BLOCKER — **not a code defect**: the
+binding live `getUserContext().participantUUID` pre-merge gate is unverified (already documented as
+outstanding). No other findings.
+
+### BLOCKER
+- **Binding self-UUID live gate is not satisfied** — `client/src/zoom/zoomAdapter.js`
+  (`drawCameraOverlay`). The participant-list fallback was removed; the base-video UUID now comes from
+  `getUserContext()` alone. If that response lacks `participantUUID`, `drawParticipant` is skipped →
+  a meter with no base video. The spec requires an in-meeting live confirmation before merge; the
+  branch has no evidence it was done. **Suggestion:** run a live dev Zoom meeting, confirm the
+  `drawParticipant` log reports `ok: true`, and record it; if it reports `no self participantUUID`,
+  stop and restore/replace the UUID-resolution path.
