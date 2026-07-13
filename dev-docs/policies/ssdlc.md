@@ -48,8 +48,9 @@ is addressed at each stage rather than bolted on afterward.
    a `/api/health` check. Configuration and secrets are environment variables, set per
    environment, never in the repository.
 9. **Operate & monitor.** Runtime errors and client-reported diagnostics are logged to the
-   hosting platform (no secrets, no presenter figures; see
-   `data-retention-and-protection.md` for what logs may contain). Issues feed back into step 1.
+   hosting platform (minimized at the source, not intentionally populated with secrets or
+   presenter figures; see `data-retention-and-protection.md` for what logs may contain). Issues
+   feed back into step 1.
 
 ## Data security in the lifecycle
 - Presenter configuration is **session-only** — held in the browser and never persisted

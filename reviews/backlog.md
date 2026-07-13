@@ -3,34 +3,35 @@
 Deferred work, tracked so it isn't lost. Each item becomes its own `/frame`
 story when picked up.
 
-> **Sequencing & priority live in [`dev-docs/roadmap.md` → Execution plan](../dev-docs/roadmap.md#execution-plan-orderly-development)**
-> — the authoritative ordered inventory (dependencies + publishing gates) of every open **product
-> item below**. This file is the **tactical detail store**: the *what/why* per item. The roadmap is
-> the *when/in-what-order*. (Workflow-tracked `AUDIT-`/`BUG-`/`OPS-` items live in
-> [`BACKLOG.md`](../BACKLOG.md), not here.)
+> **Sequencing & priority:** the earlier production roadmap
+> ([`dev-docs/roadmap-archive.md`](../dev-docs/roadmap-archive.md)) is **archived** — the dead-simple
+> pivot superseded its ordered plan. This file is the **tactical detail store** (the *what/why* per
+> deferred product item); workflow-tracked `AUDIT-`/`BUG-`/`OPS-` items — and the current ordering —
+> live in [`BACKLOG.md`](../BACKLOG.md), not here.
 
 ## Zoom deauthorization / data-compliance webhook
+> **Canonical tracking: [`BACKLOG.md`](../BACKLOG.md) → OPS-3.** After `remove-rate-store` the app
+> persists **no** per-user data, so the required purge is a **no-op** — but the endpoint itself is
+> still a hard Marketplace publishing gate. The notes below are design reference; OPS-3 is the
+> current definition.
 - **Requested:** 2026-06-26 (Thomas), deferred from `reviews/data-delete-export.md`.
 - **What:** Implement the mandatory Zoom deauthorization endpoint. On app uninstall Zoom POSTs a
-  deauthorization event (with `user_data_retention`); if retention is `false` we must delete ALL
-  data for that user within 10 days and POST confirmation to Zoom's `/oauth/data/compliance`.
-  Reuses the **`userData.purgeUser(uid)`** primitive shipped in data-delete-export (PR #52).
-- **Why:** A **hard publishing gate** — a published app that stores per-user data cannot pass
-  Zoom Marketplace review without it (see `dev-docs/roadmap.md` Phase 6A and memory
-  `reference-zoom-prod-unknowns-research`).
+  deauthorization event (with `user_data_retention`); verify the event signature, POST the required
+  confirmation to Zoom's `/oauth/data/compliance`, and purge the user's data. **Post-`remove-rate-store`
+  the purge is a no-op** — nothing is persisted (no rate store, no `userData` primitive), so there is
+  no per-user record to delete; the endpoint is still required.
+- **Why:** A **hard publishing gate** — a published Zoom OAuth app cannot pass Marketplace review
+  without a deauthorization endpoint (see memory `reference-zoom-prod-unknowns-research`; the earlier
+  roadmap's Phase 6A is archived in [`roadmap-archive.md`](../dev-docs/roadmap-archive.md)).
 - **Design notes / open questions:**
   - Different trust path from the app: Zoom authenticates the webhook with an HMAC **secret
-    token** (`x-zm-signature` + `x-zm-request-timestamp`) — a **new env var**, not the
-    `x-zoom-app-context` header. Verify the signature before acting.
-  - **⚠️ Identity mapping is unverified:** the event identifies the user by `payload.user_id`;
-    confirm it equals our app-context `uid` (the rate-store key) before purging, or we'll purge
-    the wrong/no records.
+    token** (`x-zm-signature` + `x-zm-request-timestamp`) — a **new env var**, separate from the
+    (now-removed) app-context machinery. Verify the signature before acting.
   - Outbound compliance callback to `https://api.zoom.us/oauth/data/compliance` (Basic auth with
     client id/secret), idempotent + signature-verified; set the "Deauthorization Notification
     Endpoint URL" in the Marketplace app config.
   - **Sequencing:** only needed at Marketplace submission, which is gated behind the overlay
-    live-test matrix (not yet run) + the store being turned on (not yet configured). Build it
-    close to submission.
+    live-test matrix (not yet run). Build it close to submission.
 
 ## ~~Client UI for data delete / export (+ privacy-page update)~~ — MOOT (store removed)
 - **STATUS 2026-07-12 (`remove-rate-store`):** superseded. The server-side rate store and its

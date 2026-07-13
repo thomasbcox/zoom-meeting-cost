@@ -73,7 +73,7 @@ In the Zoom Marketplace app config:
 - **All `ZOOM_CAPABILITIES` added** under **Features → Zoom App SDK** (the "Add APIs" list) — in
   particular the camera/Layers set: `runRenderingContext`, `drawWebView`, `drawParticipant`,
   `clearWebView`, `closeRenderingContext`, `getVideoState`, `onMyMediaChange`, `postMessage`,
-  `onMessage`, plus `getAppContext` (needed by the rate store / identity). **This list IS the gate**
+  `onMessage`, plus `getUserContext` (the presenter's own participantUUID for the base-video layer). **This list IS the gate**
   (see next bullet) and it must mirror exactly what the client passes to `zoomSdk.config()`.
 - **✅ Surface-gate question — RESOLVED (researched 2026-07-01).** There is **no separate "Camera"
   or "Meeting Component" surface** to enable. The Marketplace **Surface** step ("Select where to use

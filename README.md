@@ -118,8 +118,8 @@ attendees × avg rate ─► computeSimpleTotals()
   compositing the live cost meter onto the presenter's camera feed (Zoom camera/Layers
   rendering context). Plain CSS; no UI framework, web fonts, CDN, or analytics.
 - **Backend:** Node.js 22 + Express, serving the built client and a minimal API
-  (`/api/health` and `/api/log`, a PII-free client-diagnostics sink). No database and
-  no presenter data store.
+  (`/api/health` and `/api/log`, a client-diagnostics sink — see the config/privacy
+  note above for what it records). No database and no presenter data store.
 - **Auth:** Zoom OAuth 2.0 (authorization-code flow via `/auth/callback`).
 - **Storage:** none — the presenter's config (attendee count, hourly rate, display
   cadence) is **session-only**, held in the browser for the meeting and never persisted

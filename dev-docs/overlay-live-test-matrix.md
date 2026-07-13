@@ -86,7 +86,7 @@ NOT available to prove the channel, which is exactly why:
   required for `drawParticipant`).
 - Build served with `VITE_USE_ZOOM=1` (RealZoom), live on the Railway/Marketplace domain.
 - Marketplace config complete for camera mode: all `ZOOM_CAPABILITIES` added under
-  **Features → Zoom App SDK** (incl. `getAppContext`), mirroring `zoomSdk.config()`. **Surface-gate
+  **Features → Zoom App SDK**, mirroring `zoomSdk.config()`. **Surface-gate
   question RESOLVED (2026-07-01):** there is **no** separate "Camera" / Meeting Component surface —
   the API list under Features → Zoom App SDK (matching `config()`) + the **Domain Allow List**
   (app URL + `appssdk.zoom.us` + CDNs) are the real gates; the Surface step just selects the

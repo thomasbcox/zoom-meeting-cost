@@ -21,8 +21,8 @@ entrusted to it.
   diagnostics are minimized at the source** — the probe sends only the data *shape* of Zoom SDK
   responses (field names/lengths/counts, never values) and error reports carry a fixed field set
   (error text/stack, path, user agent). The endpoint records the submitted body, so logs are **not
-  intentionally populated** with the presenter's figures or participant data rather than guaranteed
-  free of them; they never contain secrets. See `data-retention-and-protection.md`.
+  intentionally populated** with secrets, the presenter's figures, or participant data rather than
+  guaranteed free of them. See `data-retention-and-protection.md`.
 
 ## Controls
 - **Encryption in transit:** HTTPS/TLS enforced (HSTS).

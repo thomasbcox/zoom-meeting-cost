@@ -37,8 +37,8 @@ our server.
   *shape* of Zoom SDK responses (field names, lengths, counts) — never participant names or other
   values — and error reports carry a fixed set of technical fields (error text/stack, the request
   path, the browser user agent). Because the endpoint records the body the client sends, the logs
-  are **not intentionally populated** with the presenter's opportunity-cost figures or participant
-  personal data rather than guaranteed free of them; they never contain secrets. They follow the
+  are **not intentionally populated** with secrets, the presenter's opportunity-cost figures, or
+  participant personal data rather than guaranteed free of them. They follow the
   hosting platform's standard retention and are accessible only to the operator.
 
 ## Deletion / data-subject requests
