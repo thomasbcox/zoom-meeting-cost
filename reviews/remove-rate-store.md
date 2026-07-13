@@ -430,3 +430,8 @@ Applied the two approved round-4 approach fixes + one scan-caught extension (all
 - **Scan-caught extension (same fix-① class).** `docs/documentation.html` "My settings didn't save" FAQ said "Nothing is stored on our server or tied to your Zoom account" — the same bare categorical phrasing as the SVG legend. Tightened to "None of it is stored on our server…" (scoped to the settings/figures the FAQ is about). Final scan: the only remaining categorical hit is `incident-response.md:35` "the app persists no user data, so there is no stored-data encryption key to rotate" — an accurate negation about the absent data store, not a logging over-claim.
 
 Correctness pass: **NOT run this round** — approach fixes approved → the branch re-enters `/review` (approach pass re-runs on the reconciled docs). No merge at the `/close` fork.
+
+## Build note (2026-07-13) — round 5 (re-review after round-4 redesign)
+
+Doc-only reconciliation; server teardown unchanged/blessed. AC→file map for round-4 changes (detail in `## Fixes (2026-07-13) — round 4`):
+- **AC "docs reconciled to session-only"** → `dev-docs/meeting-cost-architecture.svg` + `docs/meeting-cost-architecture.svg` (categorical storage claim → presenter-data-scoped, kept byte-identical), `README.md` ("saved settings" → "session-only settings"), `docs/documentation.html` ("saved figures" → "figures you enter"; FAQ "Nothing is stored" → "None of it is stored"), `dev-docs/policies/incident-response.md` ("stored configuration" → "operational logs"), `dev-docs/policies/security-policy.md` (dropped "/ app context").
