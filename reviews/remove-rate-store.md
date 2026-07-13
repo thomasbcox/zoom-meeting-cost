@@ -420,3 +420,13 @@ Both approach findings **approved to FIX** (Thomas: *"fix both then re-review"*)
 - **② 4 residual persistence / app-context phrasings — FIX.** `README.md:23` "saved settings" → session-only/side-panel controls; `docs/documentation.html:68` "saved figures … work regardless" → side-panel controls; `dev-docs/policies/incident-response.md:11` "exposure of stored configuration" → operational logs / credentials; `dev-docs/policies/security-policy.md:17` "Zoom OAuth tokens / app context" → drop "app context" (keep OAuth-token handling).
 
 Correctness pass: **NOT run this round** — approach fixes approved → the branch re-enters `/review` after `/close`. No merge offered at the `/close` fork (re-review only).
+
+## Fixes (2026-07-13) — round 4
+
+Applied the two approved round-4 approach fixes + one scan-caught extension (all doc-only; server code unchanged/blessed). Gate green (client 157 + server 25 + secret-scan 14; build ok).
+
+- **① SVG categorical storage claim — narrowed (both copies).** `dev-docs/meeting-cost-architecture.svg`: server box "(OAuth). Stores no user data." → "(OAuth). No presenter data stored."; legend "…nothing is stored on our server." → "…used only to install/authenticate; the presenter's config stays session-only in the browser and is never stored on our server." Re-`cp`'d to `docs/meeting-cost-architecture.svg` — `diff` empty, XML well-formed. No unqualified "stores nothing / no user data" claim remains.
+- **② Four residual phrasings — corrected.** `README.md` "the side panel, saved settings" → "session-only settings"; `docs/documentation.html` "your saved figures work regardless" → "the figures you enter work regardless"; `dev-docs/policies/incident-response.md` "exposure of stored configuration" → "exposure of operational logs"; `dev-docs/policies/security-policy.md` "Zoom OAuth tokens / app context" → "Zoom OAuth tokens" (dropped the deleted app-context path; OAuth-token handling kept).
+- **Scan-caught extension (same fix-① class).** `docs/documentation.html` "My settings didn't save" FAQ said "Nothing is stored on our server or tied to your Zoom account" — the same bare categorical phrasing as the SVG legend. Tightened to "None of it is stored on our server…" (scoped to the settings/figures the FAQ is about). Final scan: the only remaining categorical hit is `incident-response.md:35` "the app persists no user data, so there is no stored-data encryption key to rotate" — an accurate negation about the absent data store, not a logging over-claim.
+
+Correctness pass: **NOT run this round** — approach fixes approved → the branch re-enters `/review` (approach pass re-runs on the reconciled docs). No merge at the `/close` fork.

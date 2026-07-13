@@ -66,7 +66,7 @@
   <text x="708" y="174" class="btitle">Node / Express server · Railway</text>
   <text x="708" y="194" class="bbody">Serves the built client;</text>
   <text x="708" y="210" class="bbody">/api/health, /api/log, /auth</text>
-  <text x="708" y="226" class="bbody">(OAuth). Stores no user data.</text>
+  <text x="708" y="226" class="bbody">(OAuth). No presenter data stored.</text>
 
   <rect x="694" y="378" width="268" height="74" rx="8" fill="#ffffff" stroke="#234262"/>
   <text x="708" y="402" class="btitle">GitHub Pages</text>
@@ -98,7 +98,7 @@
   <text x="36" y="584" font-size="12" font-weight="700" fill="#234262">Legend — data flows</text>
 
   <line x1="36" y1="606" x2="76" y2="606" stroke="#234262" stroke-width="2.4"/>
-  <text x="86" y="610" class="lz"><tspan font-weight="700">OAuth install</tspan> (auth code → token) — the presenter's config stays session-only in the browser; nothing is stored on our server.</text>
+  <text x="86" y="610" class="lz"><tspan font-weight="700">OAuth install</tspan> (auth code → token) — used only to install/authenticate; the presenter's config stays session-only in the browser and is never stored on our server.</text>
 
   <line x1="36" y1="630" x2="76" y2="630" stroke="#07a496" stroke-width="2.4" stroke-dasharray="6 4"/>
   <text x="86" y="634" class="lz"><tspan font-weight="700">Aggregate cost total</tspan> — computed and shown inside the Zoom client; never sent to our server.</text>

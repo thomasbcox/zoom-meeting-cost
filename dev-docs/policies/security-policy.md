@@ -14,7 +14,7 @@ entrusted to it.
 - **Presenter configuration** (attendee count + one hourly opportunity-cost estimate + display
   cadence): treated as confidential; **held only in the browser session and never persisted
   server-side**. Never wages/salaries — we do not request or store pay data.
-- **Zoom OAuth tokens / app context:** secret; used only to authenticate and operate;
+- **Zoom OAuth tokens:** secret; used only to authenticate and operate;
   not exposed to other users.
 - **Operational logs / client diagnostics:** low sensitivity; the server logs `[server] METHOD
   path` request lines plus the client diagnostics/errors POSTed to `/api/log`. **The client

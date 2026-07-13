@@ -8,7 +8,7 @@
 
 ## What counts as an incident
 Any event that may compromise the confidentiality, integrity, or availability of the
-Meeting Cost Meter service or its data — e.g., suspected exposure of stored configuration,
+Meeting Cost Meter service or its data — e.g., suspected exposure of operational logs,
 credential leakage, unauthorized access, a serious vulnerability under active exploitation,
 or a significant outage.
 

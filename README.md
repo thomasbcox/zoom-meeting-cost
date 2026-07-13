@@ -20,7 +20,7 @@ context) so every participant sees it natively — no second app, no shared scre
 > than 7.1.0** the overlay may not appear — earlier builds (notably 6.7.8 / 7.0.2)
 > hit a Zoom-side regression where the draw call reports success but renders nothing
 > ([ZSEE-195647](https://devforum.zoom.us/t/runrenderingcontext-view-camera-drawwebview-silently-no-op-on-zoom-workplace-7-0-2-related-to-zsee-195647/143155)).
-> 7.1.0+ is the supported floor. Everything else (the side panel, saved settings)
+> 7.1.0+ is the supported floor. Everything else (the side panel, session-only settings)
 > works regardless.
 
 ![Meeting Cost shared screen — live total, cost/minute, elapsed time, and attendee count](dev-docs/screenshot.png)
