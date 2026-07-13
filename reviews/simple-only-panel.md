@@ -131,13 +131,16 @@ persistence/roles/history scaffolding around it. No new dependency, data model, 
 **File list (scope-containment AC):**
 - *Delete (module + test):* `client/src/lib/matching.js`(+`.test.js`), `client/src/lib/rateTable.js`(+test),
   `client/src/lib/saveToList.js`(+test), `client/src/lib/ratesApi.js`(+test),
-  `client/src/lib/meetingSummary.js`(+test), `client/src/lib/role.js`(+test)
+  `client/src/lib/meetingSummary.js`(+test), `client/src/lib/role.js`(+test),
+  `client/src/lib/presenterName.js`(+test) — orphaned once the presenter-name/role UI was dropped
 - *Delete (component, no test):* `client/src/components/RoleBar.jsx`, `client/src/components/SharedCostScreen.jsx`
 - *Rewrite:* `client/src/App.jsx`, `client/src/components/PresenterControls.jsx`,
   `client/src/state/usePresenterStore.js`(+`.test.js`), `client/src/lib/cost.js`(+`.test.js`),
   `client/src/lib/displayCadence.js`(+`.test.js`), `client/src/zoom/zoomAdapter.js`(+`.test.js`)
+- *Test-only edit:* `client/src/components/CostOverlay.test.js` — drop the retired 60 s cadence-clock test.
 - *Backlog:* `BACKLOG.md`
-- *Possibly (Open Q3):* `client/src/zoom/zoomDiagnostics.js`(+test) — only if it references a deleted module.
+- *Not touched (Open Q3 resolved):* `client/src/zoom/zoomDiagnostics.js` imports only `postLog` — left as-is.
+  `client/src/Root.jsx` still harmlessly passes `self`/`initialParticipants` (App ignores them) — left for a follow-up tidy.
 
 ## Codex design review (2026-07-12)
 

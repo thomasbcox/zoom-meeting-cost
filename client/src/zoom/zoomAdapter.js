@@ -2,26 +2,18 @@
 //
 // The rest of the app talks ONLY to this interface:
 //
-//   adapter.init()                  -> { context, self, participants }
-//   adapter.getParticipants()       -> Participant[]
-//   adapter.participantsAvailable() -> boolean (false if the fetch failed)
-//   adapter.onParticipantsChange(cb)-> unsubscribe()
+//   adapter.init()                  -> { context, self }
 //   adapter.startCameraOverlay()    -> render the app onto the camera feed
 //   adapter.stopCameraOverlay()     -> stop rendering onto the camera feed
 //   adapter.postMessage(payload)    -> side panel -> camera context state push
 //   adapter.onMessage(cb)           -> camera context receives state; unsubscribe()
 //   adapter.getVideoState()         -> boolean (presenter camera on/off; polled)
-//   adapter.getAppContext()         -> string|null (signed Zoom app context → server identity)
 //   adapter.isMock                  -> boolean
 //
-// where Participant = { id, displayName, email? }
-//
 // Two implementations:
-//   - MockZoom  : used in the local prototype. Lets the UI add/remove fake
-//                 participants to simulate join/leave, mirroring real Zoom
-//                 events (which arrive from the SDK, not from the UI). The
-//                 camera-overlay methods are recorded and the message bridge
-//                 loops back so the simulated overlay preview can be exercised.
+//   - MockZoom  : used in the local prototype. The camera-overlay methods are
+//                 recorded and the message bridge loops back so the simulated
+//                 overlay preview can be exercised.
 //   - RealZoom  : wraps @zoom/appssdk. Wired but only used when running inside
 //                 the Zoom client. Left as a clearly-marked integration point.
 
@@ -35,13 +27,9 @@ import { logLifecycle } from '../lib/lifecycleLog.js';
 // in tests and kept in sync with server/zoom-app-config.md.
 export const ZOOM_CAPABILITIES = [
   'getRunningContext',
-  // Signed app context → the presenter's stable Zoom uid, sent to the server (decrypted
-  // there) to key the encrypted rate store. Must also be added in the Marketplace dashboard.
-  'getAppContext',
   'getMeetingContext',
-  'getMeetingParticipants',
+  // getUserContext supplies the presenter's own participantUUID for the base video layer.
   'getUserContext',
-  'onParticipantChange',
   // Camera overlay (Layers API):
   'runRenderingContext',
   'drawWebView',
@@ -69,19 +57,9 @@ export const ZOOM_CAPABILITIES = [
 // not report config.media.renderTarget. Matches the previous hardcode.
 const DEFAULT_RENDER_TARGET = { width: 1280, height: 720 };
 
-const SEED_PARTICIPANTS = [
-  { id: 'p1', displayName: 'Thomas Cox' },
-  { id: 'p2', displayName: 'Jane Smith' },
-  { id: 'p3', displayName: 'Acme CFO' },
-  { id: 'p4', displayName: 'Dana Rivera' }, // intentionally unmatched -> default
-];
-
 export class MockZoom {
   constructor() {
     this.isMock = true;
-    this._participants = [...SEED_PARTICIPANTS];
-    this._subs = new Set();
-    this._nextId = 5;
     // Camera-overlay instrumentation: recorded SDK calls + message loopback.
     this.calls = [];
     this._msgSubs = new Set();
@@ -94,30 +72,8 @@ export class MockZoom {
   async init() {
     return {
       context: { runningContext: 'inMeeting', meetingID: 'demo-meeting' },
-      // role:'host' so local dev exercises the full (per-participant-capable) UI; real
-      // role comes from getUserContext() in RealZoom. See lib/role + simple-default-role-gate.
-      self: { id: 'p1', displayName: 'Thomas Cox', role: 'host' },
-      participants: this.getParticipants(),
+      self: { id: 'p1', displayName: 'Thomas Cox' },
     };
-  }
-
-  getParticipants() {
-    return this._participants.map((p) => ({ ...p }));
-  }
-
-  // The mock prototype always has a participant list, so it is never "unavailable".
-  participantsAvailable() {
-    return true;
-  }
-
-  onParticipantsChange(cb) {
-    this._subs.add(cb);
-    return () => this._subs.delete(cb);
-  }
-
-  _emit() {
-    const snapshot = this.getParticipants();
-    for (const cb of this._subs) cb(snapshot);
   }
 
   // --- Camera overlay (mock: record calls; no real compositing) -----------
@@ -157,36 +113,10 @@ export class MockZoom {
     return this._videoOn;
   }
 
-  // No real Zoom identity in the mock → null, so the client runs session-only locally.
-  async getAppContext() {
-    return null;
-  }
-
   // Prototype-only: simulate the presenter toggling their camera so the overlay
   // auto-recovery poll can be exercised in mock dev and tests.
   setVideoOn(on) {
     this._videoOn = !!on;
-  }
-
-  // --- Prototype-only controls (simulate Zoom join/leave events) ----------
-  addParticipant(displayName) {
-    const name = (displayName || '').trim();
-    if (!name) return;
-    this._participants.push({ id: `p${this._nextId++}`, displayName: name });
-    this._emit();
-  }
-
-  removeParticipant(id) {
-    this._participants = this._participants.filter((p) => p.id !== id);
-    this._emit();
-  }
-
-  renameParticipant(id, displayName) {
-    const p = this._participants.find((x) => x.id === id);
-    if (p) {
-      p.displayName = displayName;
-      this._emit();
-    }
   }
 }
 
@@ -229,25 +159,6 @@ function errMsg(err) {
   return String(err);
 }
 
-// Shape-bounded summary of a getMeetingParticipants() rejection for the availability
-// breadcrumb. Allowlists known scalar diagnostic fields only — never an arbitrary SDK
-// object dump. The `code`/`errorCode` is what distinguishes a 40316-style capability/config
-// error (getMeetingParticipants not enabled in the Marketplace app) from a role error (not
-// host/co-host). If nothing allowlisted is present, record the object's KEYS (shape only,
-// self-correcting) rather than its values — mirrors summarizeMediaEvent.
-function summarizeFetchError(err) {
-  if (err == null || typeof err !== 'object') return { message: String(err) };
-  const out = {};
-  for (const k of ['message', 'code', 'errorCode', 'status', 'reason']) {
-    const v = err[k];
-    if (v != null && (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean')) {
-      out[k] = v;
-    }
-  }
-  if (Object.keys(out).length === 0) out.keys = Object.keys(err);
-  return out;
-}
-
 // Real implementation — only instantiated inside the Zoom client. Kept minimal
 // and dependency-lazy so the prototype build doesn't require @zoom/appssdk.
 // Exported so the direct postMessage/onMessage overlay bridge can be unit-tested
@@ -260,16 +171,10 @@ export class RealZoom {
     this.isMock = false;
     this._sdk = sdk;
     this._log = log;
-    this._participants = [];
-    this._subs = new Set();
     this._msgSubs = new Set();
     // Log only the FIRST successful postMessage (proves the bridge is live); steady-state
     // per-tick successes are silent. Failures always log (see postMessage).
     this._firstPostLogged = false;
-    // Whether the last getMeetingParticipants() succeeded. getMeetingParticipants
-    // needs host/co-host + scope; when it fails the list is empty, which would
-    // otherwise read as a valid $0 meeting. Track it so the UI can say so.
-    this._participantsAvailable = true;
     // Camera-overlay draw inputs, captured at init() so the camera instance can
     // composite without re-deriving them: the surface size reported by config()
     // and the presenter's own participantUUID (base video layer).
@@ -297,17 +202,11 @@ export class RealZoom {
     } catch {
       /* may be unavailable depending on context */
     }
-    await this._refresh();
-    // Resolve the presenter's own participantUUID for the base video layer:
-    // prefer getUserContext()'s own UUID, else match self against the (already
-    // refreshed) participant list by name.
+    // Resolve the presenter's own participantUUID for the base video layer from
+    // getUserContext() alone (the participant-list-match fallback was removed with the
+    // participant list). If getUserContext lacks the UUID, drawCameraOverlay skips the
+    // base layer and the meter still composites via drawWebView.
     this._selfUUID = this._resolveSelfUUID(self);
-
-    if (typeof sdk.onParticipantChange === 'function') {
-      sdk.onParticipantChange(() => {
-        this._refresh().then(() => this._emit());
-      });
-    }
 
     // The inCamera overlay instance receives state pushed from the side panel via
     // postMessage. No connect() handshake: in camera (Layers) mode the panel posts
@@ -365,7 +264,7 @@ export class RealZoom {
 
     // rawContext is the unnormalized getRunningContext() result, surfaced purely so
     // Root's diagnostic boot log can record what the SDK actually returned.
-    return { context, self, participants: this.getParticipants(), rawContext: rawCtx };
+    return { context, self, rawContext: rawCtx };
   }
 
   // Run an instrumented SDK call: emit a /api/log entry recording success or
@@ -463,23 +362,11 @@ export class RealZoom {
     return !!res?.video;
   }
 
-  // The signed Zoom app context blob; sent to the server (decrypted there with the client
-  // secret) to resolve the presenter's uid for the encrypted rate store. Null if absent.
-  async getAppContext() {
-    const res = await this._sdk.getAppContext();
-    return res?.context ?? null;
-  }
-
-  // Resolve the presenter's own participantUUID for drawParticipant. Prefer the
-  // UUID from getUserContext(); fall back to matching self's name against the
-  // refreshed participant list (whose id is already the participantUUID).
+  // Resolve the presenter's own participantUUID for drawParticipant, from
+  // getUserContext() only. Null when unavailable — drawCameraOverlay then skips the
+  // base video layer (the meter still composites via drawWebView).
   _resolveSelfUUID(self) {
     if (self?.participantUUID) return String(self.participantUUID);
-    const name = self?.screenName ?? self?.displayName;
-    if (name) {
-      const match = this._participants.find((p) => p.displayName === name);
-      if (match) return match.id;
-    }
     return null;
   }
 
@@ -512,55 +399,6 @@ export class RealZoom {
   onMessage(cb) {
     this._msgSubs.add(cb);
     return () => this._msgSubs.delete(cb);
-  }
-
-  // Commit the participant-availability flag and EDGE-LOG the transition. Reads the CURRENT
-  // value at commit time (not before the await), logs only when it flips — unavailable edge
-  // with the error summary, available edge with the aggregate count — then assigns. Because
-  // the read+compare happens here, overlapping _refresh() calls (fired from onParticipantChange
-  // without serialization) can't double-log a failure or miss a recovery. Best-effort logging.
-  _setParticipantsAvailable(next, extra) {
-    const prev = this._participantsAvailable;
-    this._participantsAvailable = next;
-    if (next === prev) return;
-    logLifecycle(next ? 'participants-available' : 'participants-unavailable', extra ?? {}, this._log);
-  }
-
-  async _refresh() {
-    try {
-      const res = await this._sdk.getMeetingParticipants();
-      const list = res?.participants ?? [];
-      this._participants = list.map((p) => ({
-        id: String(p.participantUUID ?? p.screenName ?? p.participantId),
-        displayName: p.screenName ?? p.displayName ?? 'Participant',
-        email: p.email,
-      }));
-      this._setParticipantsAvailable(true, { count: this._participants.length });
-    } catch (err) {
-      // getMeetingParticipants requires host/co-host + scope. Mark the list unavailable so the
-      // UI can distinguish "can't read participants" from a genuine empty/$0 meeting. Edge-log
-      // the failure reason (shape only) so a live run reveals whether it's a role or a config
-      // (40316-style) problem — the two need different fixes. See summarizeFetchError.
-      this._setParticipantsAvailable(false, { error: summarizeFetchError(err) });
-    }
-  }
-
-  getParticipants() {
-    return this._participants.map((p) => ({ ...p }));
-  }
-
-  participantsAvailable() {
-    return this._participantsAvailable;
-  }
-
-  onParticipantsChange(cb) {
-    this._subs.add(cb);
-    return () => this._subs.delete(cb);
-  }
-
-  _emit() {
-    const snapshot = this.getParticipants();
-    for (const cb of this._subs) cb(snapshot);
   }
 }
 

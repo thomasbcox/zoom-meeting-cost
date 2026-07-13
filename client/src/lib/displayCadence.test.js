@@ -17,8 +17,8 @@ describe('displayCadence', () => {
     it('snaps out-of-set values to the nearest allowed cadence', () => {
       expect(normalizeDisplayInterval(7)).toBe(10);
       expect(normalizeDisplayInterval(3)).toBe(1);
-      expect(normalizeDisplayInterval(45)).toBe(60);
-      expect(normalizeDisplayInterval(1000)).toBe(60);
+      expect(normalizeDisplayInterval(45)).toBe(10);
+      expect(normalizeDisplayInterval(1000)).toBe(10);
     });
     it('falls back to the default for blank / non-finite input', () => {
       expect(normalizeDisplayInterval(null)).toBe(DEFAULT_DISPLAY_INTERVAL);
@@ -48,14 +48,16 @@ describe('displayCadence', () => {
       expect(at(40).totalCost).toBeCloseTo(80, 6); // next boundary
     });
 
-    it('passes through unchanged for stepSeconds <= 1', () => {
+    it('floors at the 1s cadence too, so the display changes once per second (BUG-2)', () => {
+      // elapsed 7.6s, cps 3 -> floor to 7s; total walked back by 3 * 0.6 = 1.8.
       const out = quantizeForDisplay({
-        totalCost: 12.5,
-        elapsedSeconds: 7,
+        totalCost: 22.8,
+        elapsedSeconds: 7.6,
         costPerSecond: 3,
         stepSeconds: 1,
       });
-      expect(out).toEqual({ totalCost: 12.5, elapsedSeconds: 7 });
+      expect(out.elapsedSeconds).toBe(7);
+      expect(out.totalCost).toBeCloseTo(21, 6);
     });
 
     it('guards null / non-finite input', () => {
@@ -67,15 +69,9 @@ describe('displayCadence', () => {
   });
 
   describe('formatCadenceDuration', () => {
-    it('drops seconds entirely at the 1-minute cadence', () => {
-      expect(formatCadenceDuration(90, 60)).toBe('1m'); // no colon / seconds
-      expect(formatCadenceDuration(90, 60)).not.toMatch(/:/);
-      expect(formatCadenceDuration(5160, 60)).toBe('1h 26m');
-      expect(formatCadenceDuration(0, 60)).toBe('0m');
-    });
-    it('keeps h:mm:ss for the faster cadences', () => {
-      expect(formatCadenceDuration(83, 1)).toBe('00:01:23');
-      expect(formatCadenceDuration(70, 10)).toBe('00:01:10');
+    it('shows h:mm:ss for the {1, 10}s cadences', () => {
+      expect(formatCadenceDuration(83)).toBe('00:01:23');
+      expect(formatCadenceDuration(70)).toBe('00:01:10');
     });
   });
 });

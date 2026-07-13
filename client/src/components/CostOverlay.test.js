@@ -46,14 +46,6 @@ describe('CostOverlay', () => {
       expect(ten).toContain('00:01:10');
     });
 
-    it('drops seconds entirely at the 1-minute cadence', () => {
-      const min = JSON.stringify(
-        CostOverlay({ display: { ...base, elapsedSeconds: 5160, displayIntervalSeconds: 60 } })
-      );
-      expect(min).toContain('1h 26m');
-      expect(min).not.toContain('1:26'); // no colon/seconds ambiguity
-    });
-
     it('defaults to per-second formatting when no cadence is given', () => {
       const def = JSON.stringify(CostOverlay({ display: { ...base, elapsedSeconds: 70 } }));
       expect(def).toContain('00:01:10');

@@ -14,7 +14,6 @@ describe('ZOOM_CAPABILITIES', () => {
       'drawParticipant',
       'onMyMediaChange',
       'getVideoState',
-      'getAppContext',
       'clearWebView',
       'closeRenderingContext',
       'postMessage',
@@ -26,6 +25,10 @@ describe('ZOOM_CAPABILITIES', () => {
     // camera overlay uses direct postMessage/onMessage, so they are NOT requested.
     expect(ZOOM_CAPABILITIES).not.toContain('connect');
     expect(ZOOM_CAPABILITIES).not.toContain('onConnect');
+    // Retired with the participant list + server rate store (simple-only-panel):
+    expect(ZOOM_CAPABILITIES).not.toContain('getAppContext');
+    expect(ZOOM_CAPABILITIES).not.toContain('getMeetingParticipants');
+    expect(ZOOM_CAPABILITIES).not.toContain('onParticipantChange');
   });
 });
 
@@ -117,17 +120,6 @@ describe('RealZoom camera-overlay draw placement', () => {
     });
     // The overlay webview still composites.
     expect(sdk.drawn.some((d) => d.method === 'drawWebView')).toBe(true);
-  });
-
-  it('resolves self participantUUID by name match when getUserContext omits it', async () => {
-    const sdk = makeFakeSdk({
-      selfParticipantUUID: null,
-      participants: [{ participantUUID: 'matched-uuid', screenName: 'Real User' }],
-    });
-    const a = new RealZoom(sdk);
-    await a.init();
-    await a.drawCameraOverlay();
-    expect(sdk.drawn[0]).toMatchObject({ method: 'drawParticipant', participantUUID: 'matched-uuid' });
   });
 
   it('logs a drawParticipant failure (ok:false) but still draws the webview and does NOT reject', async () => {
@@ -554,114 +546,3 @@ describe('adapter.getVideoState (polled camera state for overlay auto-recovery)'
   });
 });
 
-describe('adapter.getAppContext (server identity blob)', () => {
-  it('RealZoom returns the SDK getAppContext().context string', async () => {
-    const a = new RealZoom(makeFakeSdk({ appContext: 'ctx-xyz' }));
-    await a.init();
-    expect(await a.getAppContext()).toBe('ctx-xyz');
-  });
-
-  it('MockZoom returns null (no real identity → client runs session-only)', async () => {
-    expect(await new MockZoom().getAppContext()).toBe(null);
-  });
-});
-
-describe('participant-list availability', () => {
-  it('MockZoom always reports available', () => {
-    expect(new MockZoom().participantsAvailable()).toBe(true);
-  });
-
-  it('RealZoom is available after a successful participant fetch', async () => {
-    const sdk = makeFakeSdk({
-      participants: [{ participantUUID: 'x1', screenName: 'Alice' }],
-    });
-    const a = new RealZoom(sdk);
-    await a.init();
-    expect(a.participantsAvailable()).toBe(true);
-    expect(a.getParticipants()).toHaveLength(1);
-  });
-
-  it('RealZoom is unavailable (not a $0 meeting) when the fetch fails', async () => {
-    const sdk = makeFakeSdk({ participantsReject: true });
-    const a = new RealZoom(sdk);
-    await a.init();
-    expect(a.participantsAvailable()).toBe(false);
-    expect(a.getParticipants()).toEqual([]);
-  });
-});
-
-// --- Participant-availability breadcrumb (edge-triggered, shape-only) -------------------
-describe('RealZoom participant-availability breadcrumb', () => {
-  const sdkWith = (getMeetingParticipants) => ({ getMeetingParticipants });
-  const events = (logs, name) => logs.filter((l) => l.event === name);
-
-  it('edge-logs the failure once, with the diagnostic code and no unknown fields', async () => {
-    const logs = [];
-    // A plain SDK-style rejection carrying a 40316 code plus a field we must NOT log.
-    const rejection = { code: 40316, message: 'capability not enabled', participantName: 'Alice' };
-    const z = new RealZoom(sdkWith(() => Promise.reject(rejection)), { log: (p) => logs.push(p) });
-
-    await z._refresh(); // available(true) -> false : one unavailable log
-    await z._refresh(); // false -> false : NO new log (edge)
-
-    const unavail = events(logs, 'participants-unavailable');
-    expect(unavail).toHaveLength(1);
-    expect(unavail[0].error).toEqual({ message: 'capability not enabled', code: 40316 });
-    expect(JSON.stringify(unavail[0])).not.toContain('Alice'); // allowlist dropped the extra field
-    expect(z.participantsAvailable()).toBe(false);
-  });
-
-  it('edge-logs recovery once with the aggregate count and never participant names', async () => {
-    const logs = [];
-    let mode = 'fail';
-    const sdk = sdkWith(() =>
-      mode === 'fail'
-        ? Promise.reject(new Error('nope'))
-        : Promise.resolve({
-            participants: [
-              { participantUUID: 'u1', screenName: 'Alice' },
-              { participantUUID: 'u2', screenName: 'Bob' },
-            ],
-          })
-    );
-    const z = new RealZoom(sdk, { log: (p) => logs.push(p) });
-
-    await z._refresh(); // true -> false
-    mode = 'ok';
-    await z._refresh(); // false -> true : one recovery log
-
-    const avail = events(logs, 'participants-available');
-    expect(avail).toHaveLength(1);
-    expect(avail[0].count).toBe(2);
-    expect(JSON.stringify(avail[0])).not.toMatch(/Alice|Bob/);
-    expect(z.participantsAvailable()).toBe(true);
-  });
-
-  it('does not log on steady-state success (no spurious available edge)', async () => {
-    const logs = [];
-    const z = new RealZoom(sdkWith(() => Promise.resolve({ participants: [] })), {
-      log: (p) => logs.push(p),
-    });
-    await z._refresh(); // true -> true : no log
-    await z._refresh();
-    expect(logs.filter((l) => String(l.event).startsWith('participants-'))).toHaveLength(0);
-  });
-
-  it('availability still transitions true->false->true regardless of logging', async () => {
-    let mode = 'ok';
-    const z = new RealZoom(
-      sdkWith(() =>
-        mode === 'ok' ? Promise.resolve({ participants: [] }) : Promise.reject(new Error('x'))
-      ),
-      { log() {} }
-    );
-    await z._refresh();
-    expect(z.participantsAvailable()).toBe(true);
-    mode = 'fail';
-    await z._refresh();
-    expect(z.participantsAvailable()).toBe(false);
-    mode = 'ok';
-    await z._refresh();
-    expect(z.participantsAvailable()).toBe(true);
-  });
-});
