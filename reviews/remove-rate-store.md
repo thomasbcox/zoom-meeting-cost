@@ -343,3 +343,27 @@ Applied the three approved round-2 approach fixes + the comprehensive scan (all 
 - **Comprehensive scan** → also caught + fixed `docs/index.html`'s two card descriptions ("stored and
   encrypted" → session-only). Final full-vocabulary scan across all public pages + policies + README +
   the SVG shows only intentional "no/never/session-only" mentions.
+
+## Codex approach review (2026-07-13, base main, HEAD 8778221)
+
+Round 3 — re-run of the approach pass on the round-2-reconciled docs (fresh review following the accepted round-2 redesign). Server teardown + dependency shape confirmed sound again; all three findings are **doc-consistency** gaps the round-1/2 scans didn't reach.
+
+**Verdict:** *NOT merge-ready. The server teardown and dependency shape are sound, but the reconciled documentation is still neither internally consistent nor complete: a public architecture asset describes the removed model, categorical logging guarantees remain, and a live backlog still instructs future work to reuse deleted storage machinery.*
+
+### BLOCKER (one-way · nonstandard) — Published architecture copy bypasses the canonical fix
+- **Locus:** `docs/meeting-cost-architecture.svg:40` (per-person model) + `:101` ("encrypted, stored on our server").
+- **Claim:** There are **two copies** of the diagram. The round-2 SVG fix updated only `dev-docs/meeting-cost-architecture.svg`; the `docs/` copy — a **public** GitHub-Pages asset (tracked now; became reachable-by-URL on merge) — still says the presenter sets *each person's* rate and that names + values are encrypted and stored on our server. Two copies have already drifted; the public one directly violates the session-only spec.
+- **Verified:** confirmed in the working tree; the `docs/` copy is referenced by no page (orphan URL), the `dev-docs/` copy carries the approved wording.
+- **Alternative + win:** Eliminate the duplication rather than hand-syncing a second copy — delete the orphan `docs/` copy (nothing links it, `dev-docs/` is canonical), **or** if a public diagram is wanted, replace it with the fixed canonical and single-source it. Removes two false public claims and kills the drift permanently.
+
+### BLOCKER (one-way · nonstandard) — Categorical logging guarantees still exceed `/api/log`
+- **Locus:** `README.md:121` ("a PII-free client-diagnostics sink"); `dev-docs/policies/ssdlc.md:51` ("no secrets, no presenter figures"); residual absolute "never contain secrets" in `data-retention-and-protection.md:42` + `security-policy.md:25`.
+- **Claim:** README:121 + ssdlc:51 were **missed entirely** by the round-2 pass; both still give a categorical PII-free / no-figures guarantee. The unchanged `/api/log` sink serializes any submitted JSON body ≤100 KB, so these contradict the implementation and the qualified wording already present elsewhere in the same README and the Privacy Policy. The two policies' trailing absolute "never contain secrets" is the same over-claim in miniature.
+- **Verified:** confirmed — README line 122 and ssdlc lines 50–52 read as quoted.
+- **Alternative + win:** One canonical logging statement everywhere (request-line logging + a body-recording client sink; client reports minimized at the source; the server does **not** enforce a PII/secret-free schema — logs are "not intentionally populated" rather than guaranteed free). Secondary docs link to it instead of restating a stronger invariant. Eliminates the remaining false security claims and the drift.
+
+### IMPORTANT (two-way · kludgy) — The active product backlog still plans around deleted machinery
+- **Locus:** `reviews/backlog.md:6` (names archived `roadmap.md` as "authoritative") + the "Zoom deauthorization" section (lines 12–33).
+- **Claim:** The tactical backlog still points at `dev-docs/roadmap.md` (now archived to `roadmap-archive.md`) as the authoritative ordered inventory, and its deauth item says to reuse the **deleted** `userData.purgeUser`, map identity through the removed **app-context / rate-store `uid`** key, and wait for **"the store being turned on."** This conflicts with the canonical OPS-3 no-op-purge design in `BACKLOG.md` and could cause the follow-up story to resurrect the removed architecture.
+- **Verified:** confirmed — `reviews/backlog.md` lines 6, 17, 19, 25–27, 31–33 read as described; `BACKLOG.md` OPS-3 is already the correct no-op framing.
+- **Alternative + win:** Make `BACKLOG.md`'s OPS-3 the sole current definition — replace `reviews/backlog.md`'s obsolete deauth design notes with a short pointer to OPS-3 (or clearly mark them superseded), and fix the roadmap reference to `roadmap-archive.md` without calling it authoritative. Removes a broken planning authority so the marketplace follow-up isn't framed against deleted modules.
