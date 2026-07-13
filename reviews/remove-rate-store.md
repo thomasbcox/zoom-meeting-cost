@@ -186,3 +186,27 @@ Thomas's decision, verbatim: **"approve, split the panel to story 3, track-and-g
   purge is now a no-op; docs state the app is pre-release/unpublished.
 - **Panel reorg → Story 3** (`panel-reorg`), framed next. Not in this story.
 - **Railway Volume** removed via the `railway` CLI post-merge (Open Q3).
+
+## Build note (2026-07-13)
+
+AC → file map:
+- **AC1/AC2** (store+identity+data-rights removed; OAuth/health/log/static kept) → `server/src/app.js`;
+  deletions `server/src/store/rateStore.js`, `store/rateCrypto.js`, `zoom/appContext.js`, `userData.js`;
+  `server/src/zoom/oauth.js` (stale app-context comment).
+- **AC3** (dead tests gone) → deleted `server/test/{rateStore,rateCrypto,appContext,identityLog,userData,rates}.test.js`.
+- **AC4** (env) → `server/.env.example` never listed `RATE_STORE_KEY`/`DATA_DIR` (set directly in Railway) — moot.
+- **AC5** (dev/hosting docs) → `README.md`, `server/zoom-app-config.md`, `dev-docs/railway-setup.md`,
+  `dev-docs/meeting-cost-architecture.svg`; `dev-docs/roadmap.md` via a superseding banner.
+- **AC6** (privacy/security claims, NARROWED per Finding ①) → `docs/privacy.html`, `docs/terms.html`,
+  `docs/documentation.html`, `docs/support.html`, `dev-docs/policies/{security-policy,incident-response,ssdlc,data-retention-and-protection,dependency-management}.md`,
+  `dev-docs/opportunity-cost-rate.md`, `dev-docs/camera-overlay-no-update.md`.
+- **AC7** (record+backlog) → `reviews/simple-only-panel.md` (gate cleared), `BACKLOG.md` (OPS-2 → Done),
+  `reviews/backlog.md`.
+- **AC9** (deauth tracked-and-gated) → `BACKLOG.md` (OPS-3).
+
+**Scope note (Finding ② confirmed during implementation).** The final repo-wide scan surfaced
+contradictory claims beyond the spec's file list: `docs/terms.html`, `dev-docs/opportunity-cost-rate.md`,
+`dev-docs/camera-overlay-no-update.md` were added; and the Story-1 **per-person** narrative leftover in
+`README.md`/`docs/documentation.html`/`docs/support.html` was swept up so the doc set isn't
+self-contradictory (privacy said single-rate while README said per-person). So the actual diff exceeds
+the enumerated scope-containment list — a deliberate, consistency-driven expansion, flagged here.
