@@ -307,3 +307,22 @@ internally inconsistent in three more spots. Server deletion shape sound; no dep
   person's rate (per-person) and the legend (~line 101) still says names/values are encrypted + stored
   on the server. **Alternative:** update the visible box copy + legend, not only the metadata.
   **Win:** the diagram becomes a dependable review artifact.
+
+## Decisions (2026-07-13) — round 2
+
+Approach pass round 2 (base main, HEAD bfdee75) — Thomas: **"fix all three, run the comprehensive scan."**
+- **① `docs/security.html` store/retention claim (BLOCKER)** → **FIX.** Reconcile the public Security
+  page's data-handling + retention to session-only (no server store, no per-account encryption); keep
+  the TLS/headers/OAuth/logging disclosures.
+- **② SVG visible box + legend (IMPORTANT)** → **FIX.** Update the drawn side-panel box (per-person →
+  single rate × manual attendee count) and the legend (encrypted server storage → session-only, no
+  server store).
+- **③ Logging over-claim outside privacy.html (BLOCKER)** → **FIX.** Propagate privacy.html's qualified
+  wording to `README.md` + `dev-docs/policies/data-retention-and-protection.md` +
+  `dev-docs/policies/security-policy.md` (+ any other doc): disclose the intended fields + source
+  minimization + that the sink records the submitted body; drop categorical "PII-free" / "no arbitrary
+  payloads."
+- **Comprehensive scan** → run an **exhaustive** claim scan (full vocabulary) across `docs/*.html` +
+  `dev-docs/policies/*` + `README.md` + the SVG; fix every remaining hit in one pass.
+
+Correctness pass: **NOT run this round** — approach fixes approved → the branch re-enters `/review`.
