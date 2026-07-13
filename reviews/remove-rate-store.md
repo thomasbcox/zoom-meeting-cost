@@ -455,3 +455,11 @@ Sole approach finding **approved to FIX** (Thomas: *"fix then re-review"*).
 - **① incident-response.md:35 categorical "persists no user data" — FIX.** Scope to the removed store: "The app persists no presenter configuration or per-user record, so there is no presenter-data encryption key to rotate." Keeps the accurate reason no rate-store key exists; removes the last unqualified no-user-data guarantee (and resolves the internal contradiction with the round-4 "operational logs" incident example).
 
 Correctness pass: **NOT run this round** — approach fix approved → the branch re-enters `/review` after `/close`. No merge offered at the `/close` fork (re-review only).
+
+## Fixes (2026-07-13) — round 5
+
+Applied the sole approved round-5 approach fix (doc-only; server code unchanged/blessed). Gate green (client 157 + server 25 + secret-scan 14; build ok).
+
+- **① incident-response.md:35 categorical claim — scoped.** "…The app persists no user data, so there is no stored-data encryption key to rotate." → "…The app persists no presenter configuration or per-user record, so there is no presenter-data encryption key to rotate." The Zoom OAuth credential-rotation sentence before it is unchanged. This removes the last unqualified no-user-data guarantee and resolves the internal contradiction with the round-4 "exposure of operational logs" incident example. Scan confirms no unqualified "no user data / persists nothing / stores no user" remains anywhere on the live doc surface; the only residual vocabulary hits are explicit "removed / history" app-context references.
+
+Correctness pass: **NOT run this round** — approach fix approved → the branch re-enters `/review` (approach pass re-runs). No merge at the `/close` fork.

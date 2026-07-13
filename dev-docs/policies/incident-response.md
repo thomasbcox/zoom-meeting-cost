@@ -32,8 +32,8 @@ coordinates any needed help. The reporting/coordination contact is the address a
 
 ## Secrets rotation
 - **Zoom OAuth credentials** can be rotated safely at any time via the hosting platform's
-  environment configuration — a standard containment step. The app persists no user data, so
-  there is no stored-data encryption key to rotate.
+  environment configuration — a standard containment step. The app persists no presenter
+  configuration or per-user record, so there is no presenter-data encryption key to rotate.
 
 ## Records
 Incident records and post-incident reviews are retained for future reference and policy
