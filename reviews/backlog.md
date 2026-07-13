@@ -32,12 +32,18 @@ story when picked up.
     live-test matrix (not yet run) + the store being turned on (not yet configured). Build it
     close to submission.
 
-## Client UI for data delete / export (+ privacy-page update)
+## ~~Client UI for data delete / export (+ privacy-page update)~~ — MOOT (store removed)
+- **STATUS 2026-07-12 (`remove-rate-store`):** superseded. The server-side rate store and its
+  data-rights endpoints (`GET /api/me/export`, `DELETE /api/me/data`) were **removed** in the
+  dead-simple pivot, so there is no per-user server data to export or delete and no endpoints to
+  build UI against. Presenter settings are now **session-only** (browser-held, reset each
+  meeting), so this self-serve export/delete UI no longer applies. Retained below as history.
 - **Requested:** 2026-06-26 (Thomas), deferred from `reviews/data-delete-export.md`.
 - **What:** Add presenter-facing "Export my data" and "Delete my data" controls (React panel)
-  that call the shipped `GET /api/me/export` and `DELETE /api/me/data` endpoints (PR #52);
-  delete needs a confirm step. Then update `docs/privacy.html` to advertise **self-serve** delete
-  /export (today it still routes deletion via email) — bump the effective date with that change.
+  that call the then-shipped `GET /api/me/export` and `DELETE /api/me/data` endpoints (PR #52,
+  since removed); delete needs a confirm step. Then update `docs/privacy.html` to advertise
+  **self-serve** delete/export (today it still routes deletion via email) — bump the effective
+  date with that change.
 - **Why:** The backend data-rights endpoints shipped but are not yet user-reachable; the public
   privacy claim should only switch to "self-serve" once the UI actually exists (kept accurate
   deliberately in data-delete-export).
@@ -240,29 +246,30 @@ story when picked up.
      into rate-table rows so the presenter can assign each a rate.
   2. **Memory across meetings** — those rows persist so the same person auto-matches
      (and keeps their rate) in a later meeting.
-- **Current state (verify before building):** the rate table, aliases, defaultRate
-  and multiplier ALREADY persist to `localStorage` per browser
-  (`usePresenterStore.js`, key `meeting-cost:presenter:v1`) — so single-browser
-  memory across meetings largely exists today. Per-meeting `overrides` are
-  intentionally NOT persisted. The missing piece is the *harvest* flow and
-  dedupe/matching, plus a decision on durability beyond one browser.
+- **Current state (verify before building):** **nothing persists today** — presenter
+  settings (attendee count, hourly rate, display cadence) are **session-only**, held in the
+  browser for the meeting and reset when it ends. The earlier `localStorage` persistence, and
+  the later server-side rate store that replaced it, were **both removed** in the dead-simple
+  pivot (`simple-only-panel` + `remove-rate-store`). So cross-meeting memory does **not** exist
+  today; building it would mean re-introducing a persistence layer the pivot deliberately dropped.
 - **Design notes / open questions:**
   - **Dedupe** harvested names against existing rate rules + aliases using the
     existing `lib/normalize.js` / `lib/matching.js` so you don't add duplicates;
     only add genuinely new names.
   - **Auto vs. manual** — a button ("Add these attendees") vs. silently
     auto-adding everyone who joins (proposed: manual/opt-in to avoid clutter).
-  - **Privacy invariant (important):** keeping harvested names in the
-    browser-only rate table preserves "rates/names never leave the browser." A
-    *cross-device / shared* memory would need server-side storage, which
-    **conflicts with that invariant** — out of scope unless the privacy model is
-    deliberately revisited (separate decision).
+  - **Privacy invariant (important):** presenter values are now **session-only** — nothing
+    (rates or names) is persisted anywhere, so there is no stored rate table to keep
+    browser-local. Any cross-meeting memory would mean **re-introducing persistence** (browser
+    or server), which the dead-simple pivot deliberately dropped — out of scope unless the
+    privacy model is deliberately revisited (separate decision).
   - Interaction with the new **simple cost model** (names are irrelevant in simple
     mode; harvest only matters for the per-participant model).
 - **Done looks like:** the presenter can pull the current meeting's attendees into
   the rate table (deduped via existing name normalization/aliases), assign rates,
-  and those names auto-match the same people in a future meeting — all still
-  browser-only.
+  and those names auto-match the same people in a future meeting — which would require
+  re-introducing the cross-meeting persistence the dead-simple pivot removed (settings are
+  session-only today).
 
 ## Workflow skill defects — moved out of this repo
 - Not a `zoom-meeting-cost` item. Exported as a standalone story

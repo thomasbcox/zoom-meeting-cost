@@ -17,8 +17,8 @@
   dependencies are pinned via the lockfile; the Node engine is pinned (`engines.node >=22`).
 
 ## Infrastructure
-- **Hosting:** Railway runs the Node/Express service and provides the encrypted persistent
-  volume. Deploys are automatic on merge to `main` and gated by a `/api/health` check.
+- **Hosting:** Railway runs the Node/Express service. Deploys are automatic on merge to `main`
+  and gated by a `/api/health` check.
 - **Source & CI:** GitHub hosts the repository and runs CI on every push/PR to `main` —
   CodeQL (SAST) and a test/build workflow (`npm test` + `npm run build`). `main` is a
   protected branch whose merge gate (required checks, PR, no force-push/deletion) is defined

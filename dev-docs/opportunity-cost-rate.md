@@ -3,8 +3,7 @@
 **Canonical definition — the single source of truth for this concept.** Public docs,
 in-app copy, and code comments all defer to this note.
 
-> The **rate** you enter — an average across participants (the default simple model) or a
-> per-person value (the host/co-host-only per-person model) — is an **hourly opportunity
+> The **rate** you enter — an average across participants — is an **hourly opportunity
 > cost**: the value of the highest and best work someone could be doing instead of being in
 > this meeting. It is deliberately **not** their wage or salary, because:
 >

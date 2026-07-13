@@ -1,21 +1,18 @@
 # Meeting Cost — Zoom App (MVP prototype)
 
 Shows the **live estimated cost of a Zoom meeting** as a "taxi meter" overlay on
-the presenter's video, exactly like Zoom's Timer app. By default the presenter enters a
-**simple** best-guess estimate — the average **hourly opportunity cost** per participant ×
-the number of participants — in the in-meeting **side panel** and clicks **Show cost on
+the presenter's video, exactly like Zoom's Timer app. The presenter enters a single
+best-guess estimate — one average **hourly opportunity cost** per participant × a
+**manual attendee count** — in the in-meeting **side panel** and clicks **Show cost on
 video**; the live total then renders onto their camera feed (via Zoom's camera rendering
 context) so every participant sees it natively — no second app, no shared screen.
-Meeting **hosts and co-hosts** can optionally switch to a **per-person** model that assigns
-each named attendee their own value; non-hosts (who can't read the participant list) stay on
-the simple model.
 
 > **"Rate" means hourly opportunity cost, not pay** — see
 > [`dev-docs/opportunity-cost-rate.md`](dev-docs/opportunity-cost-rate.md) for the canonical definition.
 
 > The app does **not** integrate with HR, payroll, SSO, or any employee
-> directory. The presenter estimates the hourly opportunity cost — an average (simple
-> model) or per person (per-person model); the app computes the cost from those numbers
+> directory. The presenter estimates a single average hourly opportunity cost and
+> enters the attendee count by hand; the app computes the cost from those numbers
 > and does not verify them.
 
 > **Requirements — Zoom Workplace desktop 7.1.0 or later.** The on-camera overlay
@@ -37,18 +34,16 @@ This is a **runnable browser prototype** with **Zoom-ready structure**:
 - The Zoom Apps SDK, OAuth, and Marketplace config are scaffolded behind
   adapters so you can flip to a real in-Zoom app without rewriting the app.
 
-**Where the config lives (privacy).** The presenter's private configuration
-(simple-model settings plus the per-person rate table, aliases, and aggregate
-past-meeting summaries) is **stored on the server**, **encrypted at rest**
-(AES-256-GCM, a per-user key derived from the `RATE_STORE_KEY` secret + the
-presenter's Zoom user id), keyed to that Zoom identity so it loads in their future
-meetings. It is **not** end-to-end encrypted: the running server — and therefore the
-app **operator** — can decrypt it. A leaked volume/backup alone is useless without
-`RATE_STORE_KEY`. The data is never shared with meeting participants or other users
-(only resolved, sanitized aggregate numbers go to the overlay). `localStorage` is no
-longer used; if the server is unreachable/unconfigured the app runs **session-only**
-(no persistence). *(This is a deliberate departure from the earlier "browser-only"
-model, adopted because `localStorage` isn't durable inside the Zoom client.)*
+**Where the config lives (privacy).** The presenter's configuration — the attendee
+count, hourly rate, and display cadence — is **session-only**: it lives in the browser
+for the duration of the meeting and **resets each meeting**. **No presenter
+configuration, rates, names, or meeting history are persisted — those values are
+session-only.** There is no server-side rate store and no browser `localStorage`; only
+resolved, sanitized aggregate numbers go to the overlay, and nothing is shared with
+meeting participants or other users. *(The server does write PII-free operational
+diagnostics — `/api/log` client reports and `[server] METHOD path` request lines — to
+its Railway host's logs, which Railway retains; those carry no presenter names or
+rates.)*
 
 ## Quick start
 
@@ -67,8 +62,7 @@ readout:
 
 1. Click **Show cost on video**. The taxi meter appears in the corner of the
    simulated camera frame and starts ticking.
-2. In **Simple** mode, set the average rate and attendee count; or (as a host/co-host in
-   mock mode) switch to **per-person** and edit the rate table — the readout and the overlay
+2. Set the average rate and the attendee count — the readout and the overlay
    update together.
 3. **Hide from video** stops the overlay; **End session** stops counting.
 
@@ -78,46 +72,36 @@ composites the same overlay onto your actual video feed for all participants.
 ## Features (MVP)
 
 **Camera overlay (everyone sees, natively):** large live total cost, cost/minute,
-elapsed time, and attendee count — composited onto the presenter's video. No
-private rates or participant names are ever sent to the overlay.
+elapsed time, and attendee count — composited onto the presenter's video. The
+underlying hourly rate is never sent to the overlay, only the computed aggregate.
 
-**Cost model (default: Simple).** **Simple** — attendees × an average opportunity cost — is
-the default for everyone and boots every session. **Hosts/co-hosts** can switch to
-**per-person**: a private rate table, name aliases, and per-participant overrides, with a
-default rate for anyone unlisted. Non-hosts (who can't read the participant list) see only the
-Simple model.
+**Cost model:** a manual attendee count × one average hourly opportunity cost. The
+presenter sets both in the side panel; the app multiplies them and accrues the total over
+the elapsed time. There is no per-person rate table, no name matching, and no
+participant-list reading — one rate, one count.
 
 **Presenter side panel (private):** show/hide the overlay, pause/resume counting, end session,
-the cost-model controls above, and display cadence; Past meetings (aggregate summaries) persist
-across sessions. The accrual runs in the panel, so **keep the panel open while counting** —
-closing it freezes the on-camera meter (tracked as **BUG-1**).
-
-**Matching logic (per-person model):** normalize names (trim, lowercase, collapse spaces, strip
-punctuation/accents) → exact match → alias → manual override → default rate. Each row reports
-its source: `matched`, `default`, or `manual override`.
+the rate and attendee-count inputs, and display cadence. The accrual runs in the panel, so **keep
+the panel open while counting** — closing it freezes the on-camera meter (tracked as **BUG-1**).
 
 ## Architecture
 
 ```
 Side panel (presenter)                         Camera context (all participants)
 ──────────────────────                         ─────────────────────────────────
-cost model ─► selectActiveTotals()
-  ├ simple  : attendees × avg rate ─► computeSimpleTotals()
-  └ per-person (host): rate table + participants + overrides
-              ─► resolveAll() ─► computeTotals()
-                                 │
-                                 ▼  buildOverlayState() (aggregate only)
-                        adapter.postMessage() ──► Zoom ──► adapter.onMessage()
-                                                              │
-                                                              ▼  CostOverlay
-                                                    (taxi meter on the video)
+attendees × avg rate ─► computeSimpleTotals()
+                          │
+                          ▼  buildOverlayState() (aggregate only)
+                 adapter.postMessage() ──► Zoom ──► adapter.onMessage()
+                                                       │
+                                                       ▼  CostOverlay
+                                             (taxi meter on the video)
 ```
 
 - Render routing by Zoom running context: `client/src/lib/renderMode.js`
   (`inCamera` → overlay, side panel → config). `client/src/Root.jsx` mounts the
   right tree.
-- Matching/cost logic: `client/src/lib/` (`normalize`, `matching`, `cost`,
-  `overlayState`).
+- Cost + overlay logic: `client/src/lib/` (`cost`, `overlayState`).
 - Zoom integration adapter: `client/src/zoom/zoomAdapter.js` — `MockZoom` (records
   overlay calls + loops the message bridge back for the simulated preview) and
   `RealZoom` (camera rendering context via `@zoom/appssdk`).
@@ -128,19 +112,17 @@ cost model ─► selectActiveTotals()
 ## Technology stack
 
 - **Frontend:** React 18 single-page app built with Vite 6, running inside the Zoom
-  client via the **Zoom Apps SDK** (`@zoom/appssdk`) — used for meeting context,
-  participant counts, and compositing the live cost meter onto the presenter's camera
-  feed (Zoom camera/Layers rendering context). Plain CSS; no UI framework, web fonts,
-  CDN, or analytics.
+  client via the **Zoom Apps SDK** (`@zoom/appssdk`) — used for meeting context and
+  compositing the live cost meter onto the presenter's camera feed (Zoom camera/Layers
+  rendering context). Plain CSS; no UI framework, web fonts, CDN, or analytics.
 - **Backend:** Node.js 22 + Express, serving the built client and a minimal API
-  (`/api/health`, `/api/log`, `/api/rates`, and `/api/me/export` + `/api/me/data` for the
-  presenter's own data export/delete). No database.
-- **Auth:** Zoom OAuth 2.0; requests authenticated via the signed Zoom App Context
-  header, decrypted server-side (AES-256-GCM).
-- **Storage:** each presenter's config saved as a per-user AES-256-GCM-encrypted JSON
-  file on a persistent volume (Node `crypto`); plaintext never hits disk. The only providers
-  are Railway (hosting/storage), GitHub, and Zoom — no other data processors, and no
-  analytics, advertising, or data sale.
+  (`/api/health` and `/api/log`, a PII-free client-diagnostics sink). No database and
+  no presenter data store.
+- **Auth:** Zoom OAuth 2.0 (authorization-code flow via `/auth/callback`).
+- **Storage:** none — the presenter's config (attendee count, hourly rate, display
+  cadence) is **session-only**, held in the browser for the meeting and never persisted
+  server-side. The only providers are Railway (hosting), GitHub, and Zoom — no other
+  data processors, and no analytics, advertising, or data sale.
 - **Security:** HTTPS/HSTS, Content-Security-Policy, `nosniff`, and `no-store` headers
   on all responses.
 - **Hosting:** Railway (Node service, auto-deploy from GitHub); GitHub Pages serves the
@@ -156,10 +138,10 @@ SDK capabilities) and `server/.env.example` for OAuth credentials. Set
 
 ## Deploy to Railway (from GitHub)
 
-> **New to Railway, or setting up storage / dev + prod environments?** Follow the
+> **New to Railway, or setting up dev + prod environments?** Follow the
 > step-by-step **[`dev-docs/railway-setup.md`](dev-docs/railway-setup.md)** — it covers the
-> deploy, every variable, the persistent-storage **Volume**, and the two-environment
-> (Development/Production) layout. The summary below is the quick reference.
+> deploy, every variable, and the two-environment (Development/Production) layout. The
+> summary below is the quick reference.
 
 The repo is deploy-ready: `railway.json` selects Railway's **Railpack** builder and
 declares the build (`npm run build`), start (`npm start`), and a health check at
@@ -174,17 +156,9 @@ environment variables you set in the Railway dashboard.
    - `ZOOM_REDIRECT_URI` — `https://<app>.up.railway.app/auth/callback` (runtime)
    - `VITE_USE_ZOOM` — `1` so the **build** inlines the real Zoom SDK (build-time;
      Vite bakes it into the bundle, so it must be set before/at build)
-   - `RATE_STORE_KEY` — a strong random secret used to encrypt each presenter's rate
-     table at rest (runtime). **Keep it separate from `ZOOM_CLIENT_SECRET`** so rotating
-     Zoom credentials doesn't make stored data undecryptable. If unset, the rate store
-     fails closed (`/api/rates` → `503`) and the app runs session-only.
-   - `DATA_DIR` — the mount path of a Railway **Volume** (e.g. `/data`) where the
-     encrypted rate files live. Attach a Volume to the service and point `DATA_DIR` at
-     it, or persistence is lost on redeploy.
    - **Do not set `PORT`** — Railway injects it; the server reads it automatically.
 3. In the **Zoom Marketplace** app, set the OAuth redirect URL and domain allow
-   list to the same `https://<app>.up.railway.app` host, and add `getAppContext` under
-   **Features → Add APIs** (used to identify the presenter for the rate store) — see
+   list to the same `https://<app>.up.railway.app` host — see
    `server/zoom-app-config.md`.
 4. Railway marks the deploy healthy once `GET /api/health` returns `200`.
 

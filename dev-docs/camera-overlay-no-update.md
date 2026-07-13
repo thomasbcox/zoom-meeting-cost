@@ -23,7 +23,7 @@ to push live data from the `inMeeting` (side panel) instance into the `inCamera`
 ## Architecture (relevant slice)
 
 Single React app, two instances by running context (verified working after PR #14):
-- **Panel** (`inMeeting`) → `App`: computes cost, holds the private rate table, calls
+- **Panel** (`inMeeting`) → `App`: computes cost, holds the private config, calls
   `runRenderingContext({view:'camera'})` to spawn the camera instance, and pushes
   aggregate snapshots.
 - **Camera** (`inCamera`) → `OverlayApp` → `CostOverlay`: draws the presenter video
@@ -38,7 +38,7 @@ Data channel today (`client/src/zoom/zoomAdapter.js`, `RealZoom`):
   swallowed.
 - Payload = privacy-safe aggregates only (`client/src/lib/overlayState.js`
   `buildOverlayState`): `{ status, totalCost, costPerSecond, elapsedSeconds, attendees,
-  currency, updatedAt }`. The private rate table never leaves the panel.
+  currency, updatedAt }`. The private config never leaves the panel.
 - `OverlayApp` (`client/src/components/OverlayApp.jsx`) sets state from `onMessage` and
   extrapolates between updates. `CostOverlay` renders `null` for a falsy snapshot.
 
@@ -112,8 +112,8 @@ instance pulls it (SSE or short poll). Zoom instance-comms drops out of the over
 
 ## Constraints / non-negotiables
 
-- The private rate table, names, aliases, and per-person rates **must never** leave the
-  panel. Only aggregate numbers may reach the camera/overlay.
+- The private rate + attendee count **must never** leave the panel. Only aggregate numbers may
+  reach the camera/overlay.
 - Prefer reusing the existing Node backend over new infra.
 - The overlay must update at roughly the current cadence (~1s) and survive the camera
   instance reloading (it re-mounts on each "Show cost on video" click).

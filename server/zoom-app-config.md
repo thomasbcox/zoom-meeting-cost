@@ -4,8 +4,8 @@ This file documents the Zoom App setup needed to run **Meeting Cost** inside the
 real Zoom client. None of it is required for the local prototype.
 
 > **Setting up the hosting from scratch?** See **[`dev-docs/railway-setup.md`](../dev-docs/railway-setup.md)**
-> for the step-by-step Railway guide (deploy, variables, persistent storage Volume,
-> and the two-environment Dev/Prod layout). This file is the **Marketplace side**;
+> for the step-by-step Railway guide (deploy, variables, and the two-environment Dev/Prod
+> layout). This file is the **Marketplace side**;
 > that guide is the **hosting side** — they reference each other.
 
 ## App type
@@ -20,8 +20,8 @@ redirect / allow-list fields). They are not interchangeable:
 - **`Local Test → Add` (how you install an *unpublished* app) uses the Development
   block.** Production credentials have **no install path until the app is published**.
 - The server reads a **single** credential set per process (`ZOOM_CLIENT_ID` /
-  `ZOOM_CLIENT_SECRET` / `ZOOM_REDIRECT_URI`), and that secret also decrypts the
-  in-client app context. So **one deployment serves one credential block.**
+  `ZOOM_CLIENT_SECRET` / `ZOOM_REDIRECT_URI`) for the OAuth token exchange. So **one
+  deployment serves one credential block.**
 
 To run both, use **two Railway environments**, each holding one block and pointing the
 matching Zoom block's URLs at its own domain:
@@ -70,12 +70,13 @@ for what "rate" means — hourly opportunity cost, not pay.)*
 - `appssdk.zoom.us`
 
 ## Scopes (minimum for the MVP)
-Granular scopes — request only what the matching + participant list needs:
+Granular scopes — the dead-simple app needs only:
 
 - `zoomapp:inmeeting` — run as an in-meeting app
-- `meeting:read:participant` (or the in-client `getMeetingParticipants`
-  capability) — read display names / participant changes
-- `user:read:email` *(optional)* — only if you later match on email
+
+(The participant-list scope `meeting:read:participant` / `getMeetingParticipants` and the
+`user:read:email` scope were dropped — the attendee count is a manual input now, and there is no
+name matching.)
 
 ## Zoom Apps SDK capabilities to enable
 Add **every** API below under **Features → Zoom App SDK → Add APIs**. This list is the
