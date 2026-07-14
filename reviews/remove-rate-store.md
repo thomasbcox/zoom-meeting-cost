@@ -463,3 +463,8 @@ Applied the sole approved round-5 approach fix (doc-only; server code unchanged/
 - **① incident-response.md:35 categorical claim — scoped.** "…The app persists no user data, so there is no stored-data encryption key to rotate." → "…The app persists no presenter configuration or per-user record, so there is no presenter-data encryption key to rotate." The Zoom OAuth credential-rotation sentence before it is unchanged. This removes the last unqualified no-user-data guarantee and resolves the internal contradiction with the round-4 "exposure of operational logs" incident example. Scan confirms no unqualified "no user data / persists nothing / stores no user" remains anywhere on the live doc surface; the only residual vocabulary hits are explicit "removed / history" app-context references.
 
 Correctness pass: **NOT run this round** — approach fix approved → the branch re-enters `/review` (approach pass re-runs). No merge at the `/close` fork.
+
+## Build note (2026-07-13) — round 6 (re-review after round-5 redesign)
+
+Doc-only; server teardown unchanged/blessed. AC→file map for round-5 change (detail in `## Fixes (2026-07-13) — round 5`):
+- **AC "docs reconciled to session-only"** → `dev-docs/policies/incident-response.md` ("persists no user data" → "persists no presenter configuration or per-user record" — last categorical storage claim scoped).
