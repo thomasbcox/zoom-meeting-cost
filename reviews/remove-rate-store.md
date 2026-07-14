@@ -468,3 +468,11 @@ Correctness pass: **NOT run this round** — approach fix approved → the branc
 
 Doc-only; server teardown unchanged/blessed. AC→file map for round-5 change (detail in `## Fixes (2026-07-13) — round 5`):
 - **AC "docs reconciled to session-only"** → `dev-docs/policies/incident-response.md` ("persists no user data" → "persists no presenter configuration or per-user record" — last categorical storage claim scoped).
+
+## Codex approach review (2026-07-13, base main, HEAD 36bd83f)
+
+Round 6 — re-run after the accepted round-5 redesign. **CLEAN — empty findings.** The approach gate is cleared; the shape is blessed and the correctness pass runs this same round.
+
+**Verdict:** *Shape sound. The reconciled live documentation is internally consistent and complete: removed storage/per-person machinery appears only in explicit removed or historical framing; storage claims are properly scoped around presenter configuration and do not contradict operational logging; deleted identity/store machinery is not presented as current; manifests are unchanged; and the two SVG copies are byte-identical.*
+
+Findings: none.
