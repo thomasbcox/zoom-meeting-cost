@@ -256,3 +256,11 @@ Correctness pass:
   count as expected outputs alongside the frame-time `.design.json`, not a scope violation. No
   product-code change; the product diff (`App.jsx`, `PresenterControls.jsx`, `styles.css`) was
   already exactly in scope. Test note for AC6 updated to match.
+
+## Fixes (2026-07-14)
+
+The sole approved fix — **amend AC6** — is doc-only (spec wording) and was applied inline when
+recording the Decisions (commit `review: decisions … amend AC6`): AC6 + its test note now count
+the `/frame` + `/review` artifacts (`.design.json` / `.approach.json` / `.codex.json`) as
+expected workflow outputs. **No product-code fixes** were approved, so nothing further to apply
+this step — the reviewed HEAD (`cc79b39`) stands.
