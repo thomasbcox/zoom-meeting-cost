@@ -184,3 +184,38 @@ spinner CSS is explicitly scoped."
   - *alternative:* scope every reset selector to the presenter field, e.g.
     `.num-input input[type='number']` and `.num-input input[type='number']::-webkit-*`.
   - *win:* satisfies AC3 without changing unrelated inputs or hiding a cross-panel rule.
+
+## Build note (2026-07-14)
+
+AC → file map:
+
+- **AC1** (single top-down column; inputs → preview → action → session → cadence) —
+  `client/src/App.jsx` (single-column `<main className="layout solo">`),
+  `client/src/components/PresenterControls.jsx` (reordered sections),
+  `client/src/styles.css` (`.layout.solo`).
+- **AC2** (exactly one, compacted preview) — `client/src/components/PresenterControls.jsx`
+  (the single `CostOverlay` preview), `client/src/App.jsx` (removed the `.cost-screen`
+  big-`$total` block and the `.sim-camera` `OverlayApp` mount; dropped now-unused imports),
+  `client/src/styles.css` (compact `.overlay-preview-stage` + scoped `.overlay-preview
+  .cost-overlay` inset; retired `.cost-screen*` / `.sim-camera*`).
+- **AC3** (no spinner steppers, scoped) — `client/src/styles.css`
+  (`.num-input input[type='number']` `appearance: textfield` + scoped `::-webkit-*-spin-button`).
+- **AC4** (session buttons per status, logic unchanged) —
+  `client/src/components/PresenterControls.jsx` (same `sessionControls(session.status)` gating,
+  relocated).
+- **AC5** (copy verbatim; larger via typography/layout) —
+  `client/src/components/PresenterControls.jsx` (strings unchanged),
+  `client/src/styles.css` (enlarged input value/affix + label font sizes).
+- **AC6** (scope containment) — diff touches only `client/src/App.jsx`,
+  `client/src/components/PresenterControls.jsx`, `client/src/styles.css`, this story file, and
+  `reviews/panel-simplify-and-reorg.design.json`.
+- **AC7** (gate green) — implicit (this review exists).
+
+## Codex approach review (2026-07-14, base main 87ae63d, HEAD cc79b39)
+
+**Verdict:** CLEAN — empty findings. "Sound and idiomatic approach. I would build it this way:
+a presentational JSX reorder, deletion of the redundant preview surfaces, reuse of
+`CostOverlay` / `sessionControls` / `DISPLAY_INTERVALS`, and narrowly scoped CSS. It adds no
+state, abstraction, behavior, or dependency; the changed-file scope also matches the spec."
+
+No findings — the shape is blessed; proceeded to the correctness pass in the same round.
