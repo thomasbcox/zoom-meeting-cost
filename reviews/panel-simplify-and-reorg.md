@@ -219,3 +219,24 @@ a presentational JSX reorder, deletion of the redundant preview surfaces, reuse 
 state, abstraction, behavior, or dependency; the changed-file scope also matches the spec."
 
 No findings — the shape is blessed; proceeded to the correctness pass in the same round.
+
+## Codex review (2026-07-14, base main 87ae63d, HEAD cc79b39)
+
+**Summary:** "The UI changes match the requested layout, preview, copy, session-control, and
+spinner behavior, but the branch violates the explicit changed-file scope. The test/build gate
+could not run in the read-only environment because Vite attempted to create a temporary config
+file." *(The gate note is a read-only-sandbox limitation on codex's side — the gate ran green
+locally: client 157, server 25, secret-scan 14, build.)*
+
+**BLOCKER**
+
+- **"Branch exceeds the approved file scope"** (`reviews/panel-simplify-and-reorg.approach.json`).
+  AC6 enumerates only the three client files, the story file, and `…design.json`; but
+  `git diff --name-only main...HEAD` also includes the **review's own artifacts**
+  (`…approach.json`, and now `…codex.json`), so the diff carries files AC6 didn't list.
+  - *suggestion:* remove the file, or get Thomas's approval to amend AC6.
+  - *note:* these `.approach.json` / `.codex.json` files are produced **by the `/review`
+    workflow itself** (steps 6 + 8 instruct committing them). AC6 was written at frame time to
+    contain **product/implementation** scope and listed the frame-time artifact (`.design.json`);
+    the review-time artifacts didn't exist yet to enumerate. The product diff (`App.jsx`,
+    `PresenterControls.jsx`, `styles.css`) is exactly in scope.
