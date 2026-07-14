@@ -177,33 +177,18 @@ code {
   display: grid;
   gap: 18px;
 }
-.layout.presenter {
-  grid-template-columns: minmax(0, 1.3fr) minmax(320px, 1fr);
-}
 .layout.viewer {
   grid-template-columns: minmax(0, 1fr);
   max-width: 720px;
 }
-@media (max-width: 900px) {
-  .layout.presenter {
-    grid-template-columns: 1fr;
-  }
+/* The presenter panel is a single top-down column, sized to feel like the
+   narrow Zoom side panel it actually lives in. */
+.layout.solo {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 460px;
 }
 
 /* --- Cost screen ---------------------------------------------------------- */
-.cost-screen {
-  background: linear-gradient(160deg, var(--panel), var(--panel-2));
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 22px;
-}
-.cost-screen.empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 220px;
-  text-align: center;
-}
 .cost-headline {
   text-align: center;
   margin-bottom: 18px;
@@ -322,11 +307,6 @@ code {
 }
 
 /* --- Presenter controls --------------------------------------------------- */
-.controls-col {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
 .controls {
   display: flex;
   flex-direction: column;
@@ -393,7 +373,7 @@ code {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
 }
 
@@ -407,16 +387,28 @@ code {
 }
 .num-input .affix {
   color: var(--muted);
-  font-size: 13px;
+  font-size: 18px;
 }
 .num-input input {
   background: transparent;
   border: none;
   color: var(--text);
-  padding: 7px 4px;
-  width: 80px;
-  font-size: 13px;
+  padding: 9px 4px;
+  width: 88px;
+  font-size: 18px;
+  font-weight: 600;
   outline: none;
+}
+/* No spinner steppers on the panel's number fields — scoped to .num-input so
+   other number inputs (rolebar, .add-row, .inline.num) keep theirs. */
+.num-input input[type='number'] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+.num-input input[type='number']::-webkit-outer-spin-button,
+.num-input input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .edit-table {
@@ -523,34 +515,6 @@ input.inline.num {
   font-variant-numeric: tabular-nums;
 }
 
-/* Mock-only simulated camera frame so `npm run dev` shows the overlay. */
-.sim-camera {
-  position: relative;
-  margin-top: 16px;
-  aspect-ratio: 16 / 9;
-  width: 100%;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: repeating-linear-gradient(
-      45deg,
-      #0d1320,
-      #0d1320 16px,
-      #0f1626 16px,
-      #0f1626 32px
-    );
-  overflow: hidden;
-}
-.sim-camera-tag {
-  position: absolute;
-  left: 10px;
-  bottom: 10px;
-  font-size: 11px;
-  color: var(--muted);
-  background: rgba(11, 15, 26, 0.6);
-  padding: 2px 8px;
-  border-radius: 6px;
-}
-
 /* --- Display cadence picker + viewer preview ----------------------------- */
 .cadence {
   margin-top: 12px;
@@ -562,12 +526,16 @@ input.inline.num {
   margin-top: 12px;
 }
 /* A small video-like stage so the (position:absolute, inset:0) overlay card has
-   a sized, positioned box to anchor to — mirrors the real camera frame. */
+   a sized, positioned box to anchor to — mirrors the real camera frame. Kept
+   compact (capped width + a tighter card inset) so the preview doesn't dwarf the
+   panel; the shared .cost-overlay / .cost-overlay-card rules stay full-frame for
+   the real camera context. */
 .overlay-preview-stage {
   position: relative;
   margin-top: 6px;
   aspect-ratio: 16 / 9;
   width: 100%;
+  max-width: 280px;
   border-radius: var(--radius);
   border: 1px solid var(--border);
   background: repeating-linear-gradient(
@@ -578,6 +546,9 @@ input.inline.num {
       #0f1626 32px
     );
   overflow: hidden;
+}
+.overlay-preview .cost-overlay {
+  padding: 8px;
 }
 
 /* --- Error boundary fallback --------------------------------------------- */

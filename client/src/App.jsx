@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import OverlayApp from './components/OverlayApp.jsx';
 import PresenterControls from './components/PresenterControls.jsx';
 
 import { usePresenterStore } from './state/usePresenterStore.js';
-import { computeSimpleTotals, formatMoney } from './lib/cost.js';
+import { computeSimpleTotals } from './lib/cost.js';
 import { buildOverlayState } from './lib/overlayState.js';
-import { quantizeForDisplay, formatCadenceDuration } from './lib/displayCadence.js';
+import { quantizeForDisplay } from './lib/displayCadence.js';
 import { logLifecycle } from './lib/lifecycleLog.js';
 import { createVideoRecovery } from './lib/overlayRecover.js';
 
@@ -194,48 +193,19 @@ export default function App({ adapter }) {
         </p>
       </header>
 
-      <main className="layout presenter">
-        <div className="screen-col">
-          {session.status === 'idle' ? (
-            <div className="cost-screen empty">
-              <p className="muted">
-                Set the attendee count and hourly rate, then <strong>Show cost on video</strong>{' '}
-                to put the live meter on your camera feed for everyone to see.
-              </p>
-            </div>
-          ) : (
-            <div className="cost-screen">
-              <h2 className="big-total">{formatMoney(totalRef.current)}</h2>
-              <p className="muted small">
-                {totals.attendeeCount} attendees · {formatMoney(totals.costPerMinute)}/min ·{' '}
-                {formatCadenceDuration(elapsedRef.current)}
-              </p>
-            </div>
-          )}
-
-          {adapter?.isMock && (
-            <div className="sim-camera" aria-label="Simulated camera preview">
-              <span className="sim-camera-tag">Camera preview (simulated)</span>
-              {/* Only mount the meter while the overlay is on, so the frame
-                  empties on "Hide from video" — mirroring closeRenderingContext
-                  removing it from the real camera feed. */}
-              {overlayOn && <OverlayApp adapter={adapter} transparentBody={false} />}
-            </div>
-          )}
-        </div>
-
-        <aside className="controls-col">
-          <PresenterControls
-            config={config}
-            actions={actions}
-            session={session}
-            sessionActions={sessionActions}
-            overlayOn={overlayOn}
-            startOverlay={startOverlay}
-            stopOverlay={stopOverlay}
-            previewDisplay={previewDisplay}
-          />
-        </aside>
+      {/* Single top-down column: the presenter configures, sees the one live
+          preview, and drives the overlay — all in PresenterControls. */}
+      <main className="layout solo">
+        <PresenterControls
+          config={config}
+          actions={actions}
+          session={session}
+          sessionActions={sessionActions}
+          overlayOn={overlayOn}
+          startOverlay={startOverlay}
+          stopOverlay={stopOverlay}
+          previewDisplay={previewDisplay}
+        />
       </main>
     </div>
   );
