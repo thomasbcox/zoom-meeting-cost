@@ -476,3 +476,15 @@ Round 6 — re-run after the accepted round-5 redesign. **CLEAN — empty findin
 **Verdict:** *Shape sound. The reconciled live documentation is internally consistent and complete: removed storage/per-person machinery appears only in explicit removed or historical framing; storage claims are properly scoped around presenter configuration and do not contradict operational logging; deleted identity/store machinery is not presented as current; manifests are unchanged; and the two SVG copies are byte-identical.*
 
 Findings: none.
+
+## Codex review (2026-07-13, base main, HEAD 674299b)
+
+Round 6 correctness pass (ran because the approach pass was clean). **CLEAN — empty findings.**
+
+**Summary:** *The branch cleanly removes the server-side rate store, identity/data-rights routes, supporting modules, and obsolete tests while preserving OAuth, health, logging, security headers, and static serving. Repository-wide checks found no unintended live references, the architecture SVG copies are identical, and the documentation consistently reflects session-only presenter configuration with qualified operational-logging disclosures.* (Read-only-sandbox caveat: codex could not run the test/build suite — temp files + local sockets are blocked; observed failures were exclusively EPERM sandbox restrictions, not defects. The local gate is green: 157 client + 25 server + 14 secret-scan; build ok.)
+
+Findings: none.
+
+## Decisions (2026-07-13) — round 6
+
+**Clean review — both passes empty (approach + correctness).** No findings to fix, defer, or reject. The branch is fully reconciled and merge-eligible; the merge gate is separate (in `/close`) and still requires a distinct merge instruction from Thomas.
