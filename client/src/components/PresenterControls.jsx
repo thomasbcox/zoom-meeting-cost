@@ -25,9 +25,45 @@ export default function PresenterControls({
 
   return (
     <div className="controls">
-      {/* --- Session + camera overlay ------------------------------------- */}
+      {/* --- 1. Numbers first: configure before you act ------------------ */}
+      <section className="panel">
+        <h3>Meeting cost estimate</h3>
+        <p className="muted small">
+          Your best guess of the average hourly opportunity cost per attendee × the number of
+          attendees.
+        </p>
+        <div className="field-row">
+          <label>
+            Average hourly opportunity cost
+            <NumberInput
+              value={config.simpleAverageRate}
+              onCommit={(v) => actions.setSimpleAverageRate(v)}
+              prefix="$"
+            />
+          </label>
+          <label>
+            Number of attendees
+            <NumberInput
+              value={config.simpleUserCount}
+              placeholder="# of attendees"
+              onCommit={(v) => actions.setSimpleUserCount(v)}
+            />
+          </label>
+        </div>
+      </section>
+
+      {/* --- 2. One preview → the overlay action → session → cadence ----- */}
       <section className="panel">
         <h3>Cost overlay</h3>
+
+        {/* The single live preview: exactly what viewers see on the camera. */}
+        <div className="overlay-preview">
+          <span className="muted small">What viewers see — aggregate only, never names</span>
+          <div className="overlay-preview-stage">
+            <CostOverlay display={previewDisplay} />
+          </div>
+        </div>
+
         <div className="btn-row">
           {!overlayOn ? (
             <button className="btn primary" onClick={startOverlay}>
@@ -70,7 +106,7 @@ export default function PresenterControls({
           keep this panel open while counting.
         </p>
 
-        {/* --- Display cadence + viewer preview ------------------------- */}
+        {/* --- Display cadence ------------------------------------------ */}
         <div className="cadence">
           <span className="muted small">Update display every</span>
           <div className="btn-row">
@@ -85,40 +121,6 @@ export default function PresenterControls({
               </button>
             ))}
           </div>
-        </div>
-
-        <div className="overlay-preview">
-          <span className="muted small">What viewers see — aggregate only, never names</span>
-          <div className="overlay-preview-stage">
-            <CostOverlay display={previewDisplay} />
-          </div>
-        </div>
-      </section>
-
-      {/* --- Dead-simple cost inputs: one rate × a manual attendee count -- */}
-      <section className="panel">
-        <h3>Meeting cost estimate</h3>
-        <p className="muted small">
-          Your best guess of the average hourly opportunity cost per attendee × the number of
-          attendees.
-        </p>
-        <div className="field-row">
-          <label>
-            Average hourly opportunity cost
-            <NumberInput
-              value={config.simpleAverageRate}
-              onCommit={(v) => actions.setSimpleAverageRate(v)}
-              prefix="$"
-            />
-          </label>
-          <label>
-            Number of attendees
-            <NumberInput
-              value={config.simpleUserCount}
-              placeholder="# of attendees"
-              onCommit={(v) => actions.setSimpleUserCount(v)}
-            />
-          </label>
         </div>
       </section>
     </div>
