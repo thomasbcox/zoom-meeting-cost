@@ -74,9 +74,12 @@ fewest buttons, no spinners, clearer / larger / simpler text.** He picked the **
    the overlay status line, the preview caption) — Thomas's call. The "clearer / larger /
    simpler" goal is delivered through **typography and layout** (larger label + value text,
    cleaner grouping, more breathing room between groups), **not rewording**.
-6. **Scope containment:** `git diff --name-only main...HEAD` shows no files beyond
-   `client/src/App.jsx`, `client/src/components/PresenterControls.jsx`,
-   `client/src/styles.css`, and this story file (plus `reviews/panel-simplify-and-reorg.design.json`).
+6. **Scope containment:** the **product** diff is limited to `client/src/App.jsx`,
+   `client/src/components/PresenterControls.jsx`, and `client/src/styles.css`. Beyond those,
+   `git diff --name-only main...HEAD` carries only this story file and the workflow's own
+   review artifacts — `reviews/panel-simplify-and-reorg.{design,approach,codex}.json`, produced
+   by `/frame` + `/review`, not product code. (Amended 2026-07-14 per the correctness-pass
+   BLOCKER — see Decisions.)
 7. The gate (`npm test && npm run build`) stays green.
 
 ## Test notes
@@ -92,7 +95,8 @@ fewest buttons, no spinners, clearer / larger / simpler text.** He picked the **
   - **AC3** — in the browser preview, confirm the two number fields show no up/down arrows;
     confirm the `appearance` reset in `styles.css`.
 - **AC6 (scope):** run `git diff --name-only main...HEAD` and verify no files appear beyond
-  the four enumerated in AC6.
+  the three product files, this story file, and the workflow's review artifacts
+  (`.design.json` / `.approach.json` / `.codex.json`) enumerated in AC6.
 - **AC7:** run `npm test && npm run build`.
 - **Regression safety:** the unchanged pure modules (`cost`, `displayCadence`,
   `sessionControls`, `usePresenterStore`, `CostOverlay`, `overlayState`) keep their existing
@@ -240,3 +244,15 @@ locally: client 157, server 25, secret-scan 14, build.)*
     contain **product/implementation** scope and listed the frame-time artifact (`.design.json`);
     the review-time artifacts didn't exist yet to enumerate. The product diff (`App.jsx`,
     `PresenterControls.jsx`, `styles.css`) is exactly in scope.
+
+## Decisions (2026-07-14, base main 87ae63d, HEAD cc79b39)
+
+Approach pass: CLEAN (no findings) — nothing to decide.
+
+Correctness pass:
+
+- **BLOCKER — "Branch exceeds the approved file scope"** → **amend AC6** (Thomas: "Amend AC6").
+  AC6 rewritten so the `/review` workflow's own `.approach.json` / `.codex.json` artifacts
+  count as expected outputs alongside the frame-time `.design.json`, not a scope violation. No
+  product-code change; the product diff (`App.jsx`, `PresenterControls.jsx`, `styles.css`) was
+  already exactly in scope. Test note for AC6 updated to match.
