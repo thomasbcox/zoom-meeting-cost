@@ -16,8 +16,8 @@ is addressed at each stage rather than bolted on afterward.
 - **Least data.** The app collects only what it needs (the presenter's own opportunity-cost
   estimates and Zoom-provided meeting context). No HR/payroll/SSO/directory integration.
 - **Least privilege.** Secrets are injected as environment variables, never committed.
-- **Defense in depth.** Encryption at rest, security headers, input validation, and
-  automated checks in CI.
+- **Defense in depth.** Session-only data (nothing persisted server-side), security headers,
+  input validation, and automated checks in CI.
 - **Reviewable change.** Every change is a small, documented pull request that a second
   reviewer and an automated check must approve before it reaches `main`.
 
@@ -48,14 +48,14 @@ is addressed at each stage rather than bolted on afterward.
    a `/api/health` check. Configuration and secrets are environment variables, set per
    environment, never in the repository.
 9. **Operate & monitor.** Runtime errors and client-reported diagnostics are logged to the
-   hosting platform (no secrets, no stored rate-store contents; see
-   `data-retention-and-protection.md` for what logs may contain). Issues feed back into step 1.
+   hosting platform (minimized at the source, not intentionally populated with secrets or
+   presenter figures; see `data-retention-and-protection.md` for what logs may contain). Issues
+   feed back into step 1.
 
 ## Data security in the lifecycle
-- Presenter configuration is stored **AES-256-GCM encrypted at rest** with a per-user key
-  derived from a server secret and the Zoom user id; plaintext never touches disk.
-- The signed Zoom App Context is verified server-side before any read/write of stored
-  config. See `data-retention-and-protection.md`.
+- Presenter configuration is **session-only** — held in the browser and never persisted
+  server-side, so there is no stored data to encrypt or expose. See
+  `data-retention-and-protection.md`.
 - All responses set HTTPS/HSTS, Content-Security-Policy, `X-Content-Type-Options: nosniff`,
   `Referrer-Policy`, and `no-store` cache headers.
 

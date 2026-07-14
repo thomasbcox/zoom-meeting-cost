@@ -8,7 +8,7 @@
 
 ## What counts as an incident
 Any event that may compromise the confidentiality, integrity, or availability of the
-Meeting Cost Meter service or its data — e.g., suspected exposure of stored configuration,
+Meeting Cost Meter service or its data — e.g., suspected exposure of operational logs,
 credential leakage, unauthorized access, a serious vulnerability under active exploitation,
 or a significant outage.
 
@@ -22,8 +22,7 @@ coordinates any needed help. The reporting/coordination contact is the address a
 2. **Triage.** Assign severity (see `vulnerability-management.md`) and decide on immediate
    action.
 3. **Contain.** Limit impact — e.g., rotate compromised Zoom OAuth credentials, disable an
-   endpoint, or take the service offline if warranted. (The rate-store key is a special
-   case — see Secrets rotation below.)
+   endpoint, or take the service offline if warranted.
 4. **Eradicate.** Remove the root cause (patch, configuration fix, credential rotation).
 5. **Recover.** Restore normal service and verify the fix; monitor for recurrence.
 6. **Notify.** Where users are affected, notify them and, where applicable, Zoom, in line
@@ -33,13 +32,8 @@ coordinates any needed help. The reporting/coordination contact is the address a
 
 ## Secrets rotation
 - **Zoom OAuth credentials** can be rotated safely at any time via the hosting platform's
-  environment configuration — a standard containment step that does not affect stored data.
-- **The rate-store encryption key (`RATE_STORE_KEY`) is different.** Every stored
-  configuration is encrypted with a key derived from it, with no key versioning, so rotating
-  it makes **all existing stored configurations unreadable** — users would have to re-enter
-  their settings. Treat `RATE_STORE_KEY` rotation as a last resort (e.g. confirmed key
-  compromise) and notify affected users. A safer path is a planned re-encryption migration
-  that reads with the old key and writes with the new one.
+  environment configuration — a standard containment step. The app persists no presenter
+  configuration or per-user record, so there is no presenter-data encryption key to rotate.
 
 ## Records
 Incident records and post-incident reviews are retained for future reference and policy

@@ -28,7 +28,7 @@
     <div class="wrap">
       <p class="eyebrow">Policy</p>
       <h1>Privacy Policy</h1>
-      <p class="meta">Effective date: 9 July 2026 · Meeting Cost Meter</p>
+      <p class="meta">Effective date: 13 July 2026 · Meeting Cost Meter</p>
 
       <p class="lede">Meeting Cost Meter is built to protect everyone's privacy. The
         figures you enter are your own private estimates of hourly opportunity cost —
@@ -36,17 +36,14 @@
 
       <h2>Summary</h2>
       <div class="callout">
-        <p><strong>You estimate opportunity cost, not pay.</strong> You enter your own
-          estimate of hourly opportunity cost — an average across participants, or per person if
-          you use the host-only per-person model — the value of the highest and best work someone
-          could be doing instead of being in the meeting. It is deliberately not their wage or
+        <p><strong>You estimate opportunity cost, not pay.</strong> You enter your own estimate of
+          the average hourly opportunity cost per participant — the value of the highest and best work
+          someone could be doing instead of being in the meeting. It is deliberately not their wage or
           salary: pay is private (we never want it), and pay understates the meeting's cost.</p>
-        <p><strong>Your settings are stored encrypted, for you.</strong> The names and
-          values you enter are saved on our server, encrypted at rest and tied to your
-          Zoom account, so your setup is there next time. No meeting participant or other user
-          can see it. It is <strong>not end-to-end encrypted</strong> — the running service, and
-          therefore the app operator, can decrypt it, so don&rsquo;t enter anything you
-          wouldn&rsquo;t want stored where the operator could read it.</p>
+        <p><strong>Your settings stay in your browser.</strong> The attendee count and hourly
+          opportunity-cost estimate you enter are held only for the current meeting session and are
+          <strong>never saved on our server</strong> — nothing about your configuration leaves your
+          Zoom client. (You re-enter them next time.)</p>
         <p><strong>Participants only see a combined total.</strong> The on-camera overlay
           shows aggregate numbers only — never individual values or names.</p>
         <p><strong>No HR or identity systems.</strong> The app does not connect to HR,
@@ -54,46 +51,35 @@
       </div>
 
       <h2>What the app is</h2>
-      <p>Meeting Cost Meter is a Zoom App that displays the live estimated cost of a
-        meeting. By default, the presenter enters a simple estimate — an average <strong>hourly
-        opportunity cost</strong> (the value of the highest and best work someone could be doing
-        instead of being in the meeting, not their pay) and the number of participants. Meeting
-        hosts and co-hosts can optionally switch to a per-person model that assigns each named
-        attendee their own value, with a default for anyone not listed. Either way, the app
-        accrues the cost over the elapsed time to produce a running figure, which can be shown as
-        an overlay on the presenter's camera feed.</p>
+      <p>Meeting Cost Meter is a Zoom App that displays the live estimated cost of a meeting. The
+        presenter enters a simple estimate — an average <strong>hourly opportunity cost</strong> (the
+        value of the highest and best work someone could be doing instead of being in the meeting, not
+        their pay) and the number of attendees. The app accrues the cost over the elapsed time to
+        produce a running figure, which can be shown as an overlay on the presenter's camera feed.</p>
 
       <h2>The figures you enter</h2>
-      <p>You enter your own estimate(s) of hourly opportunity cost — an average in the simple
-        model, or per person (with a default for anyone not listed) if you are a host/co-host
-        using the per-person model. These figures:</p>
+      <p>You enter your own estimate of the average hourly opportunity cost per participant, plus the
+        number of attendees. These figures:</p>
       <ul>
         <li>are your own estimates of opportunity cost, <strong>never actual pay</strong>
           — we do not ask for, and do not want, anyone's wage or salary;</li>
-        <li>are saved on our server, <strong>encrypted at rest</strong> and tied to your
-          Zoom account, so your setup persists across your sessions and devices;</li>
-        <li>are retrievable by you through your own Zoom account and are not exposed to other
-          users (though not end-to-end encrypted — see <a href="#server-stores">What our server
+        <li>are held only in your browser for the current meeting session and are
+          <strong>never saved on our server</strong> (see <a href="#server-stores">What our server
           stores</a>);</li>
         <li>are never shown to other meeting participants; and</li>
-        <li>can be deleted at any time (see <a href="#removing">Removing the app and your
-          data</a>).</li>
+        <li>reset when the session ends — there is nothing stored to retrieve or delete.</li>
       </ul>
 
       <h2 id="server-stores">What our server stores</h2>
-      <p>Our server stores your saved configuration. The names and
-        opportunity-cost values you enter are sent to our server and kept
-        <strong>encrypted at rest</strong>, tied to your Zoom account, so your setup is
-        there next time. This is the only place individual values are kept, and no meeting
-        participant or other user can access them. The store is <strong>encrypted at rest but
-        not end-to-end</strong>: the running service — and therefore the app operator — can
-        decrypt it, so please don&rsquo;t enter anything you would not want the operator to be
-        able to read. We do not build profiles and do not track individuals across meetings.</p>
-      <p>When you end a session, we also save an <strong>aggregate past-meeting summary</strong>
-        alongside your configuration — the end time, duration, final total, attendee count, and
-        cost model. These summaries contain <strong>no names and no per-person values</strong>,
-        are encrypted at rest and tied to your Zoom account, and are included whenever you
-        export or delete your data.</p>
+      <p>Our server does <strong>not</strong> store your configuration. The attendee count, hourly
+        estimate, and display settings you enter live only in your browser during the meeting and are
+        never sent to or saved by our server. There is no per-account store, no names, and no
+        per-person values kept anywhere on our side. We do not build profiles and do not track
+        individuals across meetings.</p>
+      <p>The only data our server records is minimal <strong>operational telemetry</strong> — see
+        <a href="#operational-logging">Operational logging</a> below — which is minimized at the source
+        so it is not intentionally populated with participant personal data or your opportunity-cost
+        figures.</p>
 
       <h2>The on-camera total</h2>
       <p>The live total on the overlay is computed inside the Zoom client and passed
@@ -115,29 +101,37 @@
       </ul>
 
       <h2>Information from Zoom</h2>
-      <p>To run inside a meeting, the app uses the Zoom Apps SDK to obtain the in-meeting
-        context it needs (such as the current participant count) and, where required, an
-        authorization token. This information is used in real time to compute and display
-        the live cost and is not stored on our server beyond the active session.</p>
+      <p>To run inside a meeting, the app uses the Zoom Apps SDK to obtain the in-meeting context it
+        needs to render the overlay (such as the running context and the presenter's own camera
+        identity) and, where required, an OAuth authorization token to install the app. This
+        information is used in real time and is not used to build any stored per-user record.</p>
 
       <h2>Data retention</h2>
-      <p>Your saved configuration is kept, encrypted, until you delete it (see below). The
-        live overlay totals exist only during the active meeting and are not stored
-        afterward.</p>
+      <p>We keep no saved configuration — your settings exist only during the active meeting session.
+        The live overlay totals likewise exist only during the meeting and are not stored afterward.
+        Operational logs (see below) are retained by our hosting provider for a limited period for
+        reliability; they are minimized at the source and are not intentionally populated with your
+        figures or participant personal data.</p>
 
-      <h2>Operational logging</h2>
-      <p>To keep the app working reliably, we record minimal technical telemetry — runtime
-        errors and diagnostic events — designed to <strong>exclude participant personal
-        data</strong>. Diagnostic events record only the <em>shape</em> of Zoom data (such as
-        field names and counts), never its values. Error reports are limited to the error text
-        and a fixed set of technical details (such as the source file and line number); they do
-        not attach participant lists, names, or other meeting-data fields.</p>
+      <h2 id="operational-logging">Operational logging</h2>
+      <p>To keep the app working reliably, our server records two kinds of operational log to our
+        hosting provider (Railway): <strong>request lines</strong> — the HTTP method and path of
+        requests (for example <code>POST /api/log</code>), with query strings stripped — and
+        <strong>client-reported diagnostics and errors</strong> sent to the <code>/api/log</code>
+        endpoint. Those diagnostics are <strong>minimized at the source</strong>: the in-Zoom
+        diagnostics probe transmits only the <em>shape</em> of Zoom data (field names and counts),
+        never its values, and error reports carry a fixed set of technical fields — the error text and
+        stack, the source file/line, the request path, and the browser user agent. Because the
+        endpoint records the body the client sends, we cannot guarantee it is entirely free of
+        personal data; it is <strong>not intentionally populated with your opportunity-cost figures or
+        participant personal data</strong>. These logs are retained for a limited period and are
+        accessible only to the operator.</p>
 
       <h2 id="removing">Removing the app and your data</h2>
-      <p>You can remove Meeting Cost Meter at any time from the Zoom App Marketplace. To
-        also delete the configuration stored for your account, email us at
-        <a href="mailto:thomas+mcsupport@txl-lab.com">thomas+mcsupport@txl-lab.com</a> and
-        we will remove it.</p>
+      <p>You can remove Meeting Cost Meter at any time from the Zoom App Marketplace. Because the app
+        stores no configuration for your account, there is nothing further to delete. If you have any
+        question about your data, email us at
+        <a href="mailto:thomas+mcsupport@txl-lab.com">thomas+mcsupport@txl-lab.com</a>.</p>
 
       <h2>Changes to this policy</h2>
       <p>If this policy changes, we will update the effective date above and post the
@@ -155,7 +149,7 @@
       <p>Meeting Cost Meter is provided by <strong>Transformative Leadership Lab LLC</strong>.</p>
       <p><a href="index.html">← All documents</a> ·
          <a href="mailto:thomas+mcsupport@txl-lab.com">thomas+mcsupport@txl-lab.com</a></p>
-      <p class="fineprint">Effective date: 9 July 2026</p>
+      <p class="fineprint">Effective date: 13 July 2026</p>
     </div>
   </footer>
 </body>

@@ -35,10 +35,9 @@
         can see it.</p>
 
       <h2>What you enter: opportunity cost</h2>
-      <p>The figure you enter — an average across participants (the default), or a per-person
-        value if you use the host-only per-person model — is an <strong>hourly opportunity
-        cost</strong>: the value of the highest and best work someone could be doing instead
-        of being in this meeting. It is deliberately <strong>not</strong> anyone's wage or
+      <p>The figure you enter — one average across participants — is an <strong>hourly
+        opportunity cost</strong>: the value of the highest and best work someone could be doing
+        instead of being in this meeting. It is deliberately <strong>not</strong> anyone's wage or
         salary, for two reasons:</p>
       <ul>
         <li><strong>Pay is private.</strong> The app never asks for it, and we never want
@@ -49,10 +48,9 @@
       </ul>
 
       <h2>What it does</h2>
-      <p>By default, one presenter makes a simple best-guess estimate — the
+      <p>One presenter makes a simple best-guess estimate — the
         <strong>average hourly opportunity cost per participant</strong> multiplied by the
-        <strong>number of participants</strong>. Meeting hosts and co-hosts can optionally switch
-        to a per-person model that assigns each named attendee their own value. Either way, while
+        <strong>number of attendees</strong> (entered by hand). While
         the meeting runs the app accrues the cost over the elapsed time and displays a running
         figure:</p>
       <ul>
@@ -67,14 +65,13 @@
         <p><strong>Requirements.</strong> The on-camera cost overlay needs the
           <strong>Zoom Workplace desktop app, version 7.1.0 or later</strong>. On older desktop
           versions the overlay may not appear on your camera — this is a known limitation of
-          earlier Zoom clients, not a problem with your settings. The side panel and your saved
-          figures work regardless of version.</p>
+          earlier Zoom clients, not a problem with your settings. The side panel and the figures
+          you enter work regardless of version.</p>
       </div>
       <ol>
         <li>Add Meeting Cost Meter from the Zoom App Marketplace and open it in a meeting.</li>
         <li>In the app's side panel, enter your best guess of the average hourly opportunity
-          cost and the number of attendees. (Hosts and co-hosts can optionally switch to the
-          per-person model and add specific people with their own values.)</li>
+          cost and the number of attendees.</li>
         <li>Click to show the cost overlay on your camera. Participants see the live
           estimate composited natively on your video.</li>
         <li><strong>Keep the app side panel open while counting</strong> — the running total is
@@ -82,14 +79,15 @@
       </ol>
 
       <h2>How your data is handled</h2>
-      <p>Your individual figures are stored encrypted and tied to your Zoom account.
-        Participants only ever see an aggregate total.</p>
+      <p>The figures you enter stay in the app for the meeting only and are never saved to
+        our server. Participants only ever see an aggregate total.</p>
       <div class="callout">
-        <p><strong>Your settings → encrypted, for you.</strong> The names and
-          opportunity-cost values you enter are saved on our server, encrypted at rest and
-          tied to your Zoom account, so your setup is there next time. No meeting participant
-          or other user can see it — though it is not end-to-end encrypted (the app operator can
-          decrypt it); see the <a href="privacy.html">Privacy Policy</a>.</p>
+        <p><strong>Your settings → session-only.</strong> The figures you enter — the
+          hourly opportunity cost, the number of attendees, and how often the overlay updates
+          — stay in your browser for the length of the meeting and are cleared when it ends.
+          No presenter configuration, rates, names, or meeting history are saved on our server
+          or anywhere else — those values are session-only. See the
+          <a href="privacy.html">Privacy Policy</a>.</p>
         <p><strong>Overlay → aggregate only.</strong> To draw the overlay, the app sends a
           sanitized aggregate snapshot (total, cost per minute, elapsed time, participant
           count) — never individual values and never names.</p>
@@ -104,9 +102,8 @@
           otherwise be doing. It is usually higher than salary, and it is the honest cost of
           the meeting.</li>
         <li>Remember that every figure is an estimate, not a fact about anyone's pay.</li>
-        <li>In the host-only per-person model, set a sensible default so unlisted attendees are
-          still counted; in the simple model, just enter a representative average rate and the
-          headcount.</li>
+        <li>Enter a representative average rate and the headcount — one rate applied across
+          all attendees.</li>
       </ul>
 
       <h2>Troubleshooting</h2>
@@ -117,9 +114,10 @@
         clients the overlay may not render even when everything else is set up correctly.</p>
 
       <h3>My settings didn't save</h3>
-      <p>Your configuration is saved to your Zoom account, so it follows you across devices.
-        If it isn't saving, the app may be unable to authenticate with Zoom — for example
-        when it's opened outside a Zoom meeting — and is running with session-only settings.</p>
+      <p>Meeting Cost Meter doesn't save your settings between meetings — they're
+        session-only by design. The figures you enter live in the app for the current meeting
+        and reset when it ends, so you set them fresh each time. None of it is stored on our
+        server or tied to your Zoom account.</p>
 
       <h2>Need more help?</h2>
       <p>See <a href="support.html">Support</a> or email

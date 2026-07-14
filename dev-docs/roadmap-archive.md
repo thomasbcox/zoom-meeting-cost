@@ -1,6 +1,16 @@
-# Meeting Cost — Production Roadmap (free + paid tiers)
+# [ARCHIVED] Meeting Cost — Production Roadmap (free + paid tiers)
 
-Status: **draft** · Created 2026-06-10 · Owner: Thomas
+> **🗄️ ARCHIVED / SUPERSEDED — 2026-07-13.** This is a **historical** planning document, kept for
+> reference only — **do not use it to describe the current architecture.** It was written for a
+> *pre-simplification* product: a per-person cost model backed by a **server-side encrypted rate
+> store**, with paid tiers. Meeting Cost has since **pivoted to a dead-simple, session-only MVP** — a
+> manual attendee count × one hourly rate, **no server persistence**. Stories `simple-only-panel`
+> (client) and `remove-rate-store` (server) removed the rate store, its encryption /
+> `RATE_STORE_KEY` / Railway Volume, the app-context identity path, and the export/delete endpoints.
+> **Every ✅/🔜 status mark below reflects the state *at the time of writing*, not now** — the
+> "persistence foundation" / "encrypted server-side store" / paid-tier sequence is obsolete.
+>
+> _Original header: Status: draft · Created 2026-06-10 · Owner: Thomas._
 
 A living strategic roadmap for turning Meeting Cost from a prototype into a production
 Zoom App with free and paid tiers. This file is the strategy above two backlogs:

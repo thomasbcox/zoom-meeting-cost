@@ -11,21 +11,23 @@ Defines how we protect the Meeting Cost Meter application, its hosted service, a
 entrusted to it.
 
 ## Data classification
-- **Presenter configuration** (names entered + per-person hourly opportunity-cost values,
-  defaults): treated as confidential; encrypted at rest; retrievable only by the owning
-  Zoom account. Never wages/salaries — we do not request or store pay data.
-- **Zoom OAuth tokens / app context:** secret; used only to authenticate and operate;
+- **Presenter configuration** (attendee count + one hourly opportunity-cost estimate + display
+  cadence): treated as confidential; **held only in the browser session and never persisted
+  server-side**. Never wages/salaries — we do not request or store pay data.
+- **Zoom OAuth tokens:** secret; used only to authenticate and operate;
   not exposed to other users.
-- **Operational logs / client diagnostics:** low sensitivity; logged to the hosting platform
-  via `/api/log`. **Minimized at the source to exclude participant PII** — the diagnostics
-  probe sends only the data *shape* of Zoom SDK responses (field names/lengths/counts, never
-  values) and error reports carry only error text plus fixed technical fields; they exclude the
-  encrypted rate-store contents and secrets. See `data-retention-and-protection.md`.
+- **Operational logs / client diagnostics:** low sensitivity; the server logs `[server] METHOD
+  path` request lines plus the client diagnostics/errors POSTed to `/api/log`. **The client
+  diagnostics are minimized at the source** — the probe sends only the data *shape* of Zoom SDK
+  responses (field names/lengths/counts, never values) and error reports carry a fixed field set
+  (error text/stack, path, user agent). The endpoint records the submitted body, so logs are **not
+  intentionally populated** with secrets, the presenter's figures, or participant data rather than
+  guaranteed free of them. See `data-retention-and-protection.md`.
 
 ## Controls
 - **Encryption in transit:** HTTPS/TLS enforced (HSTS).
-- **Encryption at rest:** AES-256-GCM for stored presenter configuration; per-user key
-  derived from a server secret + Zoom user id; plaintext never written to disk.
+- **No data at rest:** the app persists no presenter configuration server-side — settings are
+  session-only, so there is nothing stored to encrypt or protect at rest.
 - **Secrets management:** all credentials are environment variables, injected per
   environment; never committed. A pre-commit secret-scanning hook blocks credential commits.
 - **Access control:** the source repository (GitHub) and hosting (Railway) are accessed
@@ -33,13 +35,13 @@ entrusted to it.
   authentication. `main` is a protected branch: changes merge only via reviewed pull request
   with all required status checks passing (see [SSDLC](ssdlc.md) § Merge control).
 - **Secure headers:** CSP, `nosniff`, `Referrer-Policy`, and `no-store` on all responses.
-- **Input validation:** stored configuration is strictly validated server-side before
-  persistence (rejects malformed/oversized/negative input).
+- **Input validation:** request bodies to the server (e.g. the `/api/log` diagnostics sink) are
+  size-bounded; client inputs (attendee count, rate) are clamped to non-negative numbers.
 - **Automated testing & SAST:** see `ssdlc.md` (tests, CodeQL, Dependabot).
 
 ## Third parties / sub-processors
 - **GitHub** — source control and CI (CodeQL, Dependabot).
-- **Railway** — application hosting and the encrypted-storage volume.
+- **Railway** — application hosting.
 - **Zoom** — the platform the app runs within (SDK, OAuth).
 
 No other third-party data processors. No analytics, advertising, or tracking SDKs.
