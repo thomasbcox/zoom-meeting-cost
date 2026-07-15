@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import express from 'express';
 
 import { createOAuthRouter, zoomConfigured } from './zoom/oauth.js';
+import { createDeauthRouter } from './zoom/deauth.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -64,6 +65,9 @@ export function securityHeaders(_req, res, next) {
  */
 export function createApp({
   clientDist = path.resolve(__dirname, '../../client/dist'),
+  // Injected into the deauthorization router (secretToken / clientId / clientSecret /
+  // fetchImpl / now). Empty in production, where the router reads env + globals itself.
+  deauth = {},
 } = {}) {
   const app = express();
 
@@ -72,7 +76,16 @@ export function createApp({
   app.use(securityHeaders);
 
   // Bounded JSON body — cap it so a POST (e.g. the /api/log diagnostics) can't be huge.
-  app.use(express.json({ limit: '100kb' }));
+  app.use(
+    express.json({
+      limit: '100kb',
+      // Stash the EXACT bytes for the Zoom deauthorization webhook: its HMAC is computed
+      // over the raw body, which this parser would otherwise consume. (zoom/deauth.js)
+      verify: (req, _res, buf) => {
+        req.rawBody = buf;
+      },
+    })
+  );
 
   app.use((req, _res, next) => {
     // Log the path only — never req.url. The Zoom OAuth redirect arrives as
@@ -115,6 +128,10 @@ export function createApp({
     else console.log(line);
     res.sendStatus(204);
   });
+
+  // --- Zoom deauthorization webhook (mandatory for a published app) ---------
+  // Mounted before the OAuth router (disjoint paths; POST /auth/deauthorize).
+  app.use('/auth', createDeauthRouter(deauth));
 
   // --- Zoom OAuth (scaffold; inert until configured) ------------------------
   app.use('/auth', createOAuthRouter());
