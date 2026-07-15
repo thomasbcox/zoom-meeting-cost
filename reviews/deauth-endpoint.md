@@ -181,6 +181,77 @@ is set, reading `process.env` at module load.
 - **Error model:** invalid signature/replay → 401; unconfigured → 503; callback failure → 500
   (Open question 2); success → 200. Never log secrets (AC6). No new dependency.
 
+## Codex approach review (2026-07-15, base main 63a38b5, HEAD 6b6efdd)
+
+**Verdict:** "I would keep the signed, raw-body-verified `/auth/deauthorize` route and
+URL-validation handshake, but I would not build the compliance-callback half. The spec is based
+on a retired Zoom workflow and must be corrected before merge."
+
+**BLOCKER · two-way · dated — "The design is centered on Zoom's deprecated Data Compliance API"**
+(`server/src/zoom/deauth.js:20`)
+
+- *claim:* Zoom's Data Compliance API is deprecated and `user_data_retention` was removed;
+  current deauthorization guidance requires receiving the signed event and deleting user data,
+  but **not** a compliance callback. So `app_deauthorized` is coupled to an obsolete endpoint —
+  an inoperative/non-2xx response becomes a 500 and invites repeated webhook delivery instead of
+  completing deauthorization. The outdated requirement originates in **AC3** and must be revised,
+  not preserved merely because the implementation matches it.
+- *alternative:* retain signature verification, the replay window, and `endpoint.url_validation`.
+  For a valid `app_deauthorized`, do the documented no-op purge and **immediately acknowledge
+  200/204**. Delete `COMPLIANCE_URL`, `CALLBACK_TIMEOUT_MS`, `complianceBody`, the Basic-auth
+  construction, fetch/timeout/error handling, the OAuth-credential gating, the callback tests, and
+  the callback documentation; update AC3.
+- *win:* removes an obsolete external call and its retry/failure path, drops the route's
+  needless dependency on OAuth credentials and `fetch`, and deletes ~50 production lines plus
+  several tests while preserving the actual Marketplace requirement.
+
+**Independent verification (Claude, 2026-07-15) — CONFIRMED.** The claim contradicted this repo's
+own research memory (`reference-zoom-prod-unknowns-research`, 2026-06-10, which recorded the
+callback as mandatory), so it was checked against primary sources rather than taken on faith:
+
+- **The endpoint itself is still required** — Zoom, [End user authorization](https://developers.zoom.us/docs/integrations/end-user-auth/):
+  *"All apps made available to end users must provide the proper ability for users to remove or
+  deauthorize the app and receive deauthorization notifications from Zoom."* → **OPS-3's premise
+  holds; the story survives.**
+- **The compliance callback is not** — official Zoom staff, [Data Compliance API Deprecated](https://devforum.zoom.us/t/data-compliance-api-deprecated/51768):
+  *"our Data Compliance endpoint is now deprecated. This means that it is no longer required to
+  call this endpoint."* Zoom's announcements add that it will be *"completely inoperative in a
+  future release"* and that *"the marketplace app submission & review process no longer includes
+  this requirement"*.
+- **The signature half as built is current** — the old webhook *verification token* was sunset
+  (Oct 2023) in favour of exactly the secret-token + `x-zm-signature` scheme implemented here.
+
+**Consequence beyond the diff:** the memory `reference-zoom-prod-unknowns-research`, the OPS-3 entry
+in `BACKLOG.md`, and the deauth notes in `reviews/backlog.md` all still describe the callback as
+mandatory — they are now outdated and should be corrected.
+
+## Build note (2026-07-15)
+
+AC → file map:
+
+- **AC1** (total, non-throwing signature gate; 401 never 500) — `server/src/zoom/deauth.js`
+  (`verifyZoomSignature` + `SIGNATURE_SHAPE` + `REPLAY_WINDOW_SECONDS`),
+  `server/test/deauth.test.js` (wrong/missing/tampered/malformed/stale/future/non-integer cases).
+- **AC2** (url_validation handshake) — `server/src/zoom/deauth.js` (`urlValidationResponse`),
+  `server/test/deauth.test.js`.
+- **AC3** (bounded compliance callback; 500 on failure) — `server/src/zoom/deauth.js`
+  (`complianceBody`, `COMPLIANCE_URL`, `CALLBACK_TIMEOUT_MS`, `AbortSignal.timeout`),
+  `server/test/deauth.test.js` (shape + non-2xx + abort paths).
+- **AC4** (no-op purge, no persistence) — `server/src/zoom/deauth.js` (module header + the
+  `app_deauthorized` branch; imports only `node:crypto` + `express`).
+- **AC5** (inert per-credential: 503) — `server/src/zoom/deauth.js` (secret-token guard + the
+  pre-callback client-id/secret guard), `server/test/deauth.test.js`.
+- **AC6** (no secret leakage) — `server/src/zoom/deauth.js` (status/name-only `console.error`),
+  `server/test/deauth.test.js` (console-capture assertion).
+- **AC7** (docs) — `server/.env.example` (`ZOOM_WEBHOOK_SECRET_TOKEN`),
+  `server/zoom-app-config.md` (deauthorization section: endpoint URL + Secret Token).
+- **AC8** (scope containment) — diff touches only `server/src/zoom/deauth.js`,
+  `server/src/app.js`, `server/test/deauth.test.js`, `server/.env.example`,
+  `server/zoom-app-config.md`, plus this story file and the review artifacts.
+- **Wiring** — `server/src/app.js` (`express.json({ verify })` raw-body capture; `/auth`
+  router mount; `createApp({ deauth })` dep injection).
+- **AC9** (gate green) — implicit (this review exists).
+
 ## Codex design review (2026-07-14)
 
 **Verdict:** sound shape. "Express router, Node crypto, raw-body verification, no persistence,
