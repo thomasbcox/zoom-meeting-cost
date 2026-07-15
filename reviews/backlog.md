@@ -9,29 +9,41 @@ story when picked up.
 > deferred product item); workflow-tracked `AUDIT-`/`BUG-`/`OPS-` items — and the current ordering —
 > live in [`BACKLOG.md`](../BACKLOG.md), not here.
 
-## Zoom deauthorization / data-compliance webhook
-> **Canonical tracking: [`BACKLOG.md`](../BACKLOG.md) → OPS-3.** After `remove-rate-store` the app
-> persists **no** per-user data, so the required purge is a **no-op** — but the endpoint itself is
-> still a hard Marketplace publishing gate. The notes below are design reference; OPS-3 is the
-> current definition.
+## Zoom deauthorization webhook
+> **Canonical tracking: [`BACKLOG.md`](../BACKLOG.md) → OPS-3.** BUILT in
+> [`reviews/deauth-endpoint.md`](deauth-endpoint.md) (`server/src/zoom/deauth.js`). After
+> `remove-rate-store` the app persists **no** per-user data, so the required purge is a **no-op** —
+> but the endpoint itself is still a hard Marketplace publishing gate. The notes below are design
+> reference; OPS-3 is the current definition.
+>
+> **⚠️ CORRECTED 2026-07-15 — the compliance callback is NOT required.** The original notes below
+> (struck through) said to POST a confirmation to `/oauth/data/compliance`. Zoom **deprecated** the
+> Data Compliance API — *"it is no longer required to call this endpoint"*
+> ([devforum](https://devforum.zoom.us/t/data-compliance-api-deprecated/51768)); it is slated to
+> become inoperative and Marketplace review no longer includes it. The **endpoint itself remains
+> required** ([end-user-auth](https://developers.zoom.us/docs/integrations/end-user-auth/)). The
+> correct contract is: **verify the signed event → purge (no-op here) → 200.** Caught by the
+> `deauth-endpoint` approach review, after the stale premise had already reached a spec.
 - **Requested:** 2026-06-26 (Thomas), deferred from `reviews/data-delete-export.md`.
 - **What:** Implement the mandatory Zoom deauthorization endpoint. On app uninstall Zoom POSTs a
-  deauthorization event (with `user_data_retention`); verify the event signature, POST the required
-  confirmation to Zoom's `/oauth/data/compliance`, and purge the user's data. **Post-`remove-rate-store`
-  the purge is a no-op** — nothing is persisted (no rate store, no `userData` primitive), so there is
-  no per-user record to delete; the endpoint is still required.
-- **Why:** A **hard publishing gate** — a published Zoom OAuth app cannot pass Marketplace review
-  without a deauthorization endpoint (see memory `reference-zoom-prod-unknowns-research`; the earlier
-  roadmap's Phase 6A is archived in [`roadmap-archive.md`](../dev-docs/roadmap-archive.md)).
+  deauthorization event; verify the event signature, purge the user's data, and acknowledge 200.
+  ~~POST the required confirmation to Zoom's `/oauth/data/compliance`~~ (deprecated — see the
+  correction above). **Post-`remove-rate-store` the purge is a no-op** — nothing is persisted (no
+  rate store, no `userData` primitive), so there is no per-user record to delete; the endpoint is
+  still required.
+- **Why:** A **hard publishing gate** — a published Zoom app cannot pass Marketplace review
+  without a deauthorization endpoint (the earlier roadmap's Phase 6A is archived in
+  [`roadmap-archive.md`](../dev-docs/roadmap-archive.md)).
 - **Design notes / open questions:**
   - Different trust path from the app: Zoom authenticates the webhook with an HMAC **secret
     token** (`x-zm-signature` + `x-zm-request-timestamp`) — a **new env var**, separate from the
-    (now-removed) app-context machinery. Verify the signature before acting.
-  - Outbound compliance callback to `https://api.zoom.us/oauth/data/compliance` (Basic auth with
-    client id/secret), idempotent + signature-verified; set the "Deauthorization Notification
-    Endpoint URL" in the Marketplace app config.
-  - **Sequencing:** only needed at Marketplace submission, which is gated behind the overlay
-    live-test matrix (not yet run). Build it close to submission.
+    (now-removed) app-context machinery. Verify the signature before acting. *(This half was
+    correct and is what shipped.)*
+  - ~~Outbound compliance callback to `https://api.zoom.us/oauth/data/compliance` (Basic auth with
+    client id/secret)~~ — **dropped, deprecated by Zoom.** Still set the "Deauthorization
+    Notification Endpoint URL" in the Marketplace app config.
+  - **Sequencing:** only needed at Marketplace submission. *(The overlay live-test matrix is no
+    longer a gate — superseded by the 7.1.0+ minimum-version decision.)*
 
 ## ~~Client UI for data delete / export (+ privacy-page update)~~ — MOOT (store removed)
 - **STATUS 2026-07-12 (`remove-rate-store`):** superseded. The server-side rate store and its

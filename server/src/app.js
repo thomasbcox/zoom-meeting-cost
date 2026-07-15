@@ -65,8 +65,8 @@ export function securityHeaders(_req, res, next) {
  */
 export function createApp({
   clientDist = path.resolve(__dirname, '../../client/dist'),
-  // Injected into the deauthorization router (secretToken / clientId / clientSecret /
-  // fetchImpl / now). Empty in production, where the router reads env + globals itself.
+  // Injected into the deauthorization router (secretToken / now). Empty in production,
+  // where the router reads env + Date.now itself.
   deauth = {},
 } = {}) {
   const app = express();

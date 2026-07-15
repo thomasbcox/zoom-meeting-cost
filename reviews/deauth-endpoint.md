@@ -62,31 +62,34 @@ required. This story builds that endpoint.
 2. **URL-validation handshake.** A signature-valid `endpoint.url_validation` event gets a
    **200** whose body is `{ plainToken, encryptedToken }`, where `encryptedToken` =
    hex `HMAC-SHA256(secretToken, plainToken)`.
-3. **Deauthorization → compliance callback (bounded).** A signature-valid `app_deauthorized`
-   event causes exactly one `POST` to `https://api.zoom.us/oauth/data/compliance` with HTTP
-   Basic auth (`client_id:client_secret`) and a body containing `client_id`, `user_id`,
-   `account_id`, the echoed `deauthorization_event_received`, and `compliance_completed: true`;
-   the endpoint responds **200** when that callback succeeds. The callback is bounded by an
-   `AbortSignal` timeout comfortably **under Zoom's ~3 s webhook deadline**; a **timeout,
-   network error, or non-2xx** all map to the same sanitized **500** so Zoom retries
-   (**at-least-once** semantics across deliveries).
-4. **No persistence touched / no-op purge.** The handler deletes no data (there is none) and
-   introduces no store; a comment records the "nothing persisted → purge is a no-op" invariant.
-5. **Inert when unconfigured (per-credential).** With `ZOOM_WEBHOOK_SECRET_TOKEN` unset the
-   endpoint returns **503** (cannot verify) and performs no callback — never a 500 stack,
-   mirroring the OAuth scaffold's not-configured posture. With the webhook token present but
-   **client id/secret incomplete**, `endpoint.url_validation` still succeeds (it needs only the
-   token) while `app_deauthorized` returns **503 before** any callback attempt — never a
-   `Basic undefined:undefined` request. `/api/health` and the rest of the app are unaffected.
+3. **Deauthorization → acknowledge (REVISED 2026-07-15).** A signature-valid `app_deauthorized`
+   event performs the (no-op) purge and is acknowledged with **200**. **No compliance callback
+   is made** — Zoom's Data Compliance API is deprecated (*"no longer required to call this
+   endpoint"*), so the endpoint makes **no outbound request** and needs **no OAuth credentials**.
+   *(Superseded: this AC previously required a bounded `POST` to `/oauth/data/compliance` with
+   Basic auth and `compliance_completed: true`. That premise was stale — see the approach review
+   + Decisions.)*
+4. **No persistence and no network touched / no-op purge.** The handler deletes no data (there is
+   none), introduces no store, and makes no outbound request — `deauth.js` imports only
+   `node:crypto` and `express`. A comment records the "nothing persisted → purge is a no-op"
+   invariant and marks where a future delete hook would go.
+5. **Inert when unconfigured (REVISED 2026-07-15).** With `ZOOM_WEBHOOK_SECRET_TOKEN` unset the
+   endpoint returns **503** (cannot verify) — never a 500 stack, mirroring the OAuth scaffold's
+   not-configured posture. `/api/health` and the rest of the app are unaffected. *(Superseded:
+   the per-credential arm — url_validation vs. `app_deauthorized` 503 on incomplete client
+   id/secret — is moot now that no OAuth credentials are used.)*
 6. **No secret leakage.** The Secret Token, the signature, and the client secret are never
    written to logs (consistent with `oauth.js`'s fingerprint-not-value rule).
 7. **Docs updated.** `server/.env.example` documents `ZOOM_WEBHOOK_SECRET_TOKEN`, and
    `server/zoom-app-config.md` lists the deauthorization endpoint URL + the Secret Token as a
    Marketplace-config step.
-8. **Scope containment:** the product diff is limited to `server/src/zoom/deauth.js` (new),
-   `server/src/app.js`, `server/.env.example`, `server/zoom-app-config.md`, and
-   `server/test/deauth.test.js` (new). Beyond those, `git diff --name-only main...HEAD` carries
-   only this story file and the workflow's review artifacts (`.design/.approach/.codex.json`).
+8. **Scope containment (WIDENED 2026-07-15).** The product diff is limited to
+   `server/src/zoom/deauth.js` (new), `server/src/app.js`, `server/.env.example`,
+   `server/zoom-app-config.md`, `server/test/deauth.test.js` (new), and — per the approved
+   doc-drift fix — `BACKLOG.md` (OPS-3) and `reviews/backlog.md`, whose deauth entries asserted
+   the now-deprecated compliance callback. Beyond those, `git diff --name-only main...HEAD`
+   carries only this story file and the workflow's review artifacts
+   (`.design/.approach/.codex.json`).
 9. The gate (`npm test && npm run build`) stays green.
 
 ## Test notes
@@ -180,6 +183,34 @@ is set, reading `process.env` at module load.
   Notification Endpoint URL field).
 - **Error model:** invalid signature/replay → 401; unconfigured → 503; callback failure → 500
   (Open question 2); success → 200. Never log secrets (AC6). No new dependency.
+
+## Fixes (2026-07-15)
+
+Applied the two approved decisions. **This is a redesign** — the shape changed, so it returns for
+a fresh review (approach pass re-runs) rather than merging.
+
+- **BLOCKER "deprecated Data Compliance API" → fixed (redesign).**
+  - `server/src/zoom/deauth.js`: deleted `COMPLIANCE_URL`, `CALLBACK_TIMEOUT_MS`,
+    `complianceBody`, the Basic-auth construction, the `fetch`/`AbortSignal`/timeout/error
+    handling, and the `clientId` / `clientSecret` / `fetchImpl` deps. `app_deauthorized` (and any
+    other non-handshake event) is now **verify → no-op purge → 200**; the handler is no longer
+    `async`. The module header records *why* the callback is absent, with the sources, so it
+    isn't re-added. **Kept unchanged:** `zoomSignature`, `verifyZoomSignature` (the hardened
+    total predicate), `SIGNATURE_SHAPE`, `REPLAY_WINDOW_SECONDS`, `urlValidationResponse`.
+  - `server/src/app.js`: `createApp`'s `deauth` deps comment narrowed to `secretToken / now`.
+    The `express.json({ verify })` raw-body capture and the `/auth` mount are unchanged.
+  - `server/test/deauth.test.js`: dropped 3 tests — non-2xx → 500, abort/timeout → 500, and the
+    per-credential (`Basic undefined:undefined`) 503 case — plus the `stubFetch` / `CLIENT_ID` /
+    `CLIENT_SECRET` harness. The compliance-shape test became a plain "acknowledged 200", and AC6
+    no longer asserts on the Basic header. **15 deauth tests remain** (was 18; server suite
+    43 → 40), keeping all of the verification/replay/handshake value.
+  - `server/zoom-app-config.md`: the deauthorization section now documents verify → purge → 200
+    and states the callback is deprecated (with the source) so a future reader doesn't restore it.
+  - Spec: **AC3** revised, **AC4** extended (no network), **AC5** trimmed, **AC8** widened.
+- **Doc drift → fixed.** `BACKLOG.md` (OPS-3) and `reviews/backlog.md` no longer assert the
+  compliance callback; both carry a dated correction citing Zoom's deprecation and the
+  still-required endpoint. (The outdated memory `reference-zoom-prod-unknowns-research` was
+  corrected separately — not repo scope.)
 
 ## Codex approach review (2026-07-15, base main 63a38b5, HEAD 6b6efdd)
 

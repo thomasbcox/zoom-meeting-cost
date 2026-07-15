@@ -8,13 +8,21 @@ pivot superseded it.)*
 
 ## Open
 
-- **OPS-3** — **Zoom deauthorization / data-compliance webhook (blocks Marketplace submission).**
-  A published Zoom OAuth app MUST expose a deauthorization endpoint: verify the Zoom event signature,
-  return the required confirmation, and purge the user's data. Post-`remove-rate-store` the purge is a
-  **no-op** (nothing is persisted), but the endpoint itself is still required. **Gate: do not submit
-  the app to the Zoom Marketplace until this exists** (with an owner + acceptance test). Separate
-  machinery from the removed app-context identity — uses the Zoom webhook secret/signature.
-  _(raised by remove-rate-store design review, Finding ③)_
+- **OPS-3** — **Zoom deauthorization webhook (blocks Marketplace submission).**
+  A published Zoom app MUST expose a deauthorization endpoint and receive deauthorization
+  notifications: verify the Zoom event signature (secret token + `x-zm-signature`), purge the user's
+  data, and acknowledge 200. Post-`remove-rate-store` the purge is a **no-op** (nothing is
+  persisted), but the endpoint itself is still required. **Gate: do not submit the app to the Zoom
+  Marketplace until this exists** (with an owner + acceptance test). Separate machinery from the
+  removed app-context identity — uses the Zoom webhook secret/signature.
+  **CORRECTION 2026-07-15:** this item previously said the endpoint must "return the required
+  confirmation" (the Data Compliance callback to `/oauth/data/compliance`). That is **no longer
+  true** — Zoom deprecated the Data Compliance API (*"no longer required to call this endpoint"*,
+  [devforum](https://devforum.zoom.us/t/data-compliance-api-deprecated/51768)); it is slated to
+  become inoperative and Marketplace review no longer includes it. The **endpoint itself remains
+  required** ([end-user-auth](https://developers.zoom.us/docs/integrations/end-user-auth/)).
+  Caught by the `deauth-endpoint` approach review. _(raised by remove-rate-store design review,
+  Finding ③)_
 - **AUDIT-4** — _(optional)_ Add `eslint`/`prettier` + a CI lint step for the JS. Split out
   of AUDIT-2 (much larger diff: config + first-run reformat across all JS). _(from /dev-audit
   2026-07-02)_
