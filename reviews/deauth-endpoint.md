@@ -184,6 +184,24 @@ is set, reading `process.env` at module load.
 - **Error model:** invalid signature/replay → 401; unconfigured → 503; callback failure → 500
   (Open question 2); success → 200. Never log secrets (AC6). No new dependency.
 
+## Codex approach review — round 2 (2026-07-15, base main 63a38b5, HEAD 63a83e2)
+
+**Verdict:** CLEAN — empty findings. "Sound and idiomatic. I would build the revised endpoint this
+way: a thin Express router, bounded global JSON parsing with raw-byte capture, Node crypto for
+total HMAC verification, a ±300-second freshness window, URL-validation challenge handling, and
+immediate acknowledgement after the documented no-op purge. The implementation matches Zoom's
+current webhook verification and validation guidance, introduces no unnecessary dependency,
+persistence, network path, or framework abstraction, and cleanly removes the deprecated callback
+design without residual OAuth coupling."
+
+Round-1's BLOCKER (the deprecated Data Compliance API) was accepted and fixed; it was explicitly
+not re-raised. No findings — **the new shape is blessed**, so the correctness pass ran in the same
+round (its first run on this code at any SHA).
+
+*(Codex noted it could not re-run the gate inside its read-only sandbox — Vitest wanted to create
+`client/node_modules/.vite-temp`. An environment limitation, not a finding: the gate ran green
+locally — client 157, server 40, secret-scan 14, build.)*
+
 ## Fixes (2026-07-15)
 
 Applied the two approved decisions. **This is a redesign** — the shape changed, so it returns for
@@ -282,31 +300,35 @@ Approach pass — 1 BLOCKER:
 correctness pass** — the redesign is applied in `/close` and the new shape returns for a fresh
 review (whose approach pass re-runs on it). No correctness pass was run at HEAD 6b6efdd.
 
-## Build note (2026-07-15)
+## Build note (2026-07-15, revised post-redesign at HEAD 63a83e2)
 
-AC → file map:
+AC → file map. *(Revised: the round-1 map pointed AC3 at `complianceBody` / `COMPLIANCE_URL` /
+`CALLBACK_TIMEOUT_MS` and AC5 at a client-id/secret guard — all deleted by the approved redesign.
+Restated here against the current code so the map doesn't misdirect.)*
 
 - **AC1** (total, non-throwing signature gate; 401 never 500) — `server/src/zoom/deauth.js`
   (`verifyZoomSignature` + `SIGNATURE_SHAPE` + `REPLAY_WINDOW_SECONDS`),
   `server/test/deauth.test.js` (wrong/missing/tampered/malformed/stale/future/non-integer cases).
 - **AC2** (url_validation handshake) — `server/src/zoom/deauth.js` (`urlValidationResponse`),
   `server/test/deauth.test.js`.
-- **AC3** (bounded compliance callback; 500 on failure) — `server/src/zoom/deauth.js`
-  (`complianceBody`, `COMPLIANCE_URL`, `CALLBACK_TIMEOUT_MS`, `AbortSignal.timeout`),
-  `server/test/deauth.test.js` (shape + non-2xx + abort paths).
-- **AC4** (no-op purge, no persistence) — `server/src/zoom/deauth.js` (module header + the
-  `app_deauthorized` branch; imports only `node:crypto` + `express`).
-- **AC5** (inert per-credential: 503) — `server/src/zoom/deauth.js` (secret-token guard + the
-  pre-callback client-id/secret guard), `server/test/deauth.test.js`.
-- **AC6** (no secret leakage) — `server/src/zoom/deauth.js` (status/name-only `console.error`),
-  `server/test/deauth.test.js` (console-capture assertion).
+- **AC3 revised** (acknowledge 200; **no** compliance callback) — `server/src/zoom/deauth.js`
+  (the terminal `res.sendStatus(200)` + the module header explaining the deprecation),
+  `server/test/deauth.test.js` (`app_deauthorized` → 200; unknown event → 200).
+- **AC4** (no-op purge; no persistence, no network) — `server/src/zoom/deauth.js` (module header
+  + the `--- PURGE GOES HERE ---` marker; imports are only `node:crypto` + `express`).
+- **AC5 trimmed** (inert when unconfigured: 503) — `server/src/zoom/deauth.js` (the secret-token
+  guard), `server/test/deauth.test.js` (503 + `/api/health` unaffected).
+- **AC6** (no secret leakage) — `server/src/zoom/deauth.js` (no logging of secrets; the callback's
+  `console.error` paths are gone entirely), `server/test/deauth.test.js` (console-capture assertion).
 - **AC7** (docs) — `server/.env.example` (`ZOOM_WEBHOOK_SECRET_TOKEN`),
-  `server/zoom-app-config.md` (deauthorization section: endpoint URL + Secret Token).
-- **AC8** (scope containment) — diff touches only `server/src/zoom/deauth.js`,
+  `server/zoom-app-config.md` (deauthorization section: endpoint URL, Secret Token, and the
+  "no compliance callback — deprecated" note).
+- **AC8 widened** (scope containment) — diff touches only `server/src/zoom/deauth.js`,
   `server/src/app.js`, `server/test/deauth.test.js`, `server/.env.example`,
-  `server/zoom-app-config.md`, plus this story file and the review artifacts.
+  `server/zoom-app-config.md`, `BACKLOG.md`, `reviews/backlog.md`, plus this story file and the
+  review artifacts.
 - **Wiring** — `server/src/app.js` (`express.json({ verify })` raw-body capture; `/auth`
-  router mount; `createApp({ deauth })` dep injection).
+  router mount; `createApp({ deauth })` dep injection, now `secretToken` / `now` only).
 - **AC9** (gate green) — implicit (this review exists).
 
 ## Codex design review (2026-07-14)
