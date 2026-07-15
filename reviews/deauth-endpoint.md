@@ -1,0 +1,223 @@
+Date: 2026-07-14 · Branch: claude/deauth-endpoint · Status: approved
+
+# deauth-endpoint
+
+## Problem
+
+A **published** Zoom OAuth app MUST expose a deauthorization / data-compliance endpoint, or it
+fails Marketplace review — a hard publishing gate (`BACKLOG.md` → **OPS-3**;
+[[reference-zoom-prod-unknowns-research]]). When a user uninstalls the app, Zoom POSTs a
+deauthorization event; the app must verify it, delete the user's data if
+`user_data_retention` is false, and POST a confirmation to Zoom's `/oauth/data/compliance`
+within 10 days.
+
+The app **doesn't have this endpoint** (verified: no `deauth` / `data/compliance` route in
+`server/src`). The favorable part: post-`remove-rate-store` the app persists **no** per-user
+data (attendee count / rate / cadence are browser-session-only; there is no rate store, no
+`userData`), so the required **purge is a no-op** — there is no record to delete. But the
+endpoint itself, with proper signature verification and the compliance callback, is still
+required. This story builds that endpoint.
+
+## In scope
+
+- A new **`POST` deauthorization webhook endpoint** that:
+  1. **Verifies the Zoom webhook HMAC signature** (`x-zm-signature` + `x-zm-request-timestamp`
+     over the raw body, keyed by a new **Secret Token** env var), rejecting missing/invalid
+     signatures and stale (replay) timestamps.
+  2. Handles Zoom's **`endpoint.url_validation`** challenge (respond with `plainToken` +
+     `encryptedToken`) so the URL can be validated in the Marketplace dashboard.
+  3. On a valid **`app_deauthorized`** event, performs the (no-op) purge and **POSTs the
+     compliance confirmation** to `https://api.zoom.us/oauth/data/compliance` (Basic auth with
+     the app's client id/secret, `compliance_completed: true`).
+- A new env var **`ZOOM_WEBHOOK_SECRET_TOKEN`**; the endpoint is **inert** (503) when
+  unconfigured, mirroring the OAuth scaffold's "not configured" posture.
+- **Raw request-body capture** for the HMAC (the existing global `express.json()` otherwise
+  consumes the body before we can hash the exact bytes Zoom signed).
+- Unit tests for the endpoint (signature valid/invalid, replay, url_validation, deauth →
+  compliance callback, unconfigured).
+- Docs: add the endpoint URL + `ZOOM_WEBHOOK_SECRET_TOKEN` to `server/.env.example` and the
+  `server/zoom-app-config.md` checklist.
+
+## Non-goals
+
+- **No data-deletion logic** — nothing is persisted, so the purge is a no-op (a comment
+  documents that invariant). If persistence is ever re-introduced, the delete hook slots in
+  here, but that is out of scope now.
+- **No general Event Subscription framework** — only the deauthorization event (+ the
+  url_validation handshake it shares). No other webhook events.
+- No monetization / entitlement teardown (none exists).
+- No CSP hardening, no Marketplace dashboard changes (Thomas-only), no `BACKLOG.md` OPS-3 → Done
+  move (that is a `/close` record step, not this story).
+- No new runtime dependency — Node `crypto` (`createHmac`, `timingSafeEqual`) + global `fetch`.
+
+## Acceptance criteria
+
+1. **Endpoint exists & is signature-gated (total, non-throwing).** `POST /auth/deauthorize`
+   with a **valid** Zoom signature is accepted (2xx). Every other case is rejected with **401**
+   — **never a 500** — and does **not** trigger the compliance callback: a missing or malformed
+   `x-zm-signature` (wrong length, or not the exact `v0=<64 lowercase hex>` shape), a
+   non-integer `x-zm-request-timestamp`, a timestamp outside the **±300 s** window (**stale
+   *or* future-dated**), or a body whose HMAC doesn't match. The comparison is timing-safe over
+   **equal-length** buffers.
+2. **URL-validation handshake.** A signature-valid `endpoint.url_validation` event gets a
+   **200** whose body is `{ plainToken, encryptedToken }`, where `encryptedToken` =
+   hex `HMAC-SHA256(secretToken, plainToken)`.
+3. **Deauthorization → compliance callback (bounded).** A signature-valid `app_deauthorized`
+   event causes exactly one `POST` to `https://api.zoom.us/oauth/data/compliance` with HTTP
+   Basic auth (`client_id:client_secret`) and a body containing `client_id`, `user_id`,
+   `account_id`, the echoed `deauthorization_event_received`, and `compliance_completed: true`;
+   the endpoint responds **200** when that callback succeeds. The callback is bounded by an
+   `AbortSignal` timeout comfortably **under Zoom's ~3 s webhook deadline**; a **timeout,
+   network error, or non-2xx** all map to the same sanitized **500** so Zoom retries
+   (**at-least-once** semantics across deliveries).
+4. **No persistence touched / no-op purge.** The handler deletes no data (there is none) and
+   introduces no store; a comment records the "nothing persisted → purge is a no-op" invariant.
+5. **Inert when unconfigured (per-credential).** With `ZOOM_WEBHOOK_SECRET_TOKEN` unset the
+   endpoint returns **503** (cannot verify) and performs no callback — never a 500 stack,
+   mirroring the OAuth scaffold's not-configured posture. With the webhook token present but
+   **client id/secret incomplete**, `endpoint.url_validation` still succeeds (it needs only the
+   token) while `app_deauthorized` returns **503 before** any callback attempt — never a
+   `Basic undefined:undefined` request. `/api/health` and the rest of the app are unaffected.
+6. **No secret leakage.** The Secret Token, the signature, and the client secret are never
+   written to logs (consistent with `oauth.js`'s fingerprint-not-value rule).
+7. **Docs updated.** `server/.env.example` documents `ZOOM_WEBHOOK_SECRET_TOKEN`, and
+   `server/zoom-app-config.md` lists the deauthorization endpoint URL + the Secret Token as a
+   Marketplace-config step.
+8. **Scope containment:** the product diff is limited to `server/src/zoom/deauth.js` (new),
+   `server/src/app.js`, `server/.env.example`, `server/zoom-app-config.md`, and
+   `server/test/deauth.test.js` (new). Beyond those, `git diff --name-only main...HEAD` carries
+   only this story file and the workflow's review artifacts (`.design/.approach/.codex.json`).
+9. The gate (`npm test && npm run build`) stays green.
+
+## Test notes
+
+- **AC1** (`server/test/deauth.test.js`): build a request with a correctly-computed signature
+  → 2xx; tamper the body / omit the header / use an old timestamp → 401, and assert the
+  compliance `fetch` was **not** called (inject/stub `fetch`).
+- **AC2:** post a signed `endpoint.url_validation` with a known `plainToken`; assert the
+  response `encryptedToken` equals the independently-computed `HMAC-SHA256(secretToken,
+  plainToken)` hex.
+- **AC3:** post a signed `app_deauthorized`; with `fetch` stubbed, assert it was called once
+  with the `/oauth/data/compliance` URL, an `Authorization: Basic …` header, and a body whose
+  `compliance_completed === true`; endpoint returns 200.
+- **AC4:** covered structurally — no store module is imported; the test asserts the handler
+  needs no persistence (a review check, plus AC3 passing without any store).
+- **AC5:** with the Secret Token unset, a POST returns 503 and `fetch` is not called; a
+  `GET /api/health` in the same app still returns `{ ok: true }`.
+- **AC6:** the tests assert no secret/token/signature value appears in captured `console` output
+  (spy on `console.log`/`console.error` during a deauth run).
+- **AC7:** manual doc check (the two files render the new env var + endpoint URL).
+- **AC8 (scope):** run `git diff --name-only main...HEAD` and verify no files appear beyond the
+  five product files, this story file, and the review artifacts enumerated in AC8.
+- **AC9:** run `npm test && npm run build`.
+
+## Open questions
+
+All resolved at the frame consult — see **Design decisions (2026-07-15)** below.
+
+## Design decisions (2026-07-15)
+
+Scope **approved** by Thomas at the frame consult: *"Approve + fix all 3 (recommended)"* — build
+the endpoint as specced with all three codex design findings applied. No one-way doors.
+
+- **Endpoint path:** **`POST /auth/deauthorize`** (Thomas) — the `/auth` namespace is already
+  Zoom-OAuth-adjacent and excluded from the SPA fallback. Two-way (dashboard URL).
+- **Compliance-callback failure:** **respond 500 so Zoom retries** (Thomas) + stderr log. Zoom's
+  built-in webhook retry is the durability mechanism; no queue or store.
+- **Raw-body capture:** the existing global `express.json({ verify })` hook stashes `req.rawBody`
+  — one line, no middleware reordering, the canonical Express webhook-signature pattern.
+- **Finding dispositions (all three → fix):**
+  - *"The verifier does not safely define hostile-header handling" (BLOCKER)* → **fix**: the
+    verifier becomes a total, non-throwing predicate — integer timestamp, `±300 s` window
+    (stale **and** future), exact `v0=<64 lowercase hex>` shape check before an equal-length
+    `timingSafeEqual`, `false` on every parse error. Folded into **AC1** + the sketch.
+  - *"Module-load configuration and global fetch stubbing create avoidable test coupling"
+    (IMPORTANT)* → **fix**: `createDeauthRouter(deps)` takes injectable
+    `{ secretToken, clientId, clientSecret, fetchImpl, now }` with production defaults; plus
+    per-credential 503 (url_validation works with just the token; `app_deauthorized` 503s when
+    callback creds are incomplete — no `Basic undefined:undefined`). Folded into **AC5** + the sketch.
+  - *"The synchronous compliance callback needs an explicit deadline" (IMPORTANT)* → **fix**:
+    `AbortSignal.timeout` under Zoom's ~3 s deadline; timeout / network / non-2xx → one
+    sanitized 500; at-least-once documented. Folded into **AC3** + the sketch.
+
+## Design sketch — HOW
+
+Follow the existing `zoom/oauth.js` shape: a thin, self-contained module, inert until its env
+is set, reading `process.env` at module load.
+
+- **`server/src/zoom/deauth.js` (new)** — exports `createDeauthRouter(deps = {})` returning an
+  `express.Router()` with one `POST` handler, plus small pure helpers so the crypto is
+  unit-testable without HTTP. **Dependencies are injectable** (codex finding 2):
+  `{ secretToken, clientId, clientSecret, fetchImpl, now }`, defaulting to `process.env.*`,
+  `globalThis.fetch`, and `Date.now` — production wiring is unchanged, but tests get a
+  deterministic clock and a stub `fetchImpl` with no global mutation.
+  - **Signature — a total, non-throwing predicate** (codex finding 1)
+    `verifyZoomSignature({ rawBody, signature, timestamp, secretToken, nowSeconds })
+    → boolean`, returning `false` (never throwing) on **every** parse/format error:
+    require a **decimal integer** timestamp; enforce `Math.abs(nowSeconds − timestamp) ≤ 300`
+    (rejects stale **and** future-dated); require the exact `v0=<64 lowercase hex>` shape
+    **before** comparing; then `timingSafeEqual` over **equal-length** buffers.
+    `expected = 'v0=' + createHmac('sha256', secretToken).update('v0:').update(timestamp)
+    .update(':').update(rawBody).digest('hex')` — chained `update` calls keep `rawBody` a Buffer.
+  - **Dispatch on `body.event`:** `endpoint.url_validation` → `{ plainToken, encryptedToken:
+    HMAC(secretToken, plainToken) }`; `app_deauthorized` → no-op purge (comment), then the
+    compliance `fetch`; unknown → 200/ignore.
+  - **Compliance callback — bounded** (codex finding 3): `POST
+    https://api.zoom.us/oauth/data/compliance`, `Authorization: Basic
+    base64(client_id:client_secret)`, JSON body per AC3 — reusing the Basic-auth idiom already
+    in `oauth.js`'s `exchangeCodeForToken` — with `signal: AbortSignal.timeout(<~2 s)`.
+    Timeout / network error / non-2xx all funnel to one sanitized **500** path (Thomas: let Zoom
+    retry); at-least-once across deliveries is documented, not defended against.
+- **`server/src/app.js`** — add `verify: (req, _res, buf) => { req.rawBody = buf }` to the
+  existing `express.json({ limit: '100kb' })` so the exact signed bytes are available; mount
+  `app.use('/auth', createDeauthRouter())` (or its own mount) alongside the OAuth router. No
+  change to headers, health, or the SPA fallback.
+- **Data shapes:** the inbound Zoom event (`{ event, payload: { account_id, user_id,
+  client_id, user_data_retention, deauthorization_time, … } }`) and the outbound compliance
+  body (AC3). No local persistence types — nothing is stored.
+- **Env / config:** `ZOOM_WEBHOOK_SECRET_TOKEN` added to `server/.env.example`; the endpoint
+  URL + Secret Token added to the `server/zoom-app-config.md` checklist (Deauthorization
+  Notification Endpoint URL field).
+- **Error model:** invalid signature/replay → 401; unconfigured → 503; callback failure → 500
+  (Open question 2); success → 200. Never log secrets (AC6). No new dependency.
+
+## Codex design review (2026-07-14)
+
+**Verdict:** sound shape. "Express router, Node crypto, raw-body verification, no persistence,
+and no new dependency. I would build it this way after tightening the verifier contract, making
+configuration/side effects injectable, and bounding the synchronous callback to Zoom's webhook
+deadline." All findings two-way; no one-way doors.
+
+**Findings**
+
+- **BLOCKER · two-way · nonstandard — "The verifier does not safely define hostile-header
+  handling"** (Design sketch → Signature). `timingSafeEqual` throws on unequal-length buffers,
+  so an attacker-controlled malformed `x-zm-signature` becomes a 500 instead of AC1's 401; the
+  sketch also rejects only *old* timestamps (arbitrary *future*-dated signed requests pass) and
+  doesn't require a finite integer timestamp.
+  - *alternative:* make verification a **total, non-throwing predicate** — require a decimal
+    integer timestamp, enforce `Math.abs(nowSeconds − timestamp) ≤ 300`, require the exact
+    `v0=<64 lowercase hex>` shape, compare **equal-length** buffers with `timingSafeEqual`, and
+    return `false` on every parse/format error. Chain `update` calls so `rawBody` stays a Buffer.
+  - *win:* every malformed/replay request follows the single 401 path; no attacker-triggerable
+    500s; closes the future-timestamp gap.
+- **IMPORTANT · two-way · kludgy — "Module-load configuration and global fetch stubbing create
+  avoidable test coupling"** (Design sketch → `deauth.js`). Reading creds at module load (à la
+  `oauth.js`) plus stubbing global `fetch` pushes tests toward cache-busting imports / global
+  mutation that can race under `node:test`; and 503 is defined only for a missing webhook token,
+  leaving `app_deauthorized` underspecified when client id/secret are absent.
+  - *alternative:* `createDeauthRouter` accepts optional `{ secretToken, clientId, clientSecret,
+    fetchImpl, now }` with `process.env` / `globalThis.fetch` / `Date.now` as production
+    defaults; permit url_validation with just the webhook token, but 503 before
+    `app_deauthorized` processing when callback creds are incomplete.
+  - *win:* deterministic clock/failure tests, no global mutation, and no `Basic undefined:undefined`
+    request — with no change to production wiring or dependencies.
+- **IMPORTANT · two-way · nonstandard — "The synchronous compliance callback needs an explicit
+  deadline"** (Design sketch → Error model / Compliance callback). Zoom expects a 200/204 within
+  ~3 s and retries; an unbounded `fetch` can outlive that, so Zoom retries while the first
+  callback may still be in flight.
+  - *alternative:* keep the synchronous/500 retry policy but give `fetch` an `AbortSignal`
+    timeout comfortably below 3 s, mapping timeout / network error / non-2xx to the same
+    sanitized 500; document at-least-once semantics under Zoom retries.
+  - *win:* bounds every request, preserves Zoom's retry, removes the largest duplicate-callback
+    window — no queue, store, or dependency.
