@@ -184,6 +184,35 @@ is set, reading `process.env` at module load.
 - **Error model:** invalid signature/replay → 401; unconfigured → 503; callback failure → 500
   (Open question 2); success → 200. Never log secrets (AC6). No new dependency.
 
+## Decisions — round 2 (2026-07-15, base main 63a38b5, HEAD 63a83e2)
+
+**Both passes CLEAN — no findings, nothing to decide.**
+
+- Approach pass (round 2): empty findings — the post-redesign shape is blessed.
+- Correctness pass (its **first** run on this code at any SHA): empty findings.
+
+No fixes were applied this round, so the code stands at HEAD 63a83e2 as reviewed. `/close`'s fork
+therefore offers re-review **or** merge (this round contained no redesign).
+
+**Still outstanding at merge time:** `BACKLOG.md` **OPS-3 → Done** — this story resolves that
+tracked item, so `/close` records it (step 5b) rather than this story editing it.
+
+## Codex review (2026-07-15, base main 63a38b5, HEAD 63a83e2)
+
+**Summary:** CLEAN — empty findings. "No issues found. The branch matches the current acceptance
+criteria: raw bytes are captured before JSON parsing; signature and timestamp formats are strictly
+validated; the ±300-second replay window covers stale and future requests; HMAC comparison is
+timing-safe and equal-length; URL validation produces the required token HMAC; deauthorization
+performs the documented no-op purge without network access; and unconfigured operation is inert.
+`git diff --check` and direct crypto checks passed."
+
+Beyond reading the diff, the reviewer **independently executed** the pure helpers
+(`zoomSignature` / `verifyZoomSignature` / `urlValidationResponse`) out-of-band and confirmed:
+a valid signature verifies; a timestamp 301 s out of window is rejected; an upper-case-hex
+signature is rejected; the url_validation echo is correct. *(It could not run the full gate in its
+read-only sandbox — Vitest needs temp writes and the server tests need listening sockets. The gate
+ran green locally: client 157, server 40, secret-scan 14, build.)*
+
 ## Codex approach review — round 2 (2026-07-15, base main 63a38b5, HEAD 63a83e2)
 
 **Verdict:** CLEAN — empty findings. "Sound and idiomatic. I would build the revised endpoint this
