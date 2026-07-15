@@ -225,6 +225,32 @@ callback as mandatory), so it was checked against primary sources rather than ta
 in `BACKLOG.md`, and the deauth notes in `reviews/backlog.md` all still describe the callback as
 mandatory — they are now outdated and should be corrected.
 
+## Decisions (2026-07-15, base main 63a38b5, HEAD 6b6efdd)
+
+Approach pass — 1 BLOCKER:
+
+- **BLOCKER "The design is centered on Zoom's deprecated Data Compliance API"** → **FIX**
+  (Thomas: *"Fix — delete the callback half"*). A **redesign**: `app_deauthorized` becomes
+  **verify → no-op purge → 200**. Delete `COMPLIANCE_URL`, `CALLBACK_TIMEOUT_MS`,
+  `complianceBody`, the Basic-auth construction, the `fetch`/timeout/error handling, the
+  OAuth-credential gating (`clientId` / `clientSecret` / `fetchImpl` deps), the callback tests,
+  and the callback documentation. **Keep** the endpoint, HMAC signature verification, the ±300 s
+  replay window, `endpoint.url_validation`, and the no-op purge. **AC3 is revised** (its
+  compliance-callback requirement was the stale premise), **AC5** loses its per-credential arm
+  (no OAuth creds needed anymore), and **AC8** widens per the doc decision below.
+  - *Note:* this retires two of the three earlier design fixes — the `AbortSignal` timeout and
+    the per-credential 503 existed **only** to serve the callback. The verifier hardening
+    (the design-review BLOCKER) stands unchanged and is unaffected.
+- **Doc drift** → **fix in this story** (Thomas: *"Yes — correct them here"*). `BACKLOG.md`
+  (OPS-3) and `reviews/backlog.md` both still state the compliance callback is mandatory; both
+  are corrected to match verified reality (endpoint required; callback deprecated). **AC8's file
+  list widens** to include them. The outdated memory
+  `reference-zoom-prod-unknowns-research` is corrected separately (not repo scope).
+
+**Route:** per the approach gate, an approved shape-changing fix **stops this round before the
+correctness pass** — the redesign is applied in `/close` and the new shape returns for a fresh
+review (whose approach pass re-runs on it). No correctness pass was run at HEAD 6b6efdd.
+
 ## Build note (2026-07-15)
 
 AC → file map:
