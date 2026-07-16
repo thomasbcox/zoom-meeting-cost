@@ -248,6 +248,30 @@ round (its first run on this code at any SHA).
 `client/node_modules/.vite-temp`. An environment limitation, not a finding: the gate ran green
 locally — client 157, server 40, secret-scan 14, build.)*
 
+## Codex approach review — round 3 (2026-07-16, base main 63a38b5, HEAD 12d602e)
+
+**Verdict:** "The overall shape is sound and idiomatic: `express-rate-limit` is preferable to a
+hand-rolled limiter, it runs before signature verification, its test ceiling is injectable, and
+its memory store is adequate for a single-instance webhook. One configuration detail prevents the
+claimed global ceiling from being reliably global behind Railway."
+
+**IMPORTANT · two-way · kludgy — "The documented global ceiling is keyed by proxy IP"**
+(`server/src/zoom/deauth.js`, the `validate: { trustProxy: false }` limiter config)
+
+- *claim:* with Express `trust proxy` left false, express-rate-limit's default key generator uses
+  `req.ip` — the immediate Railway proxy address, not a process-wide key. Requests via different
+  proxy peers get separate 60-request buckets, so `validate: { trustProxy: false }` suppresses a
+  diagnostic but does **not** create the documented global ceiling. (The MemoryStore itself is
+  fine for one instance; the *keying* is the gap.)
+- *alternative:* keep express-rate-limit + MemoryStore, but set an explicit constant
+  `keyGenerator: () => 'zoom-deauthorize'` so the ceiling is genuinely process-global; add a test
+  showing requests with different apparent addresses share one bucket.
+- *win:* delivers the promised invariant (≤ limit/min per instance) without new infrastructure or
+  dependency, and removes reliance on Railway's proxy topology.
+
+The prior accepted history (round-1 deprecated-callback removal; round-2 clean) was not
+re-raised. This is the sole finding; the shape is otherwise blessed.
+
 ## CI blocker + Decisions — round 3 (2026-07-16)
 
 The round-2 merge attempt (`/close`) was **blocked by CI**, not shipped: CodeQL raised **1 new
@@ -400,6 +424,14 @@ Restated here against the current code so the map doesn't misdirect.)*
 - **Wiring** — `server/src/app.js` (`express.json({ verify })` raw-body capture; `/auth`
   router mount; `createApp({ deauth })` dep injection, now `secretToken` / `now` only).
 - **AC9** (gate green) — implicit (this review exists).
+
+**Round-3 delta (2026-07-16, HEAD 12d602e):**
+- **AC10** (rate-limited; 429 past the ceiling; guard before verification) —
+  `server/src/zoom/deauth.js` (`DEFAULT_RATE_LIMIT`, the `rateLimit(...)` limiter applied as
+  `router.post('/deauthorize', limiter, …)`, `rateLimitOptions` dep), `server/test/deauth.test.js`
+  (two AC10 tests). **Dependency:** `server/package.json` (`express-rate-limit`) + root
+  `package-lock.json`.
+- **AC8** now also covers `server/package.json` + `package-lock.json` (see the widened AC8).
 
 ## Codex design review (2026-07-14)
 
