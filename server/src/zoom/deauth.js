@@ -23,6 +23,7 @@
 
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import express from 'express';
+import { rateLimit } from 'express-rate-limit';
 
 // Reject signed requests whose timestamp is more than this far from now, in EITHER
 // direction — a stale replay and a future-dated one are both refused.
@@ -31,6 +32,12 @@ const REPLAY_WINDOW_SECONDS = 300;
 // The only signature shape Zoom sends: `v0=` + hex sha256. Checked BEFORE any compare so a
 // hostile header can never reach timingSafeEqual with a mismatched length (which throws).
 const SIGNATURE_SHAPE = /^v0=[0-9a-f]{64}$/;
+
+// DoS guard on this public, pre-auth endpoint: bound how often the (cheap but non-zero) verify
+// path can run. Zoom sends deauthorization events infrequently and `url_validation` just once on
+// save, so this ceiling sits far above any legitimate cadence. Applied to the whole route, so
+// even signature-rejected floods are capped. Overridable via the `rateLimitOptions` dep (tests).
+const DEFAULT_RATE_LIMIT = { windowMs: 60_000, limit: 60 };
 
 /** The signature Zoom should have sent for these bytes. `rawBody` stays a Buffer. */
 export function zoomSignature({ rawBody, timestamp, secretToken }) {
@@ -91,10 +98,22 @@ export function urlValidationResponse({ plainToken, secretToken }) {
 export function createDeauthRouter({
   secretToken = process.env.ZOOM_WEBHOOK_SECRET_TOKEN,
   now = Date.now,
+  rateLimitOptions,
 } = {}) {
   const router = express.Router();
 
-  router.post('/deauthorize', (req, res) => {
+  const limiter = rateLimit({
+    ...DEFAULT_RATE_LIMIT,
+    ...rateLimitOptions,
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+    // We don't set Express `trust proxy`; behind Railway's proxy this is a coarse GLOBAL ceiling
+    // on the endpoint rather than precise per-client attribution — which is what a webhook DoS
+    // guard wants (one real client: Zoom). Silence the trust-proxy setup check accordingly.
+    validate: { trustProxy: false },
+  });
+
+  router.post('/deauthorize', limiter, (req, res) => {
     // No secret token → we cannot verify anything. Inert, like the OAuth scaffold.
     if (!secretToken) return res.status(503).json({ error: 'not_configured' });
 

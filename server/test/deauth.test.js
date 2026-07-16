@@ -33,7 +33,14 @@ function sign(rawBody, timestamp, secret = SECRET) {
 
 function startApp(deauth = {}) {
   const app = createApp({
-    deauth: { secretToken: SECRET, now: () => NOW_MS, ...deauth },
+    deauth: {
+      secretToken: SECRET,
+      now: () => NOW_MS,
+      // Effectively unlimited for the functional tests (each fires only a handful of requests to
+      // a fresh app); the dedicated rate-limit test below overrides this with a small ceiling.
+      rateLimitOptions: { windowMs: 60_000, limit: 1000 },
+      ...deauth,
+    },
   });
   const server = app.listen(0);
   return new Promise((resolve) => server.once('listening', () => resolve(server)));
@@ -252,6 +259,33 @@ test('AC5: /api/health is unaffected when the webhook is unconfigured', async ()
     const res = await fetch(`http://127.0.0.1:${server.address().port}/api/health`);
     assert.equal(res.status, 200);
     assert.equal((await res.json()).ok, true);
+  } finally {
+    server.close();
+  }
+});
+
+// --- AC10: rate limiting (DoS guard) ----------------------------------------
+
+test('AC10: requests past the ceiling get 429', async () => {
+  const server = await startApp({ rateLimitOptions: { windowMs: 60_000, limit: 2 } });
+  try {
+    const p = server.address().port;
+    assert.equal((await postEvent(p, DEAUTH_EVENT)).status, 200);
+    assert.equal((await postEvent(p, DEAUTH_EVENT)).status, 200);
+    assert.equal((await postEvent(p, DEAUTH_EVENT)).status, 429, '3rd request over limit=2 is 429');
+  } finally {
+    server.close();
+  }
+});
+
+test('AC10: the limiter caps even signature-rejected floods (pre-auth)', async () => {
+  const server = await startApp({ rateLimitOptions: { windowMs: 60_000, limit: 2 } });
+  try {
+    const p = server.address().port;
+    // Unsigned garbage still counts against the ceiling — the guard is before verification.
+    assert.equal((await postEvent(p, DEAUTH_EVENT, { omitSig: true })).status, 401);
+    assert.equal((await postEvent(p, DEAUTH_EVENT, { omitSig: true })).status, 401);
+    assert.equal((await postEvent(p, DEAUTH_EVENT, { omitSig: true })).status, 429);
   } finally {
     server.close();
   }

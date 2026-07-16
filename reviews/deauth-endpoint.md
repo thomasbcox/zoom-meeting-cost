@@ -48,7 +48,10 @@ required. This story builds that endpoint.
 - No monetization / entitlement teardown (none exists).
 - No CSP hardening, no Marketplace dashboard changes (Thomas-only), no `BACKLOG.md` OPS-3 → Done
   move (that is a `/close` record step, not this story).
-- No new runtime dependency — Node `crypto` (`createHmac`, `timingSafeEqual`) + global `fetch`.
+- ~~No new runtime dependency~~ **(SUPERSEDED 2026-07-16)** — CodeQL flagged the public endpoint
+  as `js/missing-rate-limiting` (high), which also matches Zoom's own DoS guidance for the
+  deauthorization URL. One dependency, **`express-rate-limit`**, was added to close it (Thomas's
+  call — see Decisions round 3 + AC10). Everything else remains Node `crypto` + `express`.
 
 ## Acceptance criteria
 
@@ -83,14 +86,19 @@ required. This story builds that endpoint.
 7. **Docs updated.** `server/.env.example` documents `ZOOM_WEBHOOK_SECRET_TOKEN`, and
    `server/zoom-app-config.md` lists the deauthorization endpoint URL + the Secret Token as a
    Marketplace-config step.
-8. **Scope containment (WIDENED 2026-07-15).** The product diff is limited to
+8. **Scope containment (WIDENED 2026-07-15, again 2026-07-16).** The product diff is limited to
    `server/src/zoom/deauth.js` (new), `server/src/app.js`, `server/.env.example`,
-   `server/zoom-app-config.md`, `server/test/deauth.test.js` (new), and — per the approved
-   doc-drift fix — `BACKLOG.md` (OPS-3) and `reviews/backlog.md`, whose deauth entries asserted
-   the now-deprecated compliance callback. Beyond those, `git diff --name-only main...HEAD`
-   carries only this story file and the workflow's review artifacts
+   `server/zoom-app-config.md`, `server/test/deauth.test.js` (new); the rate-limit dependency
+   (`server/package.json` + root `package-lock.json`); the `BACKLOG.md` doc-drift correction and
+   OPS-3 → Done record; and `reviews/backlog.md`. Beyond those, `git diff --name-only
+   main...HEAD` carries only this story file and the workflow's review artifacts
    (`.design/.approach/.codex.json`).
 9. The gate (`npm test && npm run build`) stays green.
+10. **Rate-limited (ADDED 2026-07-16).** The `POST /auth/deauthorize` route is rate-limited
+    (`express-rate-limit`), so requests past a bounded ceiling get **429** — and the limiter sits
+    **before** verification, so even signature-rejected floods are capped. The ceiling is
+    overridable via an injected option (tests). This clears the CodeQL `js/missing-rate-limiting`
+    high alert and answers Zoom's DoS guidance for the deauthorization endpoint.
 
 ## Test notes
 
@@ -113,6 +121,10 @@ required. This story builds that endpoint.
 - **AC8 (scope):** run `git diff --name-only main...HEAD` and verify no files appear beyond the
   five product files, this story file, and the review artifacts enumerated in AC8.
 - **AC9:** run `npm test && npm run build`.
+- **AC10:** `server/test/deauth.test.js` — with an injected `limit: 2`, the 3rd signed request is
+  429; a second case fires unsigned (401) requests and confirms the 3rd is 429, proving the
+  limiter runs **before** verification. CodeQL's `js/missing-rate-limiting` alert clears on the
+  re-run.
 
 ## Open questions
 
@@ -171,6 +183,11 @@ is set, reading `process.env` at module load.
     in `oauth.js`'s `exchangeCodeForToken` — with `signal: AbortSignal.timeout(<~2 s)`.
     Timeout / network error / non-2xx all funnel to one sanitized **500** path (Thomas: let Zoom
     retry); at-least-once across deliveries is documented, not defended against.
+- **Rate limiting (ADDED 2026-07-16):** `express-rate-limit` as route middleware on
+  `POST /auth/deauthorize`, applied **before** the handler so signature-rejected floods are also
+  capped. Config `{ windowMs: 60_000, limit: 60 }` (far above Zoom's real cadence), overridable
+  via a `rateLimitOptions` dep for tests; `validate: { trustProxy: false }` because behind
+  Railway's proxy this is a deliberate coarse global ceiling, not per-client attribution.
 - **`server/src/app.js`** — add `verify: (req, _res, buf) => { req.rawBody = buf }` to the
   existing `express.json({ limit: '100kb' })` so the exact signed bytes are available; mount
   `app.use('/auth', createDeauthRouter())` (or its own mount) alongside the OAuth router. No
@@ -230,6 +247,30 @@ round (its first run on this code at any SHA).
 *(Codex noted it could not re-run the gate inside its read-only sandbox — Vitest wanted to create
 `client/node_modules/.vite-temp`. An environment limitation, not a finding: the gate ran green
 locally — client 157, server 40, secret-scan 14, build.)*
+
+## CI blocker + Decisions — round 3 (2026-07-16)
+
+The round-2 merge attempt (`/close`) was **blocked by CI**, not shipped: CodeQL raised **1 new
+high-severity alert** — `js/missing-rate-limiting` at `server/src/zoom/deauth.js` (the
+`POST /auth/deauthorize` handler *"performs authorization, but is not rate-limited"*). Legitimate:
+the endpoint is public and does an HMAC before it can reject, and Zoom's own guidance says to
+guard the deauthorization URL against DoS. Auto-merge was disarmed; nothing merged.
+
+- **Decision → fix by adding `express-rate-limit`** (Thomas: *"Add express-rate-limit"*). This
+  **reverses the "no new dependency" non-goal**, which both approach passes had blessed — hence a
+  fresh review round rather than a silent merge-time patch. Scoped limiter on the route (before
+  verification), injectable ceiling for tests; new **AC10**; non-goal + AC8 + sketch updated.
+- *Pre-existing (out of scope, noted):* `main` already carries open CodeQL alerts —
+  `js/missing-rate-limiting` at `app.js:124` (the SPA fallback), `js/clear-text-logging`
+  (`index.js:18`), `js/insecure-temporary-file` (`loadEnv.test.js:12`), `js/log-injection`
+  (`app.js:84`). CodeQL only *fails the PR* on **new** alerts, which is why those merged earlier.
+  Worth a separate pass before Zoom's manual OWASP security review — not this story.
+
+**Route:** shape changed (new dependency + middleware) on security-relevant code → back through
+`/review` for a fresh approach + correctness pass before any merge. Not merged this round.
+
+*Note: `BACKLOG.md` OPS-3 → Done was already recorded on the branch during the interrupted round-2
+`/close` (commit `record: OPS-3 -> Done`); it rides to `main` on the eventual merge.*
 
 ## Fixes (2026-07-15)
 
