@@ -248,6 +248,30 @@ round (its first run on this code at any SHA).
 `client/node_modules/.vite-temp`. An environment limitation, not a finding: the gate ran green
 locally — client 157, server 40, secret-scan 14, build.)*
 
+## Decisions — round 3 review (2026-07-16, base main 63a38b5, HEAD 12d602e)
+
+Both passes had one finding each; **both → FIX**. Both touch the rate-limiting on a public
+security endpoint, and the correctness fix reshapes middleware — so this is a **shape-changing
+round**: `/close` applies the fixes and the result returns for a fresh review (re-review only, no
+merge offered).
+
+- **Approach — "rate limiter keyed by proxy IP" → FIX** (Thomas: *"Make it global"*).
+  Add `keyGenerator: () => 'zoom-deauthorize'` so the ceiling is genuinely process-global, plus a
+  test that requests with differing apparent addresses share one bucket. **Grounded in Zoom's own
+  guidance** (researched 2026-07-16): Zoom dictates **nothing** about rate-limiting the
+  deauthorization endpoint — its only DoS requirement is signature verification (done) — and it
+  *"strongly recommend[s] … verify webhook events instead of creating an allow list of Zoom IP
+  addresses because Zoom may update the IP ranges … at any time"*
+  ([Using webhooks](https://developers.zoom.us/docs/api/webhooks/)). Since Zoom's source IPs are
+  explicitly unstable, a **global constant-key** ceiling is the correct model, not per-IP.
+- **Correctness — "body-parser bypasses the limiter" (BLOCKER) → FIX** (Thomas: *"put the limiter
+  outermost"*). Mount the webhook **before** the global `express.json()` with a route-local chain
+  **limiter → bounded raw-body parse → verify → dispatch**, so malformed/oversized requests are
+  counted and eventually 429, and a malformed+bad-signature request returns AC1's 401 (not 400).
+  This **removes the global `express.json({ verify })` side-effect** (frame "Option A") in favour
+  of route-local raw parsing (frame "Option B"). New tests cover the malformed/oversized-flood →
+  429 path and the malformed+bad-sig → 401 path.
+
 ## Codex review — round 3 (2026-07-16, base main 63a38b5, HEAD 12d602e)
 
 **Summary:** "One blocker found: malformed or oversized JSON bypasses both signature verification
