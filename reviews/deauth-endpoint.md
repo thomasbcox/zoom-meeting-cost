@@ -248,6 +248,33 @@ round (its first run on this code at any SHA).
 `client/node_modules/.vite-temp`. An environment limitation, not a finding: the gate ran green
 locally — client 157, server 40, secret-scan 14, build.)*
 
+## Codex review — round 3 (2026-07-16, base main 63a38b5, HEAD 12d602e)
+
+**Summary:** "One blocker found: malformed or oversized JSON bypasses both signature verification
+and the new rate limiter because global body parsing runs first. The HMAC implementation, replay
+window, raw-byte use for parsed JSON, and URL-validation response otherwise match the current
+acceptance criteria." *(Codex again executed the verifier out-of-band: valid ✓, stale ✗, future ✗,
+malformed ✗, url_validation HMAC correct. It couldn't run the full gate in its read-only sandbox —
+sockets/temp writes denied; the gate ran green locally: client 157, server 42, secret-scan 14,
+build.)*
+
+**BLOCKER — "Body-parser failures bypass the webhook rate limiter"** (`server/src/app.js`, the
+global `express.json()` at ~line 79 vs. the `/auth` router mount at ~line 134)
+
+- *claim:* the global `express.json()` runs **before** the deauthorization router, so malformed
+  JSON is rejected 400 and oversized JSON 413 **before** the route-level limiter in `deauth.js`
+  runs. Repeated malformed/oversized requests never increment the limiter and never hit 429 —
+  leaving a public pre-auth parsing path **outside AC10's bounded ceiling**, contradicting AC10's
+  "caps even signature-rejected floods". A malformed-body request with a bad/missing signature
+  also returns 400, not AC1's 401.
+- *suggestion:* move this webhook **ahead of** the global JSON parser with a route-local chain:
+  **rate limiter → bounded raw-body capture/parser → signature verification → dispatch**. Add
+  tests showing malformed and oversized requests are counted and eventually 429; define the
+  post-limit malformed-body response consistently with AC1.
+- *(Note: this also removes the global `express.json({ verify })` side-effect — the round-1
+  raw-body-capture choice (frame "Option A") — in favour of route-local raw parsing (frame
+  "Option B"), scoping body handling to the one route that needs it.)*
+
 ## Codex approach review — round 3 (2026-07-16, base main 63a38b5, HEAD 12d602e)
 
 **Verdict:** "The overall shape is sound and idiomatic: `express-rate-limit` is preferable to a
