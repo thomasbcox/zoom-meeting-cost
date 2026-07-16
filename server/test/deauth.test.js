@@ -291,6 +291,65 @@ test('AC10: the limiter caps even signature-rejected floods (pre-auth)', async (
   }
 });
 
+// Round-3 BLOCKER fix: the limiter must be the OUTERMOST gate — malformed/oversized bodies must
+// be counted, not rejected by a body parser running before it. (Raw POST, not postEvent.)
+async function rawPost(port, body) {
+  return fetch(`http://127.0.0.1:${port}/auth/deauthorize`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body,
+  });
+}
+
+test('AC10: MALFORMED-body floods are counted and eventually 429 (not a pre-limiter 400)', async () => {
+  const server = await startApp({ rateLimitOptions: { windowMs: 60_000, limit: 2 } });
+  try {
+    const p = server.address().port;
+    // Invalid JSON + no signature: reaches the limiter (counted) then fails verification → 401.
+    // The 3rd is 429 — proving the parser no longer short-circuits ahead of the limiter.
+    assert.equal((await rawPost(p, '{not valid json')).status, 401);
+    assert.equal((await rawPost(p, '{not valid json')).status, 401);
+    assert.equal((await rawPost(p, '{not valid json')).status, 429);
+  } finally {
+    server.close();
+  }
+});
+
+test('AC10: OVERSIZED-body floods are counted and eventually 429', async () => {
+  const server = await startApp({ rateLimitOptions: { windowMs: 60_000, limit: 2 } });
+  try {
+    const p = server.address().port;
+    const huge = 'x'.repeat(200 * 1024); // > the 100kb cap
+    const s1 = (await rawPost(p, huge)).status;
+    const s2 = (await rawPost(p, huge)).status;
+    const s3 = (await rawPost(p, huge)).status;
+    assert.ok(s1 === 413 && s2 === 413, `oversized should be 413 (got ${s1}, ${s2})`);
+    assert.equal(s3, 429, 'the 3rd oversized request is rate-limited, so it was counted');
+  } finally {
+    server.close();
+  }
+});
+
+test('AC1: a validly-SIGNED but malformed body is 400 (post-verification parse failure)', async () => {
+  const server = await startApp();
+  try {
+    const p = server.address().port;
+    const raw = '{not valid json';
+    const res = await fetch(`http://127.0.0.1:${p}/auth/deauthorize`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-zm-signature': sign(raw, String(NOW_S)),
+        'x-zm-request-timestamp': String(NOW_S),
+      },
+      body: raw,
+    });
+    assert.equal(res.status, 400);
+  } finally {
+    server.close();
+  }
+});
+
 // --- AC6: no secret leakage -------------------------------------------------
 
 test('AC6: no secret token or signature value is logged', async () => {

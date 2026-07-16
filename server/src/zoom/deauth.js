@@ -107,19 +107,26 @@ export function createDeauthRouter({
     ...rateLimitOptions,
     standardHeaders: 'draft-7',
     legacyHeaders: false,
-    // We don't set Express `trust proxy`; behind Railway's proxy this is a coarse GLOBAL ceiling
-    // on the endpoint rather than precise per-client attribution — which is what a webhook DoS
-    // guard wants (one real client: Zoom). Silence the trust-proxy setup check accordingly.
-    validate: { trustProxy: false },
+    // A single constant key → ONE process-global bucket, independent of source IP. Zoom's webhook
+    // source IPs are explicitly unstable (Zoom: "verify events instead of an IP allow list …
+    // because Zoom may update the IP ranges at any time"), so per-IP keying is the wrong model;
+    // this bounds total work on the endpoint. Signature verification stays the real authenticity
+    // control. With a constant key the IP/proxy validations don't apply, so they're turned off.
+    keyGenerator: () => 'zoom-deauthorize',
+    validate: false,
   });
 
-  router.post('/deauthorize', limiter, (req, res) => {
+  // Route-local chain, mounted (in app.js) BEFORE the global JSON parser so the limiter is the
+  // OUTERMOST gate: limiter → bounded raw-body capture → verify → dispatch. This way malformed or
+  // oversized floods are counted/capped too (they don't get rejected by a parser that runs first),
+  // and the exact signed bytes are `req.body` here — no global body-parser side-effect needed.
+  router.post('/deauthorize', limiter, express.raw({ type: () => true, limit: '100kb' }), (req, res) => {
     // No secret token → we cannot verify anything. Inert, like the OAuth scaffold.
     if (!secretToken) return res.status(503).json({ error: 'not_configured' });
 
+    const rawBody = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
     const ok = verifyZoomSignature({
-      // express.json's `verify` hook stashes the exact bytes Zoom signed (see app.js).
-      rawBody: req.rawBody,
+      rawBody,
       signature: req.get('x-zm-signature'),
       timestamp: req.get('x-zm-request-timestamp'),
       secretToken,
@@ -127,9 +134,18 @@ export function createDeauthRouter({
     });
     if (!ok) return res.sendStatus(401);
 
-    if (req.body?.event === 'endpoint.url_validation') {
+    // Verified as genuinely from Zoom → parse the now-trusted JSON to dispatch. Zoom always sends
+    // JSON, so a parse failure means a validly-signed but malformed body — a 400, not a crash.
+    let event;
+    try {
+      event = JSON.parse(rawBody.toString('utf8'));
+    } catch {
+      return res.sendStatus(400);
+    }
+
+    if (event?.event === 'endpoint.url_validation') {
       return res.json(
-        urlValidationResponse({ plainToken: req.body?.payload?.plainToken, secretToken })
+        urlValidationResponse({ plainToken: event?.payload?.plainToken, secretToken })
       );
     }
 
@@ -137,6 +153,15 @@ export function createDeauthRouter({
     // and is intentionally nothing: no per-user data is stored (see the module header). So
     // acknowledge and stop. No outbound call — the compliance API is deprecated.
     return res.sendStatus(200);
+  });
+
+  // Body-parser errors on this route (e.g. an oversized body → 413 from express.raw). Respond
+  // with the bare status and DON'T let them reach Express's default handler, which would spew a
+  // stack trace to stderr on every request — noise an oversized-body flood would amplify (the
+  // limiter already ran, so these are bounded, but the endpoint should stay quiet).
+  // eslint-disable-next-line no-unused-vars
+  router.use((err, _req, res, _next) => {
+    res.sendStatus(err?.status || err?.statusCode || 400);
   });
 
   return router;

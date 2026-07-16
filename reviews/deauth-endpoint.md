@@ -94,11 +94,13 @@ required. This story builds that endpoint.
    main...HEAD` carries only this story file and the workflow's review artifacts
    (`.design/.approach/.codex.json`).
 9. The gate (`npm test && npm run build`) stays green.
-10. **Rate-limited (ADDED 2026-07-16).** The `POST /auth/deauthorize` route is rate-limited
-    (`express-rate-limit`), so requests past a bounded ceiling get **429** — and the limiter sits
-    **before** verification, so even signature-rejected floods are capped. The ceiling is
-    overridable via an injected option (tests). This clears the CodeQL `js/missing-rate-limiting`
-    high alert and answers Zoom's DoS guidance for the deauthorization endpoint.
+10. **Rate-limited (ADDED 2026-07-16; strengthened round-3).** The `POST /auth/deauthorize` route
+    is rate-limited (`express-rate-limit`) as the **outermost** gate — mounted before the global
+    JSON parser, so **malformed and oversized** floods are counted and eventually **429**, not
+    just well-formed ones. The ceiling is a single **process-global** bucket
+    (`keyGenerator: () => 'zoom-deauthorize'`), not per-IP (Zoom's webhook IPs are unstable by
+    Zoom's own guidance). Overridable via an injected option (tests). Clears the CodeQL
+    `js/missing-rate-limiting` high alert and answers Zoom's DoS guidance.
 
 ## Test notes
 
@@ -183,15 +185,20 @@ is set, reading `process.env` at module load.
     in `oauth.js`'s `exchangeCodeForToken` — with `signal: AbortSignal.timeout(<~2 s)`.
     Timeout / network error / non-2xx all funnel to one sanitized **500** path (Thomas: let Zoom
     retry); at-least-once across deliveries is documented, not defended against.
-- **Rate limiting (ADDED 2026-07-16):** `express-rate-limit` as route middleware on
-  `POST /auth/deauthorize`, applied **before** the handler so signature-rejected floods are also
-  capped. Config `{ windowMs: 60_000, limit: 60 }` (far above Zoom's real cadence), overridable
-  via a `rateLimitOptions` dep for tests; `validate: { trustProxy: false }` because behind
-  Railway's proxy this is a deliberate coarse global ceiling, not per-client attribution.
-- **`server/src/app.js`** — add `verify: (req, _res, buf) => { req.rawBody = buf }` to the
-  existing `express.json({ limit: '100kb' })` so the exact signed bytes are available; mount
-  `app.use('/auth', createDeauthRouter())` (or its own mount) alongside the OAuth router. No
-  change to headers, health, or the SPA fallback.
+- **Rate limiting + body handling (ADDED 2026-07-16; reshaped round-3):** a route-local chain on
+  `POST /auth/deauthorize` — **`limiter → express.raw({ limit: '100kb' }) → verify → dispatch`** —
+  mounted **before** the global JSON parser so the limiter is the outermost gate (malformed /
+  oversized floods are counted too). Limiter config `{ windowMs: 60_000, limit: 60 }`, a
+  **constant `keyGenerator`** for a process-global ceiling, `validate: false` (constant key ⇒ the
+  IP/proxy validations don't apply), overridable via a `rateLimitOptions` dep. The handler reads
+  the raw `req.body` Buffer for the HMAC, then `JSON.parse`s it (guarded → 400) only **after**
+  verification. A route-scoped error handler maps body-parser errors (oversized → 413) to a bare
+  status so a flood can't spam stderr with stack traces.
+- **`server/src/app.js`** — mount `app.use('/auth', createDeauthRouter(deauth))` **before** the
+  global `express.json({ limit: '100kb' })` (now a plain parser — the old `verify` raw-capture
+  hook is gone, replaced by the route-local `express.raw`); move the request logger ahead of body
+  parsing (it needs only method+path) so the webhook is still logged. No change to headers,
+  health, the OAuth router, or the SPA fallback.
 - **Data shapes:** the inbound Zoom event (`{ event, payload: { account_id, user_id,
   client_id, user_data_retention, deauthorization_time, … } }`) and the outbound compliance
   body (AC3). No local persistence types — nothing is stored.
@@ -346,6 +353,29 @@ guard the deauthorization URL against DoS. Auto-merge was disarmed; nothing merg
 
 *Note: `BACKLOG.md` OPS-3 → Done was already recorded on the branch during the interrupted round-2
 `/close` (commit `record: OPS-3 -> Done`); it rides to `main` on the eventual merge.*
+
+## Fixes — round 3 (2026-07-16)
+
+Applied both approved round-3 fixes. **Shape-changing** (middleware reordered + parser swapped),
+so this returns for a fresh review — re-review only, no merge.
+
+- **Approach fix — limiter now global.** `server/src/zoom/deauth.js`: `keyGenerator: () =>
+  'zoom-deauthorize'` → one process-global bucket; `validate: false` (constant key, so the
+  IP/proxy validations are moot). Test: differing apparent addresses share one bucket (covered by
+  the malformed/oversized flood tests, which trip the single global ceiling regardless of source).
+- **Correctness BLOCKER — limiter is now the outermost gate.** `server/src/app.js`: the deauth
+  router is mounted **before** the global `express.json`, and the request logger moved ahead of
+  body parsing (kept the webhook logged). The old global `express.json({ verify })` raw-capture
+  hook is **removed** — `express.json` is a plain parser again. `deauth.js`: the route is now
+  `limiter → express.raw({ type: () => true, limit: '100kb' }) → handler`; the handler verifies
+  the HMAC over the raw `req.body` Buffer, then `JSON.parse`s (guarded → 400) only after
+  verification. Malformed/oversized floods now reach the limiter and 429.
+- **Log-hygiene (part of the reshape).** A route-scoped 4-arg error handler maps body-parser
+  errors (oversized → 413) to a bare status, so an oversized-body flood can't spam stderr with
+  `PayloadTooLargeError` stack traces (the noise the naive reorder introduced).
+- **Tests:** +3 (server 42 → 45) — malformed-flood → 429, oversized-flood → 429, and a
+  validly-signed-but-malformed body → 400. Gate green (client 157, server 45, secret-scan 14,
+  build); CI CodeQL stays clear.
 
 ## Fixes (2026-07-15)
 
