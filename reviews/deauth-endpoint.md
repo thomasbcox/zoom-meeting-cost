@@ -306,6 +306,33 @@ global `express.json()` at ~line 79 vs. the `/auth` router mount at ~line 134)
   raw-body-capture choice (frame "Option A") — in favour of route-local raw parsing (frame
   "Option B"), scoping body handling to the one route that needs it.)*
 
+## Decisions — round 4 review (2026-07-16, base main 63a38b5, HEAD 167f3db)
+
+Approach pass — 2 IMPORTANT (both **two-way, within a blessed shape — not redesigns**); correctness
+pass — **CLEAN** (empty findings).
+
+- **"validate:false too blunt" → FIX** (Thomas: *"Fix both"*). Remove `validate: false`, keep the
+  constant `keyGenerator`; restores express-rate-limit's config/store-integrity checks. No
+  behavior change expected.
+- **"error handler too broad" → FIX** (Thomas: *"Fix both"*). Narrow the 4-arg handler to known
+  body-parser 4xx errors (`entity.too.large` → 413, and peers) with the bare status; `next(err)`
+  for anything else so genuine limiter/app faults hit the normal error path.
+- Correctness pass: no findings — the reshaped signature/replay/raw-parse/url_validation/limiter
+  all match the ACs.
+
+**Route:** both fixes are minor within-shape config corrections (not shape-changing / not a
+redesign). `/close` applies them and reaches its fork with **re-review OR merge** available;
+because they touch security code, a light re-review before merge is the safe default — Thomas's
+call at the fork.
+
+## Codex review — round 4 (2026-07-16, base main 63a38b5, HEAD 167f3db)
+
+**Summary:** CLEAN — empty findings. "No additional issues found. The branch matches the current
+ACs, including strict HMAC/timestamp validation, guarded route-local raw parsing, URL validation,
+and the outermost process-global rate limiter. `git diff --check` passed." *(Codex again tried to
+exercise the pure helpers out-of-band; the sandbox blocked temp files/sockets this run, so it
+judged from the diff. Gate ran green locally: client 157, server 45, secret-scan 14, build.)*
+
 ## Codex approach review — round 4 (2026-07-16, base main 63a38b5, HEAD 167f3db)
 
 **Verdict:** "The round-4 shape is fundamentally sound. Mounting the narrow deauth router and
