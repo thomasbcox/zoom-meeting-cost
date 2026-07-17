@@ -296,23 +296,29 @@ story when picked up.
   proxy, and the `ws` dependency.
 
 ## CSP hardening — pin to exact origins
+- **IN REVIEW (2026-07-17):** addressed by `reviews/csp-hardening.md` on branch
+  `claude/csp-hardening` (pending gate + merge). The research reframed the item —
+  see the two resolutions below.
 - **Deferred from:** `reviews/zoom-owasp-headers.md` (2026-06-03, Thomas's call).
-- **What:** The Content-Security-Policy still uses broad wildcards. *(Partial
-  progress: `connect-src` was since pinned from the old `'self' wss: https:` to
-  `'self' https://*.zoom.us https://*.zoom.com` — the `wss:` WebSocket was removed
-  and the bare `https:` is gone — see `server/src/app.js`. So the remaining work is
-  mainly `frame-ancestors`.)*
-  - `frame-ancestors 'self' https://*.zoom.us https://*.zoom.com` — broad Zoom
-    wildcards.
-  - `connect-src` still wildcards `*.zoom.us` / `*.zoom.com` rather than exact origins.
-- **Why defer:** Tightening to *exact* origins needs the stable production host(s)
-  (the **Railway host today**, a custom domain later), which aren't fixed yet.
-  Wildcards unblocked in-Zoom testing without risk to a prototype.
+- **What (as framed 2026-06-03):** the CSP still used broad Zoom wildcards in
+  `connect-src` and `frame-ancestors`; narrow both to exact origins.
+- **Resolution — `connect-src`:** narrowed to **`'self'`** (not "exact Zoom
+  origins"). The client's whole cross-origin surface is one same-origin call,
+  `fetch('/api/log')`; the bundled `@zoom/appssdk` uses `postMessage` (which
+  `connect-src` doesn't govern), so no Zoom host is needed. Matches Zoom's own
+  recommended app CSP. Also added `object-src 'none'`, `frame-src 'none'`,
+  `worker-src 'none'`, and `upgrade-insecure-requests` (Thomas's consult call: all
+  four add-ons).
+- **Resolution — `frame-ancestors`:** **intentionally kept** at
+  `'self' https://*.zoom.us https://*.zoom.com`. Zoom documents no exact embedding
+  origins, its recommended CSP omits `frame-ancestors` entirely, and the embedding
+  parent varies by desktop/web-PWA/mobile — so the current Zoom wildcards are
+  already tighter than Zoom's guidance, and narrowing further risks a blank screen.
+  The 2026-06-03 "narrow to exact Zoom origins" premise does not hold.
 - **When to do:** Before any real distribution / Marketplace submission.
-- **Done looks like:** `connect-src` narrowed from Zoom wildcards to the exact
-  origins actually contacted; `frame-ancestors` narrowed to the exact Zoom client
-  origins Zoom documents; CSP verified to still render in the Zoom client. (No WSS
-  endpoint remains — the shared-state WebSocket was removed.)
+- **Residual (human):** live in-Zoom smoke that the app still renders and `/api/log`
+  still receives client logs under the tightened CSP — the one check the gate can't
+  make. Owned by Thomas.
 
 ## ~~Secret-leak guardrails — gitleaks + GitHub non-provider scan~~ — DONE
 - **CLOSED 2026-06-10** (Thomas: "the secret guardrails are in place already").
