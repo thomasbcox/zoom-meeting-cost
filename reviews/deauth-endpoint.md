@@ -594,6 +594,11 @@ Restated here against the current code so the map doesn't misdirect.)*
 - **AC1** (malformed handling) — a validly-signed-but-malformed body → 400 (post-verify parse
   guard); an unsigned malformed body still → 401.
 
+**Round-5 delta (2026-07-16, HEAD 6f0509b — the two config tidies):** no AC or file added — the
+same AC10/AC1 lines, refined in `server/src/zoom/deauth.js` only (limiter `validate:false`
+removed; error handler narrowed to known body-parser 4xx). This round is a **correctness-only
+re-review** (base = last-reviewed 167f3db) of those two changes.
+
 ## Codex design review (2026-07-14)
 
 **Verdict:** sound shape. "Express router, Node crypto, raw-body verification, no persistence,
