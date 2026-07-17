@@ -65,6 +65,37 @@ for what "rate" means — hourly opportunity cost, not pay.)*
 ## Home / app URL
 - **Home URL:** `https://<app>.up.railway.app/`
 
+## Deauthorization (REQUIRED to publish)
+
+A **published** app must expose a deauthorization endpoint and receive deauthorization
+notifications — Marketplace review fails without one (`BACKLOG.md` → OPS-3). Zoom: *"All apps
+made available to end users must provide the proper ability for users to remove or deauthorize
+the app and receive deauthorization notifications from Zoom"*
+([end-user-auth](https://developers.zoom.us/docs/integrations/end-user-auth/)). The server
+implements it at [`server/src/zoom/deauth.js`](src/zoom/deauth.js).
+
+- **Deauthorization Notification Endpoint URL:** `https://<app>.up.railway.app/auth/deauthorize`
+- **Secret Token** (Marketplace → your app → the Feature/Webhook section): copy it into the
+  **`ZOOM_WEBHOOK_SECRET_TOKEN`** env var for the matching deployment. It is **not** the
+  `ZOOM_CLIENT_SECRET` — it's a separate value used only to verify the webhook's HMAC
+  (`x-zm-signature` over `v0:<timestamp>:<raw body>`). The older webhook *verification token* is
+  sunset; the secret-token signature is the current mechanism.
+- Zoom validates the URL with an `endpoint.url_validation` challenge when you save it; the
+  endpoint answers that automatically (it needs only the Secret Token).
+- On uninstall, Zoom POSTs `app_deauthorized`; the endpoint verifies the signature, purges the
+  user's data, and acknowledges **200**.
+- **No Data Compliance callback.** Zoom's Data Compliance API (`POST /oauth/data/compliance`) is
+  **deprecated** — *"it is no longer required to call this endpoint"*
+  ([devforum](https://devforum.zoom.us/t/data-compliance-api-deprecated/51768)) — it is slated to
+  become inoperative and the Marketplace review process no longer includes it. Do not re-add it.
+- **The data purge is a NO-OP** — the app persists no per-user data (session-only settings; the
+  rate store was removed in `remove-rate-store`), so there is nothing to delete. The endpoint is
+  still mandatory.
+- **Per-environment:** each credential block (Development / Production) has its own Secret
+  Token — set `ZOOM_WEBHOOK_SECRET_TOKEN` in the matching Railway environment, exactly as with
+  the client id/secret above. Unset ⇒ the endpoint returns **503** (inert) and nothing else
+  is affected.
+
 ## Domain allow list
 - `<app>.up.railway.app` host
 - `appssdk.zoom.us`

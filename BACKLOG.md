@@ -8,18 +8,30 @@ pivot superseded it.)*
 
 ## Open
 
-- **OPS-3** — **Zoom deauthorization / data-compliance webhook (blocks Marketplace submission).**
-  A published Zoom OAuth app MUST expose a deauthorization endpoint: verify the Zoom event signature,
-  return the required confirmation, and purge the user's data. Post-`remove-rate-store` the purge is a
-  **no-op** (nothing is persisted), but the endpoint itself is still required. **Gate: do not submit
-  the app to the Zoom Marketplace until this exists** (with an owner + acceptance test). Separate
-  machinery from the removed app-context identity — uses the Zoom webhook secret/signature.
-  _(raised by remove-rate-store design review, Finding ③)_
 - **AUDIT-4** — _(optional)_ Add `eslint`/`prettier` + a CI lint step for the JS. Split out
   of AUDIT-2 (much larger diff: config + first-run reformat across all JS). _(from /dev-audit
   2026-07-02)_
 
 ## Done
+
+- **OPS-3** — **Zoom deauthorization webhook — done.** `POST /auth/deauthorize`
+  (`server/src/zoom/deauth.js`) verifies the Zoom event signature (secret token +
+  `x-zm-signature`, ±300 s replay window, timing-safe), answers the `endpoint.url_validation`
+  challenge, and on `app_deauthorized` purges + acknowledges 200. The purge is a **no-op** —
+  post-`remove-rate-store` nothing is persisted, so there is no record to delete; the endpoint
+  itself was the requirement. **Ships inert:** returns 503 until `ZOOM_WEBHOOK_SECRET_TOKEN` is
+  set — so the Marketplace gate is only truly cleared once that env var is set per environment
+  and the dashboard's Deauthorization Notification Endpoint URL points at `/auth/deauthorize`
+  (see [`server/zoom-app-config.md`](server/zoom-app-config.md)).
+  **Correction landed with it:** this item previously required "the required confirmation" (the
+  Data Compliance callback to `/oauth/data/compliance`). Zoom **deprecated** that API —
+  *"no longer required to call this endpoint"*
+  ([devforum](https://devforum.zoom.us/t/data-compliance-api-deprecated/51768)) — it is slated to
+  become inoperative and Marketplace review no longer includes it; the **endpoint itself remains
+  required** ([end-user-auth](https://developers.zoom.us/docs/integrations/end-user-auth/)). The
+  callback was built to the stale premise and then deleted after the approach review caught it.
+  Full story: [`reviews/deauth-endpoint.md`](reviews/deauth-endpoint.md).
+  _(PR #75 / merge: deauth-endpoint)_
 
 - **OPS-2** — **Stale rate-store notes reconciled — done.** Handled by `remove-rate-store`: with the
   server store deleted, `reviews/backlog.md`'s per-item current-state notes (and the other docs) are

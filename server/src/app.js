@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import express from 'express';
 
 import { createOAuthRouter, zoomConfigured } from './zoom/oauth.js';
+import { createDeauthRouter } from './zoom/deauth.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -64,6 +65,9 @@ export function securityHeaders(_req, res, next) {
  */
 export function createApp({
   clientDist = path.resolve(__dirname, '../../client/dist'),
+  // Injected into the deauthorization router (secretToken / now). Empty in production,
+  // where the router reads env + Date.now itself.
+  deauth = {},
 } = {}) {
   const app = express();
 
@@ -71,9 +75,8 @@ export function createApp({
   // them — this is what unblocks rendering inside the Zoom client.
   app.use(securityHeaders);
 
-  // Bounded JSON body — cap it so a POST (e.g. the /api/log diagnostics) can't be huge.
-  app.use(express.json({ limit: '100kb' }));
-
+  // Request logging runs BEFORE body parsing (it needs only method + path), so it also covers the
+  // deauthorization webhook mounted below — which sits ahead of the global JSON parser.
   app.use((req, _res, next) => {
     // Log the path only — never req.url. The Zoom OAuth redirect arrives as
     // /auth/callback?code=<single-use authorization code>, and req.url would
@@ -85,6 +88,17 @@ export function createApp({
     }
     next();
   });
+
+  // --- Zoom deauthorization webhook (mandatory for a published app) ---------
+  // Mounted BEFORE the global JSON parser on purpose: its route-local chain (rate limiter →
+  // raw-body capture → signature verify) must be the OUTERMOST gate, so malformed/oversized
+  // floods are counted and capped rather than rejected by a parser that runs first. It handles
+  // only POST /auth/deauthorize and terminates every request, so nothing here falls through to
+  // the JSON parser or the OAuth router below.
+  app.use('/auth', createDeauthRouter(deauth));
+
+  // Bounded JSON body for everything else — cap it so a POST (e.g. /api/log) can't be huge.
+  app.use(express.json({ limit: '100kb' }));
 
   // --- Health / debug -------------------------------------------------------
   app.get('/api/health', (_req, res) => {
