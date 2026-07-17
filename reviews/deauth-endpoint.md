@@ -306,6 +306,33 @@ global `express.json()` at ~line 79 vs. the `/auth` router mount at ~line 134)
   raw-body-capture choice (frame "Option A") — in favour of route-local raw parsing (frame
   "Option B"), scoping body handling to the one route that needs it.)*
 
+## Codex approach review — round 4 (2026-07-16, base main 63a38b5, HEAD 167f3db)
+
+**Verdict:** "The round-4 shape is fundamentally sound. Mounting the narrow deauth router and
+logger before global JSON parsing does not alter `/api/*`, `/auth/callback`, static assets, or SPA
+fallback behavior because unmatched requests fall through normally. The route-local
+`express.raw({ type: () => true })` followed by signature verification and guarded `JSON.parse` is
+the right idiom for verifying exact bytes before accepting JSON. I would build it this way, with
+two small middleware-configuration corrections." Both findings two-way; the shape is blessed.
+
+- **IMPORTANT · two-way · kludgy — "Blanket validation disablement discards useful limiter safety
+  checks"** (`deauth.js`, the limiter's `validate: false`). It disables *every* express-rate-limit
+  diagnostic (invalid store results, double counting, incompatible options, invalid limits, …),
+  not just the IP/proxy checks. The constant `keyGenerator` already bypasses the IP key generator
+  where the proxy validations run, and the config initializes cleanly with validation *enabled* —
+  so the blanket suppression is unnecessary and could hide a future bad `rateLimitOptions`/store.
+  - *alternative:* remove `validate: false`, keep the constant `keyGenerator`; if a specific
+    warning later proves inapplicable, disable only that named validation.
+  - *win:* deletes a line while restoring all config/store-integrity checks; no behavior change.
+- **IMPORTANT · two-way · nonstandard — "The body-parser error handler silently absorbs unrelated
+  failures"** (`deauth.js`, the 4-arg router error handler). It catches errors from the limiter,
+  raw parser, *and* dispatch handler; a status-less error becomes a silent **400**, masking an
+  operational failure as a client error and skipping the normal error path.
+  - *alternative:* terminate only expected raw-body parser errors (`entity.too.large` etc.) with
+    the bare status; `next(err)` for anything else. Keep oversized on the quiet 413 path.
+  - *win:* preserves the bounded 413 response while eliminating a silent failure path and keeping
+    diagnostics for genuine limiter/app defects.
+
 ## Codex approach review — round 3 (2026-07-16, base main 63a38b5, HEAD 12d602e)
 
 **Verdict:** "The overall shape is sound and idiomatic: `express-rate-limit` is preferable to a
@@ -513,6 +540,16 @@ Restated here against the current code so the map doesn't misdirect.)*
   (two AC10 tests). **Dependency:** `server/package.json` (`express-rate-limit`) + root
   `package-lock.json`.
 - **AC8** now also covers `server/package.json` + `package-lock.json` (see the widened AC8).
+
+**Round-4 delta (2026-07-16, HEAD 167f3db — the reshape):**
+- **AC10** (limiter outermost; malformed/oversized floods counted; global key) —
+  `server/src/app.js` (deauth router mounted before global `express.json`; logger moved ahead of
+  parsing; `verify` hook removed), `server/src/zoom/deauth.js` (route-local `limiter →
+  express.raw → verify → JSON.parse → dispatch`, constant `keyGenerator`, route-scoped
+  body-parser error handler), `server/test/deauth.test.js` (+3: malformed-flood 429,
+  oversized-flood 429, signed-malformed 400).
+- **AC1** (malformed handling) — a validly-signed-but-malformed body → 400 (post-verify parse
+  guard); an unsigned malformed body still → 401.
 
 ## Codex design review (2026-07-14)
 
