@@ -408,6 +408,22 @@ guard the deauthorization URL against DoS. Auto-merge was disarmed; nothing merg
 *Note: `BACKLOG.md` OPS-3 → Done was already recorded on the branch during the interrupted round-2
 `/close` (commit `record: OPS-3 -> Done`); it rides to `main` on the eventual merge.*
 
+## Fixes — round 4 (2026-07-16)
+
+Applied both approved round-4 tidies (`server/src/zoom/deauth.js` only). Both **within-shape config
+corrections — not shape-changing.**
+
+- **Removed `validate: false`** from the limiter, keeping the constant `keyGenerator`. Restores
+  express-rate-limit's store/option-integrity checks; the constant key means the IP/proxy
+  validations never run, so nothing needs suppressing. Verified: the suite runs with **no
+  express-rate-limit warnings** (no `ValidationError` / `ERR_ERL_*`).
+- **Narrowed the error handler** to only known body-parser request errors: `err.expose` && 4xx
+  status → bare `sendStatus(status)` (so oversized still → a quiet 413); everything else →
+  `next(err)`, so a genuine limiter/store or app fault reaches Express's default handler instead
+  of being masked as a silent 400.
+- Tests unchanged (server 45); the oversized-flood test still gets 413 → 429, and no stack traces
+  reach stderr. Gate green (client 157, server 45, secret-scan 14, build).
+
 ## Fixes — round 3 (2026-07-16)
 
 Applied both approved round-3 fixes. **Shape-changing** (middleware reordered + parser swapped),

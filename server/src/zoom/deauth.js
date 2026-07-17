@@ -111,9 +111,9 @@ export function createDeauthRouter({
     // source IPs are explicitly unstable (Zoom: "verify events instead of an IP allow list …
     // because Zoom may update the IP ranges at any time"), so per-IP keying is the wrong model;
     // this bounds total work on the endpoint. Signature verification stays the real authenticity
-    // control. With a constant key the IP/proxy validations don't apply, so they're turned off.
+    // control. The constant key replaces the default IP key generator, so the IP/proxy validations
+    // never run — no need to disable validation wholesale; the store/option-integrity checks stay on.
     keyGenerator: () => 'zoom-deauthorize',
-    validate: false,
   });
 
   // Route-local chain, mounted (in app.js) BEFORE the global JSON parser so the limiter is the
@@ -155,13 +155,16 @@ export function createDeauthRouter({
     return res.sendStatus(200);
   });
 
-  // Body-parser errors on this route (e.g. an oversized body → 413 from express.raw). Respond
-  // with the bare status and DON'T let them reach Express's default handler, which would spew a
-  // stack trace to stderr on every request — noise an oversized-body flood would amplify (the
-  // limiter already ran, so these are bounded, but the endpoint should stay quiet).
+  // Answer KNOWN body-parser request errors (e.g. an oversized body → 413 from express.raw) with
+  // the bare status, quietly — so an oversized-body flood can't spew stack traces to stderr (the
+  // limiter already bounded it, but the endpoint should stay quiet). These carry an exposed 4xx
+  // status (the http-errors contract). Anything else — a genuine limiter/store or app fault — is
+  // passed on to Express's default handler so it's still recorded, not silently masked as a 400.
   // eslint-disable-next-line no-unused-vars
-  router.use((err, _req, res, _next) => {
-    res.sendStatus(err?.status || err?.statusCode || 400);
+  router.use((err, _req, res, next) => {
+    const status = err?.status ?? err?.statusCode;
+    if (err?.expose && status >= 400 && status < 500) return res.sendStatus(status);
+    return next(err);
   });
 
   return router;
