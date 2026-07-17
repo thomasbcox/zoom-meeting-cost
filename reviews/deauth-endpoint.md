@@ -306,6 +306,23 @@ global `express.json()` at ~line 79 vs. the `/auth` router mount at ~line 134)
   raw-body-capture choice (frame "Option A") — in favour of route-local raw parsing (frame
   "Option B"), scoping body handling to the one route that needs it.)*
 
+## Decisions — round 5 review (2026-07-16, base 167f3db, HEAD 6f0509b)
+
+Correctness-only re-review of the two round-4 tidies — **CLEAN, empty findings. Nothing to
+decide.** No fixes applied this round, so the code stands at HEAD 6f0509b as reviewed; `/close`'s
+fork offers re-review **or merge** (no redesign, no pending fixes).
+
+## Codex review — round 5 (2026-07-16, base 167f3db, HEAD 6f0509b)
+
+**Summary:** CLEAN — empty findings. "Both approved fixes are correct and complete. Removing
+`validate: false` preserves the constant process-global key while restoring applicable limiter
+validation; initialization emits no validation warnings. The narrowed handler returns bare 4xx
+statuses for exposed body-parser errors, including oversized bodies as 413, and forwards genuine
+faults with `next(err)`. No regressions to AC1, AC10, AC5, or AC6 were found. Direct middleware
+checks passed." *(HTTP tests couldn't bind sockets in the read-only sandbox; the gate ran green
+locally — client 157, server 45, secret-scan 14, build — and CI's `test + build` passed on this
+commit.)*
+
 ## Decisions — round 4 review (2026-07-16, base main 63a38b5, HEAD 167f3db)
 
 Approach pass — 2 IMPORTANT (both **two-way, within a blessed shape — not redesigns**); correctness
