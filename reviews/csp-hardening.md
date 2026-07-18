@@ -193,3 +193,15 @@ an error path."
 
 Shape blessed → continued to the correctness pass in the same round.
 (Artifact: `reviews/csp-hardening.approach.json`.)
+
+## Codex review (2026-07-17, base c4d29ed, HEAD 09d72de)
+
+**Summary: clean review — no findings.** "The branch matches the CSP-hardening
+spec: `connect-src` is restricted to `'self'`; the four requested directives are
+added; existing directives remain unchanged; comments, tests, and backlog
+documentation are updated appropriately. Read-only inspection confirmed the served
+CSP string and client network assumptions." (Codex's own sandbox could not run the
+gate — Vitest temp writes / socket binding blocked — an environment restriction,
+not a branch failure; the gate is green locally and on PR #76 CI.)
+
+Both passes clean → no findings to decide. (Artifact: `reviews/csp-hardening.codex.json`.)
