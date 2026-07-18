@@ -295,10 +295,11 @@ story when picked up.
   `syncClient.js`, `sharedState.js`, `server/src/rooms.js`, the `/ws` server +
   proxy, and the `ws` dependency.
 
-## CSP hardening — pin to exact origins
-- **IN REVIEW (2026-07-17):** addressed by `reviews/csp-hardening.md` on branch
-  `claude/csp-hardening` (pending gate + merge). The research reframed the item —
-  see the two resolutions below.
+## ~~CSP hardening — pin to exact origins~~ — DONE
+- **DONE 2026-07-17** (_PR #76 / merge: csp-hardening_): shipped via
+  `reviews/csp-hardening.md`; both codex passes clean. The research reframed the
+  item — see the two resolutions below. Residual: the human live in-Zoom smoke
+  (renders + `/api/log` under the tightened CSP), inherently post-merge.
 - **Deferred from:** `reviews/zoom-owasp-headers.md` (2026-06-03, Thomas's call).
 - **What (as framed 2026-06-03):** the CSP still used broad Zoom wildcards in
   `connect-src` and `frame-ancestors`; narrow both to exact origins.
