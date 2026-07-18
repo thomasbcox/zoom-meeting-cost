@@ -19,9 +19,25 @@ const STARTED_AT = new Date().toISOString();
 // The CSP must permit the app's own bundle ('self'), inline styles (React style
 // props / Vite), the API ('self' — same-origin /api), images/fonts, and embedding
 // inside the Zoom client.
-// connect-src is pinned to our own origin plus the Zoom hosts (the bundled
-// @zoom/appssdk may reach Zoom): the old `wss:` was dead (the shared-state WebSocket
-// was removed) and the bare `https:` allowed connecting to any host.
+//
+// connect-src is 'self' only. The client's entire cross-origin network surface is a
+// single same-origin call, fetch('/api/log') (client/src/lib/postLog.js) — no other
+// fetch, sendBeacon, EventSource, or WebSocket anywhere in the client. The bundled
+// @zoom/appssdk talks to the Zoom host via postMessage, which connect-src does NOT
+// govern, so no Zoom host belongs here. The old Zoom wildcards were retired with the
+// shared-state WebSocket (`wss:`) they once served; this matches Zoom's own
+// recommended app CSP (connect-src 'self').
+//
+// object-src / frame-src / worker-src are 'none': the app embeds no plugins, no
+// iframes, and spawns no web workers — pinning them to 'none' is stricter than the
+// default-src 'self' fallback and closes those injection vectors outright.
+// upgrade-insecure-requests is defense-in-depth (every subresource is already 'self').
+//
+// frame-ancestors keeps the Zoom wildcards ON PURPOSE. Zoom documents no exact
+// embedding origins, its recommended CSP omits frame-ancestors entirely, and the
+// embedding parent differs across desktop / web-PWA / mobile clients — so narrowing
+// to guessed origins risks a blank screen in some surface. The Zoom-owned wildcards
+// are already tighter than Zoom's own guidance; leave them.
 // Ref: https://developers.zoom.us/docs/zoom-apps/security/owasp/
 export const CSP = [
   "default-src 'self'",
@@ -29,10 +45,14 @@ export const CSP = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data:",
   "font-src 'self' data:",
-  "connect-src 'self' https://*.zoom.us https://*.zoom.com",
+  "connect-src 'self'",
+  "object-src 'none'",
+  "frame-src 'none'",
+  "worker-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
   "frame-ancestors 'self' https://*.zoom.us https://*.zoom.com",
+  "upgrade-insecure-requests",
 ].join('; ');
 
 // Routine, high-volume paths that would otherwise flood the request log: the
