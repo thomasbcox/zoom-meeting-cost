@@ -181,3 +181,15 @@ AC → file map:
 | 5 | CSP comment records connect-src rationale + denies + frame-ancestors decision | `server/src/app.js` |
 | 6 | Backlog reflects what shipped + the decision | `reviews/backlog.md` |
 | 7 | Live in-Zoom smoke (renders + `/api/log` receives) | _human — no file_ |
+
+## Codex approach review (2026-07-17, base c4d29ed, HEAD 09d72de)
+
+**Verdict: clean pass — no findings.** "Sound and idiomatic. I would build this the
+same way: retain the centralized CSP array, declaratively tighten and add
+directives, and verify the served header with the existing native test harness. No
+dependency, abstraction, or code path should replace this design; adding Helmet
+would increase complexity without centralizing an invariant further or eliminating
+an error path."
+
+Shape blessed → continued to the correctness pass in the same round.
+(Artifact: `reviews/csp-hardening.approach.json`.)
