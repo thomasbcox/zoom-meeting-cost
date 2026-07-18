@@ -205,3 +205,10 @@ gate — Vitest temp writes / socket binding blocked — an environment restrict
 not a branch failure; the gate is green locally and on PR #76 CI.)
 
 Both passes clean → no findings to decide. (Artifact: `reviews/csp-hardening.codex.json`.)
+
+## Fixes (2026-07-17)
+
+Clean review — both the approach and correctness passes returned zero findings, so
+there were **no approved fixes to apply**. No code changed in `/close`. The only
+commits since the reviewed HEAD (`09d72de`) are the two review-artifact commits.
+Reached the re-review/merge fork with the reviewed shape intact.
