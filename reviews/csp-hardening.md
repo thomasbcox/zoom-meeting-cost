@@ -167,3 +167,17 @@ carry the new rationale + the frame-ancestors decision. Tests are string
 assertions against the served header, already the established pattern in
 `headers.test.js`. Reversibility: two-way — the directive can be widened back in
 one line if a live test regresses.
+
+## Build note (2026-07-17)
+
+AC → file map:
+
+| AC | What | File |
+|----|------|------|
+| 1 | `connect-src` exactly `'self'` (no Zoom hosts/wss/bare-https) | `server/src/app.js` |
+| 2 | Unchanged directives still present (default/script/style/img/font/base-uri/form-action/frame-ancestors) | `server/src/app.js` |
+| 3 | Added `object-src 'none'`, `frame-src 'none'`, `worker-src 'none'`, `upgrade-insecure-requests` | `server/src/app.js` |
+| 4 | Tests assert tightened `connect-src` + four new directives | `server/test/headers.test.js` |
+| 5 | CSP comment records connect-src rationale + denies + frame-ancestors decision | `server/src/app.js` |
+| 6 | Backlog reflects what shipped + the decision | `reviews/backlog.md` |
+| 7 | Live in-Zoom smoke (renders + `/api/log` receives) | _human — no file_ |
