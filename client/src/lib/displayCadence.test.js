@@ -80,7 +80,9 @@ describe('displayCadence', () => {
       // A coherent (non-negative pre-clamp) input is identical to before the clamp.
       const unchanged = quantizeForDisplay({ totalCost: 74, elapsedSeconds: 37, costPerSecond: 2, stepSeconds: 10 });
       expect(unchanged.elapsedSeconds).toBe(30);
-      expect(unchanged.totalCost).toBeCloseTo(60, 6);
+      // Exact, not toBeCloseTo: AC3 claims byte-identity, and 74 - 2*(37-30) is exact in
+      // IEEE-754, so a tolerance would let a real regression slip through inside it.
+      expect(unchanged.totalCost).toBe(60);
     });
 
     it('guards null / non-finite input', () => {

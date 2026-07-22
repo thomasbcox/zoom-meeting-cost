@@ -109,6 +109,13 @@ turns to `0`.
   non-negative" (coherent accrual states), and make the regression test reflect that boundary.
 - *Win:* removes an impossible contract; one precise invariant for code + test.
 
+## Fixes (2026-07-20)
+- **IMPORTANT — regression test does not assert byte-identical behavior** (approved: FIX):
+  in `client/src/lib/displayCadence.test.js`, the AC3 regression assertion now uses an exact
+  `expect(unchanged.totalCost).toBe(60)` instead of `toBeCloseTo(60, 6)`, so the identity
+  claim is actually enforced. Added a comment recording why exactness is safe here
+  (`74 − 2×(37−30)` is exact in IEEE-754). No product-code change; test-only.
+
 ## Decisions (2026-07-20)
 Thomas: "fix it and close."
 
