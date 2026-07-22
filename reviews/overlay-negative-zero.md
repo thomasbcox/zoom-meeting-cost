@@ -109,6 +109,16 @@ turns to `0`.
   non-negative" (coherent accrual states), and make the regression test reflect that boundary.
 - *Win:* removes an impossible contract; one precise invariant for code + test.
 
+## Build note (2026-07-20)
+
+| AC | What | File |
+|---|---|---|
+| 1 | `quantizeForDisplay` never returns a negative total — clamp on **both** return paths (`step < 1` early return and the main walked-back return) | `client/src/lib/displayCadence.js` |
+| 2 | Bucket-0 (`es < step`) negative residual renders `$0`, not "-$0.00" | `client/src/lib/displayCadence.js`, `client/src/lib/displayCadence.test.js` |
+| 3 | Results whose **pre-clamp** value was already non-negative are unchanged | `client/src/lib/displayCadence.js`, `client/src/lib/displayCadence.test.js` |
+| 4 | Unit tests: bucket-0 negative-residual case + the AC3 non-negative boundary | `client/src/lib/displayCadence.test.js` |
+| 5 | Display-only scope containment | _scope check — no file_ |
+
 ## Scope decision (2026-07-20)
 Thomas: "clamp it, fix both, go." Approved: the display-only clamp (not reconcile), with both
 reviewer fixes applied.
