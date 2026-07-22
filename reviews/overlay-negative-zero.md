@@ -109,6 +109,17 @@ turns to `0`.
   non-negative" (coherent accrual states), and make the regression test reflect that boundary.
 - *Win:* removes an impossible contract; one precise invariant for code + test.
 
+## Codex approach review (2026-07-20, base main, HEAD bc5e8b3)
+**Verdict:** "Sound and idiomatic. I would build it this way: clamp both existing return paths
+with `Math.max(0, …)` and keep the regression cases in the existing unit suite. The change
+introduces no unnecessary abstraction, dependency, state, or framework-level workaround.
+Focused tests could not execute because the read-only sandbox prevented Vite from creating its
+temporary config file."
+
+**Findings: none** (empty array) — the shape is blessed; proceeded to the correctness pass in
+the same round. *(The reviewer's vitest error is an artifact of its read-only sandbox, not a
+test failure: the local gate and CI `test + build` are both green.)*
+
 ## Build note (2026-07-20)
 
 | AC | What | File |
