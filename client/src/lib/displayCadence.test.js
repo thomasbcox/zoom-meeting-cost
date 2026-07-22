@@ -60,6 +60,31 @@ describe('displayCadence', () => {
       expect(out.totalCost).toBeCloseTo(21, 6);
     });
 
+    it('never displays a negative total in the first bucket (BUG-3)', () => {
+      // Bucket 0 (es < step): shown total is tc - cps*es. A total that lags cps*es makes that
+      // negative pre-clamp (here 1.99 - 1*2 = -0.01), which used to render as "-$0.00".
+      const out = quantizeForDisplay({
+        totalCost: 1.99,
+        elapsedSeconds: 2,
+        costPerSecond: 1,
+        stepSeconds: 10,
+      });
+      expect(out.elapsedSeconds).toBe(0);
+      expect(out.totalCost).toBe(0); // clamped, not -0.01
+    });
+
+    it('clamps a negative pre-clamp result but leaves non-negative results unchanged (AC3)', () => {
+      // All inputs non-negative, yet the pre-clamp walk-back is negative (1 - 2*(19-10) = -17).
+      const clamped = quantizeForDisplay({ totalCost: 1, elapsedSeconds: 19, costPerSecond: 2, stepSeconds: 10 });
+      expect(clamped.totalCost).toBe(0);
+      // A coherent (non-negative pre-clamp) input is identical to before the clamp.
+      const unchanged = quantizeForDisplay({ totalCost: 74, elapsedSeconds: 37, costPerSecond: 2, stepSeconds: 10 });
+      expect(unchanged.elapsedSeconds).toBe(30);
+      // Exact, not toBeCloseTo: AC3 claims byte-identity, and 74 - 2*(37-30) is exact in
+      // IEEE-754, so a tolerance would let a real regression slip through inside it.
+      expect(unchanged.totalCost).toBe(60);
+    });
+
     it('guards null / non-finite input', () => {
       expect(quantizeForDisplay({})).toEqual({ totalCost: 0, elapsedSeconds: 0 });
       expect(

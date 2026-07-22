@@ -45,11 +45,15 @@ export function quantizeForDisplay({ totalCost, elapsedSeconds, costPerSecond, s
   const tc = num(totalCost);
   const es = Math.max(0, num(elapsedSeconds));
   const step = num(stepSeconds);
-  if (!(step >= 1)) return { totalCost: tc, elapsedSeconds: es };
+  // The displayed total is never negative (BUG-3). In the first bucket the walk-back below is
+  // `tc - cps*es`, which dips a hair under $0 when the round2'd total lags costPerSecond×elapsed
+  // early in a session — rendering as "-$0.00" / a small negative. Clamp at zero on BOTH return
+  // paths so the invariant holds for any input, without touching the internal accrual.
+  if (!(step >= 1)) return { totalCost: Math.max(0, tc), elapsedSeconds: es };
   const steppedElapsed = Math.floor(es / step) * step;
   const cps = num(costPerSecond);
   return {
-    totalCost: tc - cps * (es - steppedElapsed),
+    totalCost: Math.max(0, tc - cps * (es - steppedElapsed)),
     elapsedSeconds: steppedElapsed,
   };
 }

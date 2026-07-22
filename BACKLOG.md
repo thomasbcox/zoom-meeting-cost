@@ -14,6 +14,18 @@ pivot superseded it.)*
 
 ## Done
 
+- **BUG-3** — **Overlay showed a negative near-zero total in the first cadence bucket — fixed.**
+  `quantizeForDisplay` (`client/src/lib/displayCadence.js`) now clamps its returned total at
+  zero on **both** return paths. In the first bucket the displayed figure is
+  `totalCost − costPerSecond × elapsedSeconds`, which dipped slightly negative when the
+  `round2`'d total lagged the wall-clock accrual — rendering as "-$0.00" or a small negative
+  and self-clearing once later buckets added whole positive cadence-steps. Display-only: the
+  internal accrual and cost math are untouched. Unit tests cover the bucket-0
+  negative-residual case and the exact-identity boundary for results that were already
+  non-negative. Reported by Thomas from a live dev panel (2026-07-20). Full story:
+  [`reviews/overlay-negative-zero.md`](reviews/overlay-negative-zero.md).
+  _(PR #77 / merge: overlay-negative-zero)_
+
 - **OPS-3** — **Zoom deauthorization webhook — done.** `POST /auth/deauthorize`
   (`server/src/zoom/deauth.js`) verifies the Zoom event signature (secret token +
   `x-zm-signature`, ±300 s replay window, timing-safe), answers the `endpoint.url_validation`

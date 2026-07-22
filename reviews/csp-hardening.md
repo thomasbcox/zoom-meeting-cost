@@ -98,7 +98,11 @@ _(Scope: **all four add-ons** — Thomas's consult decision, 2026-07-17.)_
 6. The backlog item is updated to reflect what shipped and what was decided.
 7. (Human) Live in-Zoom smoke: app still renders and the `/api/log` sink still
    receives client logs inside the real Zoom client. Owned by Thomas — cannot be
-   closed by the automated gate.
+   closed by the automated gate. **VERIFIED 2026-07-18 (dev, live meeting):** panel +
+   camera overlay both boot, overlay draws + `status:"running"`; the sink received the
+   full boot/lifecycle/overlay sequence; the panel DevTools console filtered on
+   `Content Security` / `Refused` was empty — zero connect-src/script-src violations.
+   Both dev + prod serve the tightened header on commit `224e2d8`.
 
 ## Test notes
 

@@ -298,8 +298,9 @@ story when picked up.
 ## ~~CSP hardening — pin to exact origins~~ — DONE
 - **DONE 2026-07-17** (_PR #76 / merge: csp-hardening_): shipped via
   `reviews/csp-hardening.md`; both codex passes clean. The research reframed the
-  item — see the two resolutions below. Residual: the human live in-Zoom smoke
-  (renders + `/api/log` under the tightened CSP), inherently post-merge.
+  item — see the two resolutions below. Residual **VERIFIED 2026-07-18** — the human
+  live in-Zoom smoke (renders + `/api/log` receives under the tightened CSP) passed in
+  the real Zoom client; see the closed-out residual below. Item fully closed.
 - **Deferred from:** `reviews/zoom-owasp-headers.md` (2026-06-03, Thomas's call).
 - **What (as framed 2026-06-03):** the CSP still used broad Zoom wildcards in
   `connect-src` and `frame-ancestors`; narrow both to exact origins.
@@ -317,9 +318,12 @@ story when picked up.
   already tighter than Zoom's guidance, and narrowing further risks a blank screen.
   The 2026-06-03 "narrow to exact Zoom origins" premise does not hold.
 - **When to do:** Before any real distribution / Marketplace submission.
-- **Residual (human):** live in-Zoom smoke that the app still renders and `/api/log`
-  still receives client logs under the tightened CSP — the one check the gate can't
-  make. Owned by Thomas.
+- **~~Residual (human)~~ — DONE 2026-07-18:** live in-Zoom smoke passed in the real Zoom
+  client (dev, live meeting). App renders (panel + camera overlay boot, overlay draws,
+  `status:"running"`); the `/api/log` sink received the full boot/lifecycle/overlay
+  sequence — proof `connect-src 'self'` does not block the same-origin `fetch('/api/log')`;
+  the panel DevTools console showed zero `Content Security Policy` / `Refused to`
+  violations. Both dev + prod on commit `224e2d8` serve the tightened header.
 
 ## ~~Secret-leak guardrails — gitleaks + GitHub non-provider scan~~ — DONE
 - **CLOSED 2026-06-10** (Thomas: "the secret guardrails are in place already").
