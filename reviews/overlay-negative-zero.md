@@ -109,6 +109,21 @@ turns to `0`.
   non-negative" (coherent accrual states), and make the regression test reflect that boundary.
 - *Win:* removes an impossible contract; one precise invariant for code + test.
 
+## Codex review (2026-07-20, base main, HEAD 65865da)
+**Summary:** "The implementation correctly clamps both return paths and otherwise stays within
+the approved display-only scope. One regression assertion is weaker than the spec's
+exact-identity requirement."
+
+### IMPORTANT
+**Regression test does not assert byte-identical behavior** — `client/src/lib/displayCadence.test.js:83`
+- *Claim:* "AC3 requires the non-negative result to remain byte-identical, but
+  `toBeCloseTo(60, 6)` permits small numerical changes. The test could pass despite a
+  regression that changes the existing result within the tolerance."
+- *Suggestion:* "Use an exact assertion, such as `expect(unchanged.totalCost).toBe(60)`,
+  matching the acceptance criterion."
+
+*(No BLOCKER, QUESTION, or NIT findings.)*
+
 ## Codex approach review (2026-07-20, base main, HEAD bc5e8b3)
 **Verdict:** "Sound and idiomatic. I would build it this way: clamp both existing return paths
 with `Math.max(0, …)` and keep the regression cases in the existing unit suite. The change
