@@ -109,6 +109,15 @@ turns to `0`.
   non-negative" (coherent accrual states), and make the regression test reflect that boundary.
 - *Win:* removes an impossible contract; one precise invariant for code + test.
 
+## Decisions (2026-07-20)
+Thomas: "fix it and close."
+
+- **IMPORTANT — Regression test does not assert byte-identical behavior:** **FIX.** Replace
+  `toBeCloseTo(60, 6)` with an exact `toBe(60)` so AC3's identity claim is actually enforced;
+  the arithmetic (`74 − 2×(37−30)`) is exact in IEEE-754, so the strict assertion is
+  deterministic.
+- **Approach pass:** no findings — nothing to decide.
+
 ## Codex review (2026-07-20, base main, HEAD 65865da)
 **Summary:** "The implementation correctly clamps both return paths and otherwise stays within
 the approved display-only scope. One regression assertion is weaker than the spec's
