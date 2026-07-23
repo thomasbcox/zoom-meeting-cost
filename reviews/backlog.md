@@ -174,6 +174,42 @@ story when picked up.
     (ignore a legacy `multiplier`) or a migration, unlike the copy-only framing pass.
   - Decide whether to keep a value-neutral "scale" control or drop scaling entirely.
 
+## Currency picker — locale-defaulted, short list, USD fallback
+- **Requested:** 2026-07-20 (Thomas).
+- **What:** Let the presenter choose the currency used by the cost readout and the on-camera
+  overlay, **defaulted from the user's international location**. Offer a deliberately **short
+  list** (not every ISO currency) with the **Euro** among the options; if the detected locale
+  doesn't match anything on the list, **fall back to US dollars**.
+- **Why:** the app is hard-coded to USD today — `formatMoney`
+  ([`client/src/lib/cost.js:31`](../client/src/lib/cost.js)) pins both `'en-US'` and
+  `currency: 'USD'`, and the rate input carries a literal `$` prefix
+  (`PresenterControls.jsx`). A non-US presenter enters a figure in their own currency and the
+  app stamps a dollar sign on it — the number is right but the symbol lies. This is
+  **attendee-facing**: the wrong symbol is composited onto the camera feed for the whole
+  meeting.
+- **Design notes / open questions:**
+  - **Good news on shape:** `formatMoney` already uses `toLocaleString` with
+    `style: 'currency'`, so this is threading a currency (and locale) through an existing
+    `Intl` call — not rewriting formatting. Keep `Intl.NumberFormat`: it handles symbol
+    placement, grouping, and minor units per currency (JPY has none), which
+    string-concatenating a symbol would get wrong.
+  - **Detection source:** the browser locale (`navigator.language` /
+    `Intl.DateTimeFormat().resolvedOptions()`) is the obvious signal — no new permission and
+    **no new Zoom scope**, which matters given the minimal-scope posture. Map locale → currency
+    against the short list; anything unmatched ⇒ USD.
+  - **Which currencies?** Needs Thomas's pick — e.g. USD, EUR, GBP, CAD, AUD, JPY, CHF. Short
+    on purpose; a full ISO list is a worse UX in a one-tap side panel.
+  - `buildOverlayState` **already carries a `currency` field**
+    ([`client/src/lib/overlayState.js:22`](../client/src/lib/overlayState.js), defaulting
+    `'USD'`) that `CostOverlay` currently **ignores** — so the payload plumbing largely exists;
+    the overlay just has to honour it.
+  - **Persistence:** settings are session-only today, so the pick resets each meeting unless
+    the privacy model is revisited (see the rate-table memory item). Decide whether a
+    per-meeting pick is acceptable.
+- **Done looks like:** the presenter picks a currency from a short, locale-defaulted list (Euro
+  available, USD fallback); the panel readout *and* the on-camera overlay both render amounts in
+  that currency via `Intl`, with no hard-coded `$` left in the presenter UI.
+
 ## Identify notetakers and default them to $1/hr
 - **Requested:** 2026-06-12 (Thomas).
 - **What:** Let the user flag certain attendees as notetakers (e.g. AI notetaker
