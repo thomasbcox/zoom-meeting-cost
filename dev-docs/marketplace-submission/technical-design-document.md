@@ -1,8 +1,7 @@
-# Meeting Cost Meter — Technical Design Document (draft)
+# Meeting Cost Meter — Technical Design Document
 
-Prepared for Zoom App Marketplace submission (Production). Draft for Thomas's review.
-Everything below is grounded in the shipped code; verify the two bracketed items before
-submitting.
+Prepared for the Zoom App Marketplace submission of **Meeting Cost Meter** (Production), by
+Transformative Leadership Lab LLC.
 
 ---
 
@@ -56,8 +55,9 @@ per-participant data, and no server-side storage of any kind.
 4. The client computes the running cost locally and, in overlay mode, pushes a
    **sanitized aggregate display state** from the panel to the camera instance via the
    SDK's `postMessage`. That message contains only:
-   `{ status, totalCost, costPerSecond, elapsedSeconds, attendees, currency, updatedAt, prefs:{} }`
-   — no per-person data, no meeting content.
+   `{ status, totalCost, costPerSecond, elapsedSeconds, attendees, currency, updatedAt, displayIntervalSeconds, prefs:{} }`
+   — no per-person data, no meeting content (`displayIntervalSeconds` is a non-identifying
+   scalar: how often the displayed number steps).
 5. Diagnostics/errors may be POSTed to `/api/log` (shape-only, no PII) and are written
    to ephemeral platform logs. Nothing is stored.
 
@@ -158,16 +158,8 @@ delete and no separate deletion request is necessary.
 
 - **Hosting:** Railway (Node 22 / Express). Two environments (Development, Production),
   each with its own Zoom credential block and domain; auto-deploy from the `main` branch.
-- **Production domain:** `https://zoom-meeting-cost-production.up.railway.app`.
-  *(Bracket for Thomas: this is the shared Railway subdomain the app is served from. It
-  will trigger Zoom's domain review at submission — see the domain-review justification.)*
+- **Production domain:** `https://zoom-meeting-cost-production.up.railway.app` — a
+  Railway-hosted domain controlled solely by us, serving only this app's static client bundle
+  and its first-party endpoints (health, diagnostics log, OAuth callback, deauthorization
+  webhook). No third party can publish or control content on it.
 - **Static site:** GitHub Pages at `https://thomasbcox.github.io/zoom-meeting-cost/`.
-
-## 12. [Verify before submit]
-- [ ] App icon 160×160 produced and uploaded.
-- [ ] Confirm the March 2, 2026 "apps joining meetings outside their account" requirement
-      (OBF/ZAK/RTMS) does **not** apply — this app does not join meetings programmatically;
-      it runs in-client for a user already in the meeting.
-- [ ] **(F1)** Remove the vestigial `RATE_STORE_KEY` env var and the `/proddata` volume
-      from **both** prod and dev — unused by any code (grep-confirmed), but they contradict
-      the "no persistence" claim if a reviewer inspects the deployment.
