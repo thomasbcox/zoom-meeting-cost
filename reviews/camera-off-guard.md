@@ -136,6 +136,27 @@ jsdom would touch manifests outside AC7; mocking hooks would be a brittle hand-r
 - *Win:* satisfies the behavioural assertions with no new dependencies or out-of-scope files,
   and centralizes the no-partial-mutation invariant in one directly testable command.
 
+## Codex review (2026-07-24, base main, HEAD 6aa3818)
+**Summary:** "The implementation is functionally aligned with the guarded check → commit →
+mutate flow, but the AC6 transition lacks meaningful regression coverage and the required
+warning text differs slightly from the specification." *(The reviewer's gate-can't-run note is
+its own read-only sandbox, not our gate — ours is green.)*
+
+### IMPORTANT
+**AC6 test does not exercise notice clearing** — `client/src/components/PresenterControls.test.jsx:29`
+- *Claim:* the test supplies `overlayNotice: null` directly and only checks that the warning is
+  omitted; it never runs a blocked→successful sequence or observes the App wrapper clearing an
+  existing notice. Deleting `setOverlayNotice(null)` from `App.jsx` would leave all tests green
+  while breaking AC6.
+- *Suggestion:* add a testable seam for applying an attempt result to the overlay UI state, use
+  it from `startOverlay`, and test that blocked→successful clears the notice and sets `overlayOn`.
+
+### NIT
+**Warning text doesn't exactly match AC2 copy** — `client/src/App.jsx:228`
+- *Claim:* AC2 specifies `… click 'Show cost on video'.` (single quotes); the constant renders
+  double quotation marks around the button label. Understandable either way — copy mismatch only.
+- *Suggestion:* align the constant + test fixture to AC2's single-quoted wording.
+
 ## Codex approach review (2026-07-24, base main, HEAD 3af0904)
 **Verdict:** "Sound and idiomatic. I would build it this way: the extracted async command
 provides the repository-compatible test seam, the SDK start is correctly treated as the commit
