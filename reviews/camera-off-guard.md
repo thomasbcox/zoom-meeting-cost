@@ -136,6 +136,16 @@ jsdom would touch manifests outside AC7; mocking hooks would be a brittle hand-r
 - *Win:* satisfies the behavioural assertions with no new dependencies or out-of-scope files,
   and centralizes the no-partial-mutation invariant in one directly testable command.
 
+## Decisions (2026-07-24)
+Thomas: "reject and /close."
+
+- **IMPORTANT — AC6 test does not exercise notice clearing:** **REJECT.** No fix. Consequence
+  recorded: the clear-on-success behavior (AC6) works today but is not regression-locked — a
+  future change that dropped `setOverlayNotice(null)` in `App.jsx` would not be caught by a test.
+- **NIT — warning text quote style:** **REJECT.** The message reads clearly with the
+  double-quoted button label; left as shipped.
+- **Approach pass:** clean — nothing to decide.
+
 ## Codex review (2026-07-24, base main, HEAD 6aa3818)
 **Summary:** "The implementation is functionally aligned with the guarded check → commit →
 mutate flow, but the AC6 transition lacks meaningful regression coverage and the required
