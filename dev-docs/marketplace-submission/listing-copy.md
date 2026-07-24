@@ -9,14 +9,14 @@ edit freely. Char counts are approximate; trim to whatever Zoom's field enforces
 - **Developer contact:** Thomas Cox — thomas@eudae.biz
 - **Support email:** thomas+mcsupport@txl-lab.com
 
-## Category
-- **Primary:** Productivity
+## Category — DECIDED (Thomas, 2026-07-24)
+- **Primary: Productivity** ✅
 - **Alternate if a second is allowed:** Meeting & Scheduling
 
-## Short description / summary (pick one)
-- `Show the live, running dollar cost of your meeting as an overlay on your own video.` (~82)
-- `A live meeting-cost meter — computed entirely in-client, nothing stored.` (~72)
-- `Make meeting time visible: a running cost total on the presenter's video.` (~73)
+## Short description / summary — DECIDED (Thomas, 2026-07-24)
+- ✅ **`Make meeting time visible: a running cost total on the presenter's video.`** (~73)
+- ~~`Show the live, running dollar cost of your meeting as an overlay on your own video.`~~ (not chosen)
+- ~~`A live meeting-cost meter — computed entirely in-client, nothing stored.`~~ (not chosen)
 
 ## Long description
 Meeting Cost Meter turns meeting time into a number people can see. The presenter
