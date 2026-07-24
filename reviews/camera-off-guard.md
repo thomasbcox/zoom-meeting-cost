@@ -136,6 +136,16 @@ jsdom would touch manifests outside AC7; mocking hooks would be a brittle hand-r
 - *Win:* satisfies the behavioural assertions with no new dependencies or out-of-scope files,
   and centralizes the no-partial-mutation invariant in one directly testable command.
 
+## Codex approach review (2026-07-24, base main, HEAD 3af0904)
+**Verdict:** "Sound and idiomatic. I would build it this way: the extracted async command
+provides the repository-compatible test seam, the SDK start is correctly treated as the commit
+boundary, React owns the notice state, and the existing adapter/CSS primitives cover the
+behavior without new dependencies or unnecessary machinery. No approach-level changes are
+warranted."
+
+**Findings: none** (empty array) — shape blessed; proceeded to the correctness pass in the same
+round.
+
 ## Build note (2026-07-20)
 
 | AC | What | File |
