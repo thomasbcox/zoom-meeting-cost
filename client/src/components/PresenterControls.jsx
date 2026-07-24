@@ -13,6 +13,7 @@ export default function PresenterControls({
   session,
   sessionActions,
   overlayOn,
+  overlayNotice,
   startOverlay,
   stopOverlay,
   previewDisplay,
@@ -100,6 +101,11 @@ export default function PresenterControls({
             </button>
           )}
         </div>
+        {overlayNotice && (
+          <p className="overlay-warning" role="alert">
+            {overlayNotice}
+          </p>
+        )}
         <p className="muted small">
           Overlay <strong>{overlayOn ? 'on your video' : 'hidden'}</strong> · counting{' '}
           <strong>{session.status}</strong> · renders on your camera feed, so everyone sees it —
