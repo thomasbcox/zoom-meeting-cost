@@ -61,6 +61,8 @@ export default function App({ adapter }) {
   const [overlayOn, setOverlayOn] = useState(false);
   const overlayOnRef = useRef(false);
   overlayOnRef.current = overlayOn;
+  // Warning shown when a start is refused (camera off, or the SDK rejected). Null = hidden.
+  const [overlayNotice, setOverlayNotice] = useState(null);
   // Last polled camera on/off state, for overlay auto-recovery. Seeded true when the
   // overlay starts (the presenter is on-camera then), so the first poll doesn't read a
   // phantom off→on transition.
@@ -90,20 +92,28 @@ export default function App({ adapter }) {
   }, [adapter]);
 
   const startOverlay = useCallback(async () => {
-    // Diagnostic checkpoints: if 'begin' logs but 'context-started' does not, the panel
-    // spawned the camera context but it never came back (or threw). See lifecycleLog.
-    logLifecycle('start-overlay:begin', { status: liveRef.current.status });
-    // Auto-start the session when the presenter shows the overlay while idle — the natural
-    // next step after configuring is the session controls. (session-restart-controls.)
-    if (liveRef.current.status === 'idle') sessionActions.start();
-    // Manual (re)start: the presenter is on-camera now, so seed the poll baseline on
-    // so the auto-recover doesn't read a phantom off→on against a stale value.
-    lastVideoOnRef.current = true;
-    await adapter?.startCameraOverlay?.();
-    logLifecycle('start-overlay:context-started');
-    setOverlayOn(true);
-    postOverlay(); // push current numbers immediately
-    logLifecycle('start-overlay:posted');
+    // Thin wrapper over the extracted, testable orchestrator: it does the check→commit→mutate
+    // work and never throws; we only translate its result into React state here.
+    const result = await attemptStartOverlay({
+      adapter,
+      status: liveRef.current.status,
+      startSession: sessionActions.start,
+      seedBaseline: () => {
+        // The presenter is on-camera now (the start succeeded), so seed the poll baseline on
+        // — the auto-recover then won't read a phantom off→on against a stale value.
+        lastVideoOnRef.current = true;
+      },
+      post: postOverlay, // push current numbers immediately
+      log: logLifecycle,
+    });
+    if (result === 'started') {
+      setOverlayOn(true);
+      setOverlayNotice(null); // clear any earlier warning
+    } else {
+      // 'blocked-camera-off' or 'error' — show the same actionable, two-step warning and
+      // leave the overlay off. No session was started and no baseline was seeded.
+      setOverlayNotice(CAMERA_OFF_NOTICE);
+    }
   }, [adapter, sessionActions, postOverlay]);
 
   const stopOverlay = useCallback(async () => {
@@ -202,6 +212,7 @@ export default function App({ adapter }) {
           session={session}
           sessionActions={sessionActions}
           overlayOn={overlayOn}
+          overlayNotice={overlayNotice}
           startOverlay={startOverlay}
           stopOverlay={stopOverlay}
           previewDisplay={previewDisplay}
@@ -209,4 +220,50 @@ export default function App({ adapter }) {
       </main>
     </div>
   );
+}
+
+// Message shown when the overlay can't start because the camera is off (or the SDK refused the
+// start). It names BOTH steps on purpose — the overlay never auto-appears, so the presenter must
+// turn the camera on AND click "Show cost on video" again.
+export const CAMERA_OFF_NOTICE = 'Turn your camera on, then click "Show cost on video."';
+
+// Orchestrates a camera-overlay start as check → commit → then mutate. Extracted from the React
+// callback so it is unit-testable in the node/vitest setup (no jsdom). NEVER throws; returns
+// 'started' | 'blocked-camera-off' | 'error'. The state-mutating deps (startSession,
+// seedBaseline, post) run ONLY on the success path, so a refused start leaves the session,
+// overlay, and auto-recover baseline untouched — there is no partial state to roll back.
+export async function attemptStartOverlay({ adapter, status, startSession, seedBaseline, post, log }) {
+  // Diagnostic checkpoint: if 'begin' logs but 'context-started' never does, the panel tried to
+  // start the camera context but it was refused or threw.
+  log('start-overlay:begin', { status });
+
+  // Probe the camera FIRST. An unavailable or throwing getVideoState is UNKNOWN, not off — so we
+  // proceed and a flaky probe never blocks a legitimate start. Only an explicit false blocks.
+  let videoOn;
+  try {
+    videoOn = await adapter?.getVideoState?.();
+  } catch {
+    videoOn = undefined;
+  }
+  if (videoOn === false) {
+    log('start-overlay:blocked-camera-off', { status });
+    return 'blocked-camera-off';
+  }
+
+  // Commit boundary: the SDK call. Nothing above mutated app state, so a rejection here (camera
+  // turned off during the race, or any other failure) needs no rollback.
+  try {
+    await adapter?.startCameraOverlay?.();
+  } catch (err) {
+    log('start-overlay:error', { status, error: err?.message ?? String(err) });
+    return 'error';
+  }
+
+  // Success only past here — now the mutations are safe.
+  log('start-overlay:context-started');
+  if (status === 'idle') startSession(); // auto-start the session on first show (idle only)
+  seedBaseline();
+  post();
+  log('start-overlay:posted');
+  return 'started';
 }

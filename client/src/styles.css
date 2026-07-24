@@ -552,6 +552,18 @@ input.inline.num {
 }
 
 /* --- Error boundary fallback --------------------------------------------- */
+/* --- Prominent "turn your camera on" warning by the overlay button ------ */
+.overlay-warning {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  background: rgba(255, 176, 32, 0.12); /* --amber tint */
+  border: 1px solid var(--amber);
+  border-radius: 8px;
+  color: var(--amber);
+  font-size: 14px;
+  font-weight: 600;
+}
+
 .app-error {
   max-width: 560px;
   margin: 48px auto;
