@@ -136,6 +136,18 @@ jsdom would touch manifests outside AC7; mocking hooks would be a brittle hand-r
 - *Win:* satisfies the behavioural assertions with no new dependencies or out-of-scope files,
   and centralizes the no-partial-mutation invariant in one directly testable command.
 
+## Build note (2026-07-20)
+
+| AC | What | File |
+|---|---|---|
+| 1 | Camera-off start raises no unhandled rejection | `client/src/App.jsx` (`attemptStartOverlay`) |
+| 2 | Prominent two-step `role="alert"` warning | `client/src/components/PresenterControls.jsx`, `client/src/styles.css`, `client/src/App.jsx` (`CAMERA_OFF_NOTICE`) |
+| 3 | Refused start mutates no state (no session start, `overlayOn` false, baseline unseeded) | `client/src/App.jsx`, `client/src/App.test.js` |
+| 4 | Camera-on ends in the same success state; session starts on the success path | `client/src/App.jsx`, `client/src/App.test.js` |
+| 5 | Non-camera-off SDK rejection is caught → warning, no ErrorBoundary blank | `client/src/App.jsx`, `client/src/App.test.js` |
+| 6 | Warning clears on a subsequent successful start | `client/src/App.jsx`, `client/src/components/PresenterControls.test.jsx` |
+| 7 | Scope containment | _scope check — no file_ |
+
 ## Scope decision (2026-07-20)
 Thomas: "build it please." Approved: the camera-off guard as specced, with both reviewer fixes
 and the two user-facing choices below. (The currency picker is backlog-only — filed separately
