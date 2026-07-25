@@ -34,7 +34,7 @@ Use it to keep standups short, to make the cost of a large all-hands visible, or
 to bring a little healthy time-awareness to recurring meetings.
 
 ## Key features (bullets)
-- Live running cost total, updated on a cadence you choose (1s / 10s / 1 min)
+- Live running cost total, updated on a cadence you choose (1s / 10s)
 - Renders on your own camera via the Zoom Layers API, or in the side panel
 - Opportunity-cost model: attendee count × one hourly rate — no per-person data
 - 100% session-only: nothing is stored, nothing leaves the Zoom client

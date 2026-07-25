@@ -29,6 +29,8 @@ describe('ZOOM_CAPABILITIES', () => {
     expect(ZOOM_CAPABILITIES).not.toContain('getAppContext');
     expect(ZOOM_CAPABILITIES).not.toContain('getMeetingParticipants');
     expect(ZOOM_CAPABILITIES).not.toContain('onParticipantChange');
+    // Retired in presubmit-fixes with the diagnostics probe (its only caller):
+    expect(ZOOM_CAPABILITIES).not.toContain('getMeetingContext');
   });
 });
 

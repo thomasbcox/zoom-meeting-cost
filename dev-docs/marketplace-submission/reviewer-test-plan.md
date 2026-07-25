@@ -26,7 +26,7 @@ an hourly rate directly into the panel; nothing is stored or transmitted.
 3. **Enter an attendee count** (e.g. `5`) and an **hourly rate** (e.g. `100`).
    - *Expected:* the running total begins accruing; at 5 people × $100/hr the meter rises
      by ~$8.33 per minute.
-4. **Change the update cadence** (1s / 10s / 1 min).
+4. **Change the update cadence** (1s / 10s).
    - *Expected:* the displayed number updates on the selected interval; internal accrual
      stays continuous.
 5. **Show the cost on your video:** click the show-on-camera / overlay control.
