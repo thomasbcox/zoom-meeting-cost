@@ -135,6 +135,20 @@ The sketch's cookie is `httpOnly; SameSite=Lax; short Max-Age` but not `Secure`,
 - *Win:* keeps the CSRF cookie off plaintext HTTP and blocks cookie shadowing, using an existing
   Express construct, no new dependency.
 
+## Codex re-review (2026-07-25, base b526e34, HEAD 47122a3) — correctness only
+**Summary:** "Both approved fixes are correct and complete. The documented capability list now
+exactly matches `ZOOM_CAPABILITIES`, and `getMeetingParticipants` remains only in the intentional
+negative test assertion; the dead fake-SDK method, parameters, and caller are removed, with AC1
+accurately reworded."
+
+**Findings: none** (empty array) — both fixes verified; merge-eligible. *(The reviewer's Vitest
+note is its own read-only sandbox — the local gate + CI are green.)*
+
+## Build note (re-review 2026-07-25, base b526e34)
+Correctness-only re-review of the two approved fixes (no redesign last round):
+- ① `getMeetingContext` removed from the authoritative capability list → `server/zoom-app-config.md`
+- ② dead fake-SDK `getMeetingParticipants` stub + orphaned params/caller removed; AC1 reworded → `client/src/zoom/zoomAdapter.test.js`, `reviews/presubmit-fixes.md`
+
 ## Fixes (2026-07-25)
 - **① config doc out of sync:** removed `getMeetingContext` from the authoritative
   capability list in `server/zoom-app-config.md` (§"Zoom Apps SDK capabilities to enable"), so
@@ -218,3 +232,8 @@ with no exploitable CSRF surface; `/api/log` is a low-value log endpoint).
   when OAuth hardening is picked up.
 - The **four in-scope fixes** drew no design findings (blessed as-is) — the story is a clean
   scope-nod.
+
+## Decisions (2026-07-25, re-review round)
+Correctness-only re-review of the two approved fixes came back CLEAN (empty findings) — nothing
+to decide. Both fixes verified correct and complete; the branch is merge-eligible pending Thomas's
+merge instruction at the /close fork.
