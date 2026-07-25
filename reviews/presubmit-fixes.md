@@ -133,6 +133,18 @@ The sketch's cookie is `httpOnly; SameSite=Lax; short Max-Age` but not `Secure`,
 - *Win:* keeps the CSRF cookie off plaintext HTTP and blocks cookie shadowing, using an existing
   Express construct, no new dependency.
 
+## Decisions (2026-07-25)
+Thomas: "fix as recommended."
+
+- **① Authoritative capability doc out of sync:** **FIX.** Add `server/zoom-app-config.md` to
+  scope and remove `getMeetingContext` from its "must match `ZOOM_CAPABILITIES` exactly"
+  capability list (the doc currently instructs re-enabling a capability we dropped).
+- **② AC1 grep + dead stub:** **FIX.** Remove the obsolete fake-SDK `getMeetingParticipants`
+  stub from `zoomAdapter.test.js` (RealZoom no longer calls it; keep the intentional negative
+  assertion at line 30); reword AC1 to a production-source grep so the negative assertion is not
+  fought.
+- **Approach pass:** clean — nothing to decide.
+
 ## Codex review (2026-07-25, base main, HEAD b526e34)
 **Summary:** "The implementation largely matches the four approved fixes, but it leaves the
 authoritative Marketplace capability documentation inconsistent with the runtime configuration,
