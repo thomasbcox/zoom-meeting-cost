@@ -133,6 +133,17 @@ The sketch's cookie is `httpOnly; SameSite=Lax; short Max-Age` but not `Secure`,
 - *Win:* keeps the CSRF cookie off plaintext HTTP and blocks cookie shadowing, using an existing
   Express construct, no new dependency.
 
+## Build note (2026-07-24)
+
+| AC | What | File(s) |
+|---|---|---|
+| 1 | Diag probe removed — no shipped code references `getMeetingParticipants` | `client/src/zoom/zoomDiagnostics.js` (del), `client/src/zoom/zoomDiagnostics.test.js` (del), `client/src/main.jsx` |
+| 2 | `getMeetingContext` dropped from `ZOOM_CAPABILITIES` + locked with a negative assertion | `client/src/zoom/zoomAdapter.js`, `client/src/zoom/zoomAdapter.test.js` |
+| 3 | Cadence stated as 1 s / 10 s (no "1 min") | `dev-docs/marketplace-submission/listing-copy.md`, `dev-docs/marketplace-submission/reviewer-test-plan.md` |
+| 4 | Panel-close corrected (hides; meter keeps running) | `docs/documentation.html` |
+| 5 | `body-parser` → 1.20.6; `npm audit --omit=dev` clean | `package-lock.json` |
+| 6 | Scope containment | _scope check — no file_ |
+
 ## Scope decision (2026-07-24)
 Thomas: "do four now and defer the other two." Approved scope = **four fixes**: cadence docs,
 panel-close doc, diag-probe removal (+ `getMeetingContext`), body-parser bump. **Deferred:** OAuth
