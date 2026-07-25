@@ -133,6 +133,16 @@ The sketch's cookie is `httpOnly; SameSite=Lax; short Max-Age` but not `Secure`,
 - *Win:* keeps the CSRF cookie off plaintext HTTP and blocks cookie shadowing, using an existing
   Express construct, no new dependency.
 
+## Codex approach review (2026-07-25, base main, HEAD 63b9f33)
+**Verdict:** "The approach is sound, lean, and idiomatic. It deletes the diagnostic subsystem,
+removes its capability and startup wiring, applies literal documentation corrections, and updates
+transitive dependencies through the existing lockfile without adding abstractions or
+dependencies. I would build it this way."
+
+**Findings: none** (empty array) — shape blessed; proceeded to the correctness pass in the same
+round. *(The reviewer's "runtime verification was environment-limited" note is its own read-only
+sandbox — our gate + CI are green.)*
+
 ## Build note (2026-07-24)
 
 | AC | What | File(s) |
