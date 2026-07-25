@@ -133,6 +133,32 @@ The sketch's cookie is `httpOnly; SameSite=Lax; short Max-Age` but not `Secure`,
 - *Win:* keeps the CSRF cookie off plaintext HTTP and blocks cookie shadowing, using an existing
   Express construct, no new dependency.
 
+## Codex review (2026-07-25, base main, HEAD b526e34)
+**Summary:** "The implementation largely matches the four approved fixes, but it leaves the
+authoritative Marketplace capability documentation inconsistent with the runtime configuration,
+and AC1's prescribed grep still fails because participant-method references remain in client
+tests."
+
+### IMPORTANT
+**① Authoritative capability list remains out of sync** — `client/src/zoom/zoomAdapter.js:30` → `server/zoom-app-config.md:121`
+- *Claim:* the diff removes `getMeetingContext` from `ZOOM_CAPABILITIES`, but
+  `server/zoom-app-config.md` still calls its API list authoritative ("must match
+  `ZOOM_CAPABILITIES` exactly") and instructs operators to **enable** `getMeetingContext` — so
+  following the repo guidance would re-add it in the dashboard, contradicting this change.
+- *Suggestion:* add `server/zoom-app-config.md` to scope and remove `getMeetingContext` from its
+  capability list; then do the noted Marketplace dashboard removal.
+
+**② AC1's required grep assertion still fails** — `client/src/zoom/zoomAdapter.test.js:30, ~217`
+- *Claim:* AC1 requires `grep -rn getMeetingParticipants client/src` to return nothing, but it
+  finds the intentional negative assertion (line 30) and an obsolete fake-SDK
+  `getMeetingParticipants` method (~217–220). Test-only — no shipped privacy regression — but the
+  literal AC check isn't met.
+- *Suggestion:* remove the obsolete fake-SDK method if unused; reconcile AC1 to a
+  production-source grep (the negative assertion is intentional and should stay).
+
+*(No BLOCKER/QUESTION/NIT. The reviewer's "couldn't rerun the gate/npm audit" note is its own
+sandbox — our gate + CI are green.)*
+
 ## Codex approach review (2026-07-25, base main, HEAD 63b9f33)
 **Verdict:** "The approach is sound, lean, and idiomatic. It deletes the diagnostic subsystem,
 removes its capability and startup wiring, applies literal documentation corrections, and updates
