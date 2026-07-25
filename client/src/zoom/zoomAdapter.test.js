@@ -109,7 +109,7 @@ describe('RealZoom camera-overlay draw placement', () => {
     const logs = [];
     // No UUID from getUserContext and no name match in the participant list.
     // (null, not undefined: a destructuring default would coerce undefined back.)
-    const sdk = makeFakeSdk({ selfParticipantUUID: null, participants: [] });
+    const sdk = makeFakeSdk({ selfParticipantUUID: null });
     const a = new RealZoom(sdk, { log: (p) => logs.push(p) });
     await a.init();
     await a.drawCameraOverlay();
@@ -184,8 +184,6 @@ describe('RealZoom running-context normalization (real SDK { context } shape)', 
 function makeFakeSdk({
   postMessageRejects = false,
   postMessageThrowsSync = false,
-  participantsReject = false,
-  participants = [],
   renderRejects = false,
   drawRejects = false,
   participantDrawRejects = false,
@@ -213,10 +211,6 @@ function makeFakeSdk({
     },
     async getUserContext() {
       return { id: 'u1', displayName: 'Real User', screenName: 'Real User', participantUUID: selfParticipantUUID };
-    },
-    async getMeetingParticipants() {
-      if (participantsReject) throw new Error('not host/co-host');
-      return { participants };
     },
     async runRenderingContext() {
       if (renderRejects) throw new Error('runRenderingContext failed');

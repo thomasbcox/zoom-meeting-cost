@@ -59,9 +59,11 @@ The agreed findings:
 - No functional change to the meter, overlay, cost math, or cadence set (still {1, 10}).
 
 ## Acceptance criteria
-1. No shipped client code references `getMeetingParticipants`: `zoomDiagnostics.js` and its test
-   are deleted, `main.jsx` no longer imports or calls `maybeRunZoomDiagnostics`, and no `?diag`
-   path remains. `grep -rn getMeetingParticipants client/src` returns nothing.
+1. No shipped (non-test) client code references `getMeetingParticipants`: `zoomDiagnostics.js` and
+   its test are deleted, `main.jsx` no longer imports or calls `maybeRunZoomDiagnostics`, and no
+   `?diag` path remains. A production-source grep (excluding `*.test.*`) returns nothing; the only
+   remaining reference is the intentional `zoomAdapter.test.js` negative assertion that the
+   capability is *not* requested.
 2. `getMeetingContext` is removed from `ZOOM_CAPABILITIES` in `client/src/zoom/zoomAdapter.js`
    (it was referenced only by the removed probe); any test asserting the capability set is
    updated to match.
@@ -132,6 +134,16 @@ The sketch's cookie is `httpOnly; SameSite=Lax; short Max-Age` but not `Secure`,
   OAuth 2.0 Security BCP.)
 - *Win:* keeps the CSRF cookie off plaintext HTTP and blocks cookie shadowing, using an existing
   Express construct, no new dependency.
+
+## Fixes (2026-07-25)
+- **① config doc out of sync:** removed `getMeetingContext` from the authoritative
+  capability list in `server/zoom-app-config.md` (§"Zoom Apps SDK capabilities to enable"), so
+  the doc no longer instructs enabling a capability the code dropped. `server/zoom-app-config.md`
+  added to scope per the decision.
+- **② AC1 grep + dead stub:** removed the obsolete fake-SDK `getMeetingParticipants` method from
+  `client/src/zoom/zoomAdapter.test.js` (plus its now-orphaned `participantsReject`/`participants`
+  factory params and the lone `participants: []` caller). Kept the intentional negative assertion
+  (line 30). Reworded AC1 to a production-source grep (excluding `*.test.*`).
 
 ## Decisions (2026-07-25)
 Thomas: "fix as recommended."
