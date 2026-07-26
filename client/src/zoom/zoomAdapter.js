@@ -27,7 +27,6 @@ import { logLifecycle } from '../lib/lifecycleLog.js';
 // in tests and kept in sync with server/zoom-app-config.md.
 export const ZOOM_CAPABILITIES = [
   'getRunningContext',
-  'getMeetingContext',
   // getUserContext supplies the presenter's own participantUUID for the base video layer.
   'getUserContext',
   // Camera overlay (Layers API):

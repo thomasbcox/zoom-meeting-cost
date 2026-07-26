@@ -174,6 +174,36 @@ story when picked up.
     (ignore a legacy `multiplier`) or a migration, unlike the copy-only framing pass.
   - Decide whether to keep a value-neutral "scale" control or drop scaling entirely.
 
+## Pre-submission hardening (deferred) — OAuth state-CSRF + /api/log rate limiting
+- **Deferred:** 2026-07-24 (Thomas: "do four now, defer the other two"), split out of
+  `presubmit-fixes` after the submission-critique assessment. The four reviewer-*visible* fixes
+  shipped in that story; these two hardenings were held back.
+- **What:**
+  1. **OAuth `state`-CSRF + generic errors** (`server/src/zoom/oauth.js`): generate a cryptographic
+     `state` on `/auth/install`, verify it on `/auth/callback` (reject missing/mismatch **before**
+     token exchange); on token-exchange failure return a generic browser error and log the upstream
+     detail server-side only (today it leaks Zoom's raw `resp.text()`).
+  2. **`/api/log` rate limiting** (`server/src/app.js`): bound the public log-write endpoint with
+     `express-rate-limit` (already a dep, used by the deauth route) so it can't be flooded.
+- **Why deferred (not dismissed):** the OAuth flow is currently a **token-discarding scaffold**
+  (`/auth/callback` runs `void token`) — no session or account-binding is established, so there is
+  no exploitable login-CSRF surface *today*; the right time is when real OAuth (token persistence)
+  lands. `/api/log` is low-value (worst case: log noise/cost, no data exposure). Both are genuine
+  best practice but premature for what the code does now.
+- **Design already scoped** (from `reviews/presubmit-fixes.md` → Codex design review 2026-07-24):
+  - OAuth `state`: **stateless double-submit cookie**, no new dependency — an opaque
+    `__Host-zoom-oauth-state` cookie (`Secure; HttpOnly; SameSite=Lax; Path=/; short Max-Age`, no
+    `Domain`) via Express `res.cookie`; on callback a **total, non-throwing** verifier (two
+    non-empty strings → buffers → false on length diff → `timingSafeEqual`), mirroring
+    `deauth.js`'s `verifyZoomSignature`; every absent/duplicate/malformed/array/mismatch → the same
+    400 before token exchange; clear the cookie on every terminal path.
+  - `/api/log`: a generous global-bucket limiter (the legitimate client posts a handful of
+    lines/session).
+- **When to do:** before submission only if you want zero security-audit notes; otherwise on
+  demand if the reviewer flags either, or when real OAuth is built.
+- **Done looks like:** `state` generated + verified (happy/missing/mismatch tests); the callback
+  leaks no upstream text; `/api/log` rate-limited with a test; gate green.
+
 ## Currency picker — locale-defaulted, short list, USD fallback
 - **Requested:** 2026-07-20 (Thomas).
 - **What:** Let the presenter choose the currency used by the cost readout and the on-camera

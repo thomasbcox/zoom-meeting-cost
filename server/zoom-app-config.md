@@ -118,7 +118,6 @@ Add **every** API below under **Features → Zoom App SDK → Add APIs**. This l
 
 **Context & participants**
 - `getRunningContext` — route the instance (panel vs. camera rendering context)
-- `getMeetingContext` — meeting info
 - `getUserContext` — the presenter's own identity; supplies the `participantUUID` for the base-video
   layer (`drawParticipant`)
 
