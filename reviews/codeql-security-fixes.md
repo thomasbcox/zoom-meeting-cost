@@ -316,3 +316,13 @@ decision covers it.
   normalisation). Swap out the low-value default-burst test. Test-only; no production change.
 
 To be applied in `/close`, which re-runs the gate and stops at the merge fork.
+
+## Fixes (2026-07-26)
+
+- **IMPORTANT — clientIpKey / X-Real-IP policy untested** (both passes) → **fixed** in
+  `server/test/rateLimit.test.js`. Removed the low-value default-burst test and added two that
+  exercise the branch-owned key policy directly: (1) two distinct `X-Real-IP` values get
+  independent buckets — client A is throttled at the ceiling while client B still succeeds (no
+  cross-client starvation, and not one collapsed bucket); (2) two IPv6 addresses in the same /56
+  share a bucket (the `ipKeyGenerator` normalisation invariant). Kept the socket-fallback 429 test
+  (the no-header path) and the /api/health-exempt test. No production code changed.
