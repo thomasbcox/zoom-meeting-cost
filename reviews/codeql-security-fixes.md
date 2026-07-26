@@ -285,3 +285,21 @@ mkdtemp — not an assertion failure; the gate ran green locally.)
   **Win:** tests the only custom, deployment-specific part of the limiter; guards against
   both cross-client starvation and ineffective per-IP limiting; drops one dependency-behaviour
   test.
+
+## Codex review (2026-07-26, base main, HEAD 615d0ab)
+
+**Summary:** The implementation satisfies the production-code requirements for all four CodeQL
+alerts and stays within scope. One meaningful test-coverage gap leaves the custom,
+deployment-specific IP-keying policy unverified. **Both passes converged on this same single
+finding** (approach + correctness) — nothing else flagged.
+
+### IMPORTANT
+- **Custom client-IP policy is untested** · locus: `server/test/rateLimit.test.js:26`.
+  All three new tests omit `X-Real-IP`, so they exercise `express-rate-limit`'s counting
+  using one socket address but never verify the branch-owned `clientIpKey` policy. A
+  regression that collapses distinct Railway clients into one bucket — or fails to group
+  requests from the same forwarded IP — would still pass.
+  **Suggestion:** add an integration test that exhausts the bucket with one `X-Real-IP`
+  value, confirms another request with that value gets 429, then confirms a *different*
+  `X-Real-IP` still succeeds. Include an IPv6 value if the /56 normalisation is an intended
+  invariant.
