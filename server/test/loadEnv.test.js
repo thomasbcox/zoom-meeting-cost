@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { writeFileSync, rmSync } from 'node:fs';
+import { writeFileSync, rmSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -8,7 +8,10 @@ import { loadLocalEnv } from '../src/loadEnv.js';
 
 test('loadLocalEnv reads vars from an existing env file into process.env', () => {
   const key = 'MEETING_COST_TEST_VAR_98765';
-  const file = join(tmpdir(), `meeting-cost-${key}.env`);
+  // Write into a unique, private (0700) temp DIRECTORY, not a predictable name in the shared
+  // tmpdir. mkdtempSync's random suffix closes the symlink / pre-creation race CodeQL flags.
+  const dir = mkdtempSync(join(tmpdir(), 'meeting-cost-'));
+  const file = join(dir, 'test.env');
   writeFileSync(file, `${key}=hello-railway\n`);
   try {
     assert.equal(process.env[key], undefined, 'precondition: var not set');
@@ -16,7 +19,7 @@ test('loadLocalEnv reads vars from an existing env file into process.env', () =>
     assert.equal(loaded, true);
     assert.equal(process.env[key], 'hello-railway');
   } finally {
-    rmSync(file, { force: true });
+    rmSync(dir, { recursive: true, force: true });
     delete process.env[key];
   }
 });
