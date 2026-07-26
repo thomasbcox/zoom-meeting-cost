@@ -1,7 +1,21 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { createApp } from '../src/app.js';
+import { createApp, sanitizeLogValue } from '../src/app.js';
+
+// Log-injection guard (CodeQL js/log-injection, app.js:107): user-controlled request
+// values must not be able to splice forged lines into the server log.
+test('sanitizeLogValue removes CR/LF and control chars, leaves printable text intact', () => {
+  // A crafted path trying to inject a second log line loses its newlines/carriage returns.
+  assert.equal(sanitizeLogValue('/a\r\n[server] FORGED /evil'), '/a[server] FORGED /evil');
+  // Other ASCII control chars (NUL, ESC, DEL) are stripped too.
+  assert.equal(sanitizeLogValue('/a\u0000b\u001bc\u007fd'), '/abcd');
+  // Ordinary methods and paths pass through unchanged.
+  assert.equal(sanitizeLogValue('GET'), 'GET');
+  assert.equal(sanitizeLogValue('/auth/callback'), '/auth/callback');
+  // Non-string input is coerced, never throws.
+  assert.equal(sanitizeLogValue(undefined), 'undefined');
+});
 
 // Regression guard for the OAuth-code log leak: the request logger must log the
 // path only, never req.url. The Zoom OAuth redirect arrives as

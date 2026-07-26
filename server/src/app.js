@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
+import { rateLimit, ipKeyGenerator } from 'express-rate-limit';
 
 import { createOAuthRouter, zoomConfigured } from './zoom/oauth.js';
 import { createDeauthRouter } from './zoom/deauth.js';
@@ -67,6 +68,17 @@ export function isRoutineRequest(reqPath) {
   );
 }
 
+// Strip anything that could forge a new log record out of a user-controlled value before it
+// reaches console.* — CR/LF first (the log-injection vector: a crafted path could otherwise
+// splice in a fake line), then any remaining ASCII control chars. The explicit \n|\r removal is
+// also what CodeQL recognises as a log-injection barrier. Printable text passes through unchanged.
+export function sanitizeLogValue(value) {
+  return String(value)
+    .replace(/[\n\r]/g, '')
+    // eslint-disable-next-line no-control-regex
+    .replace(/[\u0000-\u001F\u007F]/g, '');
+}
+
 export function securityHeaders(_req, res, next) {
   res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -79,6 +91,26 @@ export function securityHeaders(_req, res, next) {
   next();
 }
 
+// DoS ceiling for the file-serving surface: the static catch-all reads from disk on every hit,
+// so an unbounded flood is a cheap denial-of-service. One legitimate app load fetches only a
+// handful of files — index.html + 3 hashed assets + favicon — plus sparse /api/log posts (~10
+// requests total). 600/min per IP leaves wide headroom for many users sharing one corporate-NAT
+// egress IP while still capping a flood. Per-IP (not one global bucket) so a single noisy client
+// can't starve everyone. Overridable via createApp({ rateLimitOptions }).
+const DEFAULT_APP_RATE_LIMIT = { windowMs: 60_000, limit: 600 };
+
+// The rate-limit key is the client's IP. In production we sit behind Railway's proxy, which sets
+// X-Real-IP to the true client address (Railway's DOCUMENTED client-IP header). We read that
+// header directly rather than enabling Express `trust proxy` — an app-wide setting every future
+// route would inherit — just for this one limiter. Fall back to the socket address (req.ip) when
+// the header is absent (local dev, direct hits). ipKeyGenerator normalises IPv6 to a /56 block so
+// a client can't slip the limit by rotating addresses inside its own subnet.
+export function clientIpKey(req) {
+  const realIp = req.headers['x-real-ip'];
+  const ip = typeof realIp === 'string' && realIp.length > 0 ? realIp : req.ip;
+  return ipKeyGenerator(String(ip));
+}
+
 /**
  * Build the Express app (no listening — that lives in index.js).
  * Exported so tests can exercise routes/headers without starting a server.
@@ -88,6 +120,9 @@ export function createApp({
   // Injected into the deauthorization router (secretToken / now). Empty in production,
   // where the router reads env + Date.now itself.
   deauth = {},
+  // Overrides ({ windowMs, limit }) for the global rate limiter below. Mirrors the deauth
+  // router's own `rateLimitOptions`; tests pass a tiny ceiling, production uses the default.
+  rateLimitOptions,
 } = {}) {
   const app = express();
 
@@ -104,7 +139,9 @@ export function createApp({
     // Skip routine, high-volume traffic (the periodic health check, the client
     // log sink itself, the favicon, and static assets) so the log stays signal.
     if (!isRoutineRequest(req.path)) {
-      console.log(`[server] ${req.method} ${req.path}`);
+      // Sanitise the user-controlled method/path so a crafted request can't inject
+      // forged log lines (CR/LF/control chars) — see sanitizeLogValue.
+      console.log(`[server] ${sanitizeLogValue(req.method)} ${sanitizeLogValue(req.path)}`);
     }
     next();
   });
@@ -116,6 +153,22 @@ export function createApp({
   // only POST /auth/deauthorize and terminates every request, so nothing here falls through to
   // the JSON parser or the OAuth router below.
   app.use('/auth', createDeauthRouter(deauth));
+
+  // Global DoS ceiling on everything below (the API and, above all, the static file-serving
+  // catch-all). Mounted AFTER the deauth router so that route keeps ONLY its own constant-key
+  // limiter — Zoom's webhook source IPs are deliberately unstable, so per-IP keying is wrong
+  // there — and isn't double-counted by this per-IP limiter. Skips /api/health so the platform's
+  // frequent health probe is never throttled.
+  app.use(
+    rateLimit({
+      ...DEFAULT_APP_RATE_LIMIT,
+      ...rateLimitOptions,
+      standardHeaders: 'draft-7',
+      legacyHeaders: false,
+      skip: (req) => req.path === '/api/health',
+      keyGenerator: clientIpKey,
+    })
+  );
 
   // Bounded JSON body for everything else — cap it so a POST (e.g. /api/log) can't be huge.
   app.use(express.json({ limit: '100kb' }));
