@@ -303,3 +303,16 @@ finding** (approach + correctness) — nothing else flagged.
   value, confirms another request with that value gets 429, then confirms a *different*
   `X-Real-IP` still succeeds. Include an IPv6 value if the /56 normalisation is an intended
   invariant.
+
+## Decisions (2026-07-26)
+
+Both the approach and correctness passes raised the **same single finding** this round; one
+decision covers it.
+
+- **IMPORTANT — Custom client-IP (`clientIpKey` / `X-Real-IP`) policy is untested**
+  (`rateLimit.test.js:26`, both passes) → **FIX.** Thomas: *"Fix."* Add an integration test
+  that exhausts the bucket with one `X-Real-IP`, confirms a second request with that value gets
+  429, and confirms a different `X-Real-IP` still succeeds (plus an IPv6 value for the /56
+  normalisation). Swap out the low-value default-burst test. Test-only; no production change.
+
+To be applied in `/close`, which re-runs the gate and stops at the merge fork.
