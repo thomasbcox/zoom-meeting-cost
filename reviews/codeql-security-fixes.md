@@ -248,3 +248,40 @@ Binding on implementation (step 9):
   from the built client's real request fan-out (counted from `client/dist` at implementation
   time) × a generous concurrent-users-per-egress-IP allowance, recorded in a code comment.
   Kept injectable via `createApp({ rateLimit })` for tests.
+
+## Build note (2026-07-26)
+
+AC → file map:
+
+- **AC1** (rate limiting, #1) → `server/src/app.js` (`DEFAULT_APP_RATE_LIMIT`, `clientIpKey`,
+  the `rateLimit(...)` mount, `rateLimitOptions` param) · test: `server/test/rateLimit.test.js`
+- **AC2** (log injection, #6) → `server/src/app.js` (`sanitizeLogValue` + its use in the request
+  logger) · test: `server/test/requestLog.test.js` (`sanitizeLogValue` unit test)
+- **AC3** (insecure temp file, #3) → `server/test/loadEnv.test.js` (`mkdtempSync` dir)
+- **AC4** (clear-text logging, #2) → `server/src/index.js` (boot fingerprint line + dead import
+  removed; `oauth.js` helpers + `oauthFingerprint.test.js` left intact)
+- **AC5** (gate) → all of the above
+- **AC6** (scope containment) → no product files beyond those listed
+
+## Codex approach review (2026-07-26, base main, HEAD 914b660)
+
+**Verdict:** The production shape is sound — it uses the existing rate-limit dependency
+declaratively, localises Railway-specific IP handling, keeps sanitisation small, and touches
+no OAuth/deauth code unnecessarily. One test-design concern remains. (The reviewer's "gate
+inconclusive" note is its own read-only sandbox blocking Vitest temp files / listeners /
+mkdtemp — not an assertion failure; the gate ran green locally.)
+
+### IMPORTANT
+- **Rate-limit tests exercise the dependency, not the custom IP policy** — *(two-way ·
+  kludgy)* · locus: `server/test/rateLimit.test.js:26`.
+  All three tests use the default socket address, so they verify `express-rate-limit`'s
+  counting behaviour but never exercise the branch-owned `clientIpKey` policy. The accepted
+  design's central invariant — requests sharing `X-Real-IP` share a bucket while a different
+  client keeps its own — could break or collapse all clients together without failing these
+  tests.
+  **Alternative:** replace the low-value default-burst test with one integration test that
+  sends `X-Real-IP: A` until A is limited, then sends `X-Real-IP: B` and confirms B still
+  succeeds (include an IPv6 value if normalisation is an intended invariant).
+  **Win:** tests the only custom, deployment-specific part of the limiter; guards against
+  both cross-client starvation and ineffective per-IP limiting; drops one dependency-behaviour
+  test.
