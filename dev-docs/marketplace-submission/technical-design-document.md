@@ -33,6 +33,10 @@ per-participant data, and no server-side storage of any kind.
 | Server | Node.js 22 + Express on Railway | Serves the built client bundle and a small set of endpoints (below). Holds no database. |
 | Public site | Static HTML on GitHub Pages | Legal + support pages (privacy, terms, support, documentation). No JS, no external requests. |
 
+A visual architecture & data-flow diagram accompanies this submission
+(`meeting-cost-architecture.png`), also published at
+`https://thomasbcox.github.io/zoom-meeting-cost/meeting-cost-architecture.svg`.
+
 **Server endpoints:**
 - `GET /` and static assets — serves the built React client.
 - `GET /api/health` — liveness check (`{ ok, zoomConfigured }`).

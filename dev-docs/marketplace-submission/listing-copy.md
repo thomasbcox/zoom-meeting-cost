@@ -1,7 +1,7 @@
-# Meeting Cost Meter — App Listing copy (draft)
+# Meeting Cost Meter — App Listing copy
 
-Field-by-field content for the Marketplace **App Listing** tab. Draft for review —
-edit freely. Char counts are approximate; trim to whatever Zoom's field enforces.
+Field-by-field content for the Marketplace **App Listing** tab. Char counts are
+approximate; trim to whatever Zoom's field enforces.
 
 ## Identity
 - **App name:** Meeting Cost Meter
@@ -9,14 +9,12 @@ edit freely. Char counts are approximate; trim to whatever Zoom's field enforces
 - **Developer contact:** Thomas Cox — thomas@eudae.biz
 - **Support email:** thomas+mcsupport@txl-lab.com
 
-## Category — DECIDED (Thomas, 2026-07-24)
-- **Primary: Productivity** ✅
-- **Alternate if a second is allowed:** Meeting & Scheduling
+## Category
+- **Primary:** Productivity
+- **Alternate (if a second is allowed):** Meeting & Scheduling
 
-## Short description / summary — DECIDED (Thomas, 2026-07-24)
-- ✅ **`Make meeting time visible: a running cost total on the presenter's video.`** (~73)
-- ~~`Show the live, running dollar cost of your meeting as an overlay on your own video.`~~ (not chosen)
-- ~~`A live meeting-cost meter — computed entirely in-client, nothing stored.`~~ (not chosen)
+## Short description / tagline
+`Make meeting time visible: a running cost total on the presenter's video.`
 
 ## Long description
 Meeting Cost Meter turns meeting time into a number people can see. The presenter
@@ -47,10 +45,11 @@ to bring a little healthy time-awareness to recurring meetings.
 - **Documentation:** https://thomasbcox.github.io/zoom-meeting-cost/documentation.html
 - **Security (optional to link):** https://thomasbcox.github.io/zoom-meeting-cost/security.html
 
-## Assets — ACTION NEEDED
-- **App icon 160×160 px** — required. Confirm you have one on brand (palette in the
-  marketplace-pages notes). If not, this is the one asset still to produce.
-- **Cover / gallery image** — `docs/image-market-cover.png` exists; confirm it meets
-  Zoom's listing-image dimensions, or resize.
-- **Screenshots** — Zoom listings expect 1–3 screenshots of the app in use (panel +
-  camera overlay). You can capture these from a live dev-client run.
+## Assets — done
+- **App icon 160×160 px** — uploaded to the Marketplace ✓
+- **Screenshots** (panel + camera overlay) — uploaded ✓
+- **Architecture diagram** — `docs/meeting-cost-architecture.png` (a PNG render of the SVG,
+  for the Technical Design tab); source at `docs/meeting-cost-architecture.svg`, live at
+  https://thomasbcox.github.io/zoom-meeting-cost/meeting-cost-architecture.svg
+- **Cover / gallery image** — `docs/image-market-cover.png` (confirm it meets Zoom's
+  listing-image dimensions, or resize).

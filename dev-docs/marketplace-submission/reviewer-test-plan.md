@@ -1,4 +1,4 @@
-# Meeting Cost Meter — Reviewer test plan (draft)
+# Meeting Cost Meter — Reviewer test plan
 
 Paste into the submission's **Release Notes / Test Plan** field. Written so a Zoom
 reviewer can exercise the app end-to-end. The app needs **no login and no test
@@ -32,6 +32,8 @@ an hourly rate directly into the panel; nothing is stored or transmitted.
 5. **Show the cost on your video:** click the show-on-camera / overlay control.
    - *Expected:* the running cost composites onto **your own** camera video (Layers API).
      No other participant's video is affected.
+   - *If your camera is off:* the app shows a prompt to turn the camera on and click Show
+     again — it does not fail silently.
 6. **Toggle your camera off, then on** with the overlay showing.
    - *Expected:* the overlay returns on its own within ~1–2 seconds (auto-recovery).
 7. **Hide the overlay**, then **end the session**.
