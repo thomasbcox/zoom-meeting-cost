@@ -192,3 +192,30 @@ AC → file map:
 - **AC5** (pure tested reducer + observable send outcome): `overlayRecover.js` + `overlayRecover.test.js`;
   `postMessage` returns `Promise<boolean>` + `zoomAdapter.test.js`.
 - **AC6** (scope): only the four files above (+ tests) and this story file.
+
+## Codex approach review (2026-07-29, base main, HEAD 6c8c91a)
+
+**Verdict:** Core shape is appropriately small and uses existing React/Zoom primitives — no
+dependency provides this Zoom-specific recovery lifecycle. Not yet sound: send-outcome state
+and rendering-context ownership aren't fully centralized.
+
+### BLOCKER — Hide does not fully supersede an in-flight reopen · two-way × kludgy
+- **Locus:** `client/src/lib/overlayRecover.js:120` (`rebuildOverlay`).
+- **Claim:** The intent re-check *after* `await start` skips the post but never closes the
+  just-reopened context. If Hide's `closeRenderingContext` runs while `start` is pending, start
+  completes afterward and the context stays **active while the UI says "Show cost on video"** —
+  violating AC3 ("Hide always wins"). The check is a timing assumption, not an enforced invariant.
+- **Alternative:** One serialized, generation-aware owner for rendering-context mutations. Hide
+  advances the generation + sets desired-off; after any awaited `start`, a stale generation does a
+  compensating close (last-intent-wins).
+- **Win:** "Hide always wins" becomes enforced, not timing-dependent; no hidden-UI/live-context split.
+
+### IMPORTANT — most successful sends bypass the recovery state machine · two-way × kludgy
+- **Locus:** `client/src/App.jsx:138` (only the tick feeds `runPostRecovery`).
+- **Claim:** Sends during start, the fresh-snapshot effect, and `rebuildOverlay`'s own post ignore
+  their outcomes, and `postStateRef` survives Hide→Show. So a stale failure count can cross overlay
+  runs and trigger an early rebuild (one failure completing a prior run's threshold).
+- **Alternative:** One observed send boundary owning `adapter.postMessage` + the outcome transition,
+  with Hide / new-overlay generations as explicit reset transitions.
+- **Win:** Removes the fire-and-forget outcome paths, stops stale state crossing lifecycles,
+  centralizes the AC1 reset invariant.
