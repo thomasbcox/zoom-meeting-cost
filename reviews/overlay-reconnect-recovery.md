@@ -233,3 +233,19 @@ Approach pass (base main, HEAD 6c8c91a) — Thomas's calls:
 **Correctness pass NOT run this round** — the approved redesign changes the shape, so it re-enters
 the **approach** pass on the new shape (a fresh `/review`) before any line-level pass. No merge is
 authorized by these decisions.
+
+## Fixes (2026-07-29)
+
+Applying the approach-pass decisions (both FIX):
+- **BLOCKER (Hide loses race with in-flight reopen) → fixed.** Added an overlay **generation**
+  (`App.jsx` `generationRef`, bumped on every Show and Hide). `rebuildOverlay` captures the
+  generation at entry and treats the run as *superseded* if the overlay was hidden **or** the
+  generation advanced; if superseded after the reopen it performs a **compensating close** of the
+  context it just recreated. Last intent wins — "Hide always wins" is now enforced, not a timing
+  assumption. (`overlayRecover.js` `rebuildOverlay`; forwarded via `createVideoRecovery` /
+  `createPostRecovery`.)
+- **IMPORTANT (failure count survives Hide→Show) → fixed.** `startOverlay` success bumps the
+  generation and resets `postStateRef` to `{ consecutiveFailures: 0, lastRebuildAt: 0 }`, so a
+  stale dead-link count can't cross overlay runs and rebuild a fresh overlay early.
+- **Tests:** two new `rebuildOverlay` cases — compensating-close on a Hide-during-reopen, and on a
+  generation advance during the reopen. Gate green (71 client + 50 server + 14 secret-scan; build clean).

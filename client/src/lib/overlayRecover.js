@@ -47,6 +47,7 @@ export function reduceVideoPoll(currentVideoOn, { overlayOn, lastVideoOn }) {
 // @returns {() => Promise<void>}
 export function createVideoRecovery({
   getOverlayOn,
+  getGeneration = () => 0,
   getLastVideoOn,
   setLastVideoOn,
   getVideoState,
@@ -67,9 +68,10 @@ export function createVideoRecovery({
         });
         setLastVideoOn(lastVideoOn);
         if (!recover) return undefined;
-        // Delegate the close→reopen to the shared rebuild (single-flight + intent re-check).
+        // Delegate the close→reopen to the shared rebuild (single-flight + generation guard).
         return rebuildOverlay({
           getOverlayOn,
+          getGeneration,
           isRecovering,
           setRecovering,
           stop: stopCameraOverlay,
@@ -99,6 +101,7 @@ export const REBUILD_COOLDOWN_MS = 6000;
 // @returns {Promise<boolean>} true when it reopened + posted; false when guarded/aborted.
 export async function rebuildOverlay({
   getOverlayOn = () => true,
+  getGeneration = () => 0,
   isRecovering = () => false,
   setRecovering = () => {},
   stop,
@@ -108,6 +111,10 @@ export async function rebuildOverlay({
 }) {
   if (isRecovering()) return false; // another rebuild already in flight
   if (!getOverlayOn()) return false; // overlay is meant to be off — nothing to rebuild
+  const gen = getGeneration();
+  // Superseded = the overlay was hidden, or a new overlay run started (generation advanced),
+  // since this rebuild began — either way this rebuild is stale and must not win (last-intent-wins).
+  const superseded = () => !getOverlayOn() || getGeneration() !== gen;
   setRecovering(true);
   log('overlay-rearm:begin');
   try {
@@ -116,9 +123,19 @@ export async function rebuildOverlay({
     } catch {
       /* close is best-effort: the context may already be torn down */
     }
-    if (!getOverlayOn()) return false; // a manual Hide landed during the close — do NOT reopen
+    if (superseded()) return false; // a Hide / new run landed during the close — do NOT reopen
     await start?.();
-    if (!getOverlayOn()) return false; // Hide landed during the reopen — skip the post
+    if (superseded()) {
+      // A Hide / new run landed while we were reopening. We just recreated the context, so close
+      // it (best-effort) — never leave a live overlay the current intent rejects. This is the
+      // compensating close that makes "Hide always wins" enforced, not a timing assumption.
+      try {
+        await stop?.();
+      } catch {
+        /* compensating close is best-effort */
+      }
+      return false;
+    }
     post?.();
     log('overlay-rearm:done');
     return true;
@@ -159,6 +176,7 @@ export function createPostRecovery({
   setState,
   now = () => 0,
   getOverlayOn,
+  getGeneration = () => 0,
   isRecovering = () => false,
   setRecovering = () => {},
   stop,
@@ -174,6 +192,7 @@ export function createPostRecovery({
     if (!next.rebuild) return Promise.resolve(false);
     return rebuildOverlay({
       getOverlayOn,
+      getGeneration,
       isRecovering,
       setRecovering,
       stop,

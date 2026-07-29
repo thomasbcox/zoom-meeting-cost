@@ -72,6 +72,10 @@ export default function App({ adapter }) {
   const recoveringRef = useRef(false);
   // Dead-postMessage-link recovery state: consecutive failed sends + last rebuild time.
   const postStateRef = useRef({ consecutiveFailures: 0, lastRebuildAt: 0 });
+  // Overlay-run generation: bumped on every Show and Hide. A rebuild captures it and bails
+  // (compensating-closes) if it advances mid-flight — last intent wins, and failure state can't
+  // cross runs.
+  const generationRef = useRef(0);
 
   // Latest values for the interval/poster without re-arming effects.
   const liveRef = useRef({});
@@ -111,6 +115,7 @@ export default function App({ adapter }) {
         },
         now: Date.now,
         getOverlayOn: () => overlayOnRef.current,
+        getGeneration: () => generationRef.current,
         isRecovering: () => recoveringRef.current,
         setRecovering: (v) => {
           recoveringRef.current = v;
@@ -139,6 +144,10 @@ export default function App({ adapter }) {
       log: logLifecycle,
     });
     if (result === 'started') {
+      // New overlay run: advance the generation (invalidating any rebuild still in flight from a
+      // prior run) and clear the dead-link failure state so a stale count can't cross runs.
+      generationRef.current += 1;
+      postStateRef.current = { consecutiveFailures: 0, lastRebuildAt: 0 };
       setOverlayOn(true);
       setOverlayNotice(null); // clear any earlier warning
     } else {
@@ -152,9 +161,11 @@ export default function App({ adapter }) {
     () =>
       runStopOverlay({
         setOff: () => {
-          // Record the hidden intent FIRST (ref + state) so a rebuild racing in the background
-          // re-checks getOverlayOn and bails before reopening. The close is best-effort: even if
-          // the context is already gone (a dead link), the button still reaches "Show cost on video".
+          // Record the hidden intent FIRST (ref + state) and advance the generation, so a rebuild
+          // racing in the background is superseded — it bails, or compensating-closes a context it
+          // already reopened. The close below is best-effort: even if the context is already gone
+          // (a dead link), the button still reaches "Show cost on video".
+          generationRef.current += 1;
           overlayOnRef.current = false;
           setOverlayOn(false);
         },
@@ -203,6 +214,7 @@ export default function App({ adapter }) {
     if (!overlayOn || !adapter?.getVideoState) return undefined;
     const recover = createVideoRecovery({
       getOverlayOn: () => overlayOnRef.current,
+      getGeneration: () => generationRef.current,
       getLastVideoOn: () => lastVideoOnRef.current,
       setLastVideoOn: (v) => {
         lastVideoOnRef.current = v;

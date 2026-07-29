@@ -225,6 +225,33 @@ describe('rebuildOverlay (shared close→reopen)', () => {
     expect(order).toEqual(['stop']); // did NOT reopen or post
   });
 
+  it('compensating-closes when a Hide lands during the reopen (Hide always wins)', async () => {
+    let overlayOn = true;
+    const order = [];
+    const ok = await rebuildOverlay({
+      getOverlayOn: () => overlayOn,
+      stop: () => order.push('stop'),
+      start: () => { order.push('start'); overlayOn = false; }, // Hide lands mid-reopen
+      post: () => order.push('post'),
+    });
+    expect(ok).toBe(false);
+    expect(order).toEqual(['stop', 'start', 'stop']); // reopened, then compensating-closed; no post
+  });
+
+  it('compensating-closes when the generation advances during the reopen (new run supersedes)', async () => {
+    let gen = 5;
+    const order = [];
+    const ok = await rebuildOverlay({
+      getOverlayOn: () => true, // intent still "on" (a fresh Show), but a different run
+      getGeneration: () => gen,
+      stop: () => order.push('stop'),
+      start: () => { order.push('start'); gen = 6; }, // a new overlay run started mid-reopen
+      post: () => order.push('post'),
+    });
+    expect(ok).toBe(false);
+    expect(order).toEqual(['stop', 'start', 'stop']);
+  });
+
   it('reopens even if the close rejects (close is best-effort)', async () => {
     const order = [];
     const ok = await rebuildOverlay({
