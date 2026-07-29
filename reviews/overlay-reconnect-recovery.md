@@ -283,3 +283,22 @@ Approach pass #2 (base main, HEAD dee6a37) — Thomas's call:
 
 **Correctness pass NOT run this round** — the approved redesign changes the shape, so it re-enters
 the **approach** pass on the new shape (a fresh `/review`) before any line-level pass. No merge authorized.
+
+## Fixes (2026-07-29) — serialized controller
+
+Applying the approach-pass #2 decision (BLOCKER → FIX):
+- **Serialized rendering-context controller.** Added `createOverlayController` in
+  `overlayRecover.js`: a single owner of the global camera context with a promise-queue so every SDK
+  `start`/`close` runs one at a time. It tracks the desired intent (read at run time) + a best-effort
+  `open` belief; `show()`/`hide()` reconcile toward intent, `rebuild()` force-cycles (close→reopen)
+  while desired. Because ops are serialized, the **last intent wins by construction** — no stale
+  reopen can clobber a newer Show, and there is no compensating close.
+- **Removed** `rebuildOverlay`, `runStopOverlay`, and the App-side `generationRef` / `recoveringRef`
+  / compensating-close coordination — the controller subsumes all of it. `createVideoRecovery` /
+  `createPostRecovery` are now thin: they decide *when* to rebuild (the pure reducers) and call
+  `controller.rebuild()`; the controller owns *how*. `App.jsx` routes Show (via a controller-backed
+  `startCameraOverlay`), Hide, and the tick's dead-link check through the controller;
+  `attemptStartOverlay` is unchanged (its tests untouched).
+- **Tests:** `overlayRecover.test.js` rewritten — controller serialization tests (rebuild→hide→show
+  and rebuild→show→hide both land on last-intent-wins; a rejecting start surfaces to `show()` without
+  wedging the queue) plus the driver + reducer tests. Full client suite 160 green; gate green.
