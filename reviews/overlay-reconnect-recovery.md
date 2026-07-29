@@ -302,3 +302,12 @@ Applying the approach-pass #2 decision (BLOCKER → FIX):
 - **Tests:** `overlayRecover.test.js` rewritten — controller serialization tests (rebuild→hide→show
   and rebuild→show→hide both land on last-intent-wins; a rejecting start surfaces to `show()` without
   wedging the queue) plus the driver + reducer tests. Full client suite 160 green; gate green.
+
+## Codex approach review (2026-07-29, base main, HEAD c9355ab)
+
+**Verdict:** The shape is sound and proportionate — a pure retry reducer, a
+boolean-returning/edge-logging adapter boundary, and one Promise-serialized controller owning all
+rendering-context mutations. No installed dependency or React/Zoom primitive provides this
+lifecycle; the controller **replaces rather than compounds** the prior coordination machinery.
+
+**Findings:** none — approach pass **clean**. Shape blessed; proceeding to the correctness pass.
