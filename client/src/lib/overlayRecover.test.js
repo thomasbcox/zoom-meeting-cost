@@ -154,6 +154,43 @@ describe('createOverlayController (serialized last-intent-wins)', () => {
     await ctl.hide();
     expect(order).toContain('start');
   });
+
+  it('hide() with a rejecting stopCtx still resolves to hidden; a later show() starts cleanly (AC3)', async () => {
+    const order = [];
+    let stopFails = true;
+    const ctl = createOverlayController({
+      startCtx: async () => order.push('start'),
+      stopCtx: async () => {
+        order.push('stop');
+        if (stopFails) throw new Error('context already gone');
+      },
+      post: () => order.push('post'),
+    });
+    await ctl.show();
+    // A rejecting close is swallowed — no unhandled rejection — and the intent still reaches hidden.
+    await expect(ctl.hide()).resolves.toBeUndefined();
+    expect(ctl.isOn()).toBe(false);
+    stopFails = false;
+    await ctl.show(); // the failed close did not wedge the belief; a fresh show starts cleanly
+    expect(ctl.isOn()).toBe(true);
+    expect(order).toEqual(['start', 'stop', 'start']);
+  });
+
+  it('rebuild() continues past a rejecting stopCtx to reopen and post (AC3)', async () => {
+    const order = [];
+    const ctl = createOverlayController({
+      startCtx: async () => order.push('start'),
+      stopCtx: async () => {
+        order.push('stop');
+        throw new Error('context already gone'); // dead link — the close always rejects
+      },
+      post: () => order.push('post'),
+    });
+    await ctl.show();
+    await expect(ctl.rebuild()).resolves.toBeUndefined();
+    // The best-effort close rejected, but the rebuild still reopened and posted.
+    expect(order).toEqual(['start', 'stop', 'start', 'post']);
+  });
 });
 
 // Recovery drivers: they decide WHEN to rebuild; the controller owns HOW. Stub the controller's

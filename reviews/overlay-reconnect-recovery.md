@@ -349,3 +349,11 @@ Correctness pass (base main, HEAD c9355ab) — Thomas's calls:
   complexity not worth the negligible gain. **Recorded as a known edge.**
 
 The one approved fix is test-only (no redesign), so `/close` reaches the re-review/merge fork.
+
+## Fixes (2026-07-29) — close-rejection test coverage
+
+Applying the correctness-pass decision (FIX; the other IMPORTANT is deferred and untouched):
+- **Rejecting-`stopCtx` coverage added** (`overlayRecover.test.js`): `hide()` with a rejecting
+  `stopCtx` still resolves to `isOn() === false` (no unhandled rejection) and a later `show()` starts
+  cleanly; `rebuild()` continues past a rejecting close to reopen and post. Closes the AC3 gap left
+  when `rebuildOverlay`'s close-rejection test was replaced. **Test-only** — no product change.
