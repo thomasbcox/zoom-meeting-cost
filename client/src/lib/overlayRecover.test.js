@@ -1,5 +1,12 @@
 import { describe, it, expect, vi } from 'vitest';
-import { reduceVideoPoll, createVideoRecovery } from './overlayRecover.js';
+import {
+  reduceVideoPoll,
+  createVideoRecovery,
+  reducePostResult,
+  rebuildOverlay,
+  createPostRecovery,
+  runStopOverlay,
+} from './overlayRecover.js';
 
 // Pure reducer — table-tested, no jsdom. `recover` fires only on a polled off→on edge
 // while the overlay is on; `lastVideoOn` always advances to the new sample.
@@ -136,5 +143,179 @@ describe('createVideoRecovery (poll → close+reopen)', () => {
     });
     await expect(recover()).resolves.toBeUndefined();
     expect(started).toBe(false);
+  });
+});
+
+// Pure decision for dead-postMessage-link recovery — table-tested, no jsdom. Owns the whole
+// transition: success resets the count; a failure reaching the threshold (with cooldown
+// elapsed) rebuilds and stamps lastRebuildAt while KEEPING the count, so persistent failures
+// retry at the cooldown cadence rather than every tick.
+describe('reducePostResult', () => {
+  const opts = { threshold: 3, cooldownMs: 6000 };
+
+  it('a success resets the failure count and never rebuilds', () => {
+    expect(reducePostResult(true, { consecutiveFailures: 5, lastRebuildAt: 100 }, 10_000, opts)).toEqual(
+      { consecutiveFailures: 0, lastRebuildAt: 100, rebuild: false }
+    );
+  });
+
+  it('a failure below the threshold increments, no rebuild', () => {
+    expect(reducePostResult(false, { consecutiveFailures: 1, lastRebuildAt: 0 }, 10_000, opts)).toEqual(
+      { consecutiveFailures: 2, lastRebuildAt: 0, rebuild: false }
+    );
+  });
+
+  it('reaching the threshold with cooldown elapsed rebuilds and stamps lastRebuildAt', () => {
+    expect(reducePostResult(false, { consecutiveFailures: 2, lastRebuildAt: 0 }, 10_000, opts)).toEqual(
+      { consecutiveFailures: 3, lastRebuildAt: 10_000, rebuild: true }
+    );
+  });
+
+  it('does not rebuild again during the cooldown, even above the threshold', () => {
+    expect(reducePostResult(false, { consecutiveFailures: 3, lastRebuildAt: 10_000 }, 12_000, opts)).toEqual(
+      { consecutiveFailures: 4, lastRebuildAt: 10_000, rebuild: false }
+    );
+  });
+
+  it('retries once the cooldown has elapsed (persistent failures retry at cadence)', () => {
+    expect(reducePostResult(false, { consecutiveFailures: 4, lastRebuildAt: 10_000 }, 16_000, opts)).toEqual(
+      { consecutiveFailures: 5, lastRebuildAt: 16_000, rebuild: true }
+    );
+  });
+});
+
+describe('rebuildOverlay (shared close→reopen)', () => {
+  it('closes THEN reopens THEN posts, logging begin/done', async () => {
+    const order = [];
+    const ok = await rebuildOverlay({
+      getOverlayOn: () => true,
+      stop: () => order.push('stop'),
+      start: () => order.push('start'),
+      post: () => order.push('post'),
+      log: (e) => order.push(e),
+    });
+    expect(ok).toBe(true);
+    expect(order).toEqual(['overlay-rearm:begin', 'stop', 'start', 'post', 'overlay-rearm:done']);
+  });
+
+  it('is a no-op while another rebuild is in flight (single-flight)', async () => {
+    let started = false;
+    const ok = await rebuildOverlay({ isRecovering: () => true, start: () => { started = true; } });
+    expect(ok).toBe(false);
+    expect(started).toBe(false);
+  });
+
+  it('bails immediately when the overlay is already meant to be off', async () => {
+    let started = false;
+    const ok = await rebuildOverlay({ getOverlayOn: () => false, start: () => { started = true; } });
+    expect(ok).toBe(false);
+    expect(started).toBe(false);
+  });
+
+  it('a Hide that lands during the close aborts before reopening', async () => {
+    let overlayOn = true;
+    const order = [];
+    const ok = await rebuildOverlay({
+      getOverlayOn: () => overlayOn,
+      stop: () => { order.push('stop'); overlayOn = false; }, // manual Hide lands mid-close
+      start: () => order.push('start'),
+      post: () => order.push('post'),
+    });
+    expect(ok).toBe(false);
+    expect(order).toEqual(['stop']); // did NOT reopen or post
+  });
+
+  it('reopens even if the close rejects (close is best-effort)', async () => {
+    const order = [];
+    const ok = await rebuildOverlay({
+      getOverlayOn: () => true,
+      stop: () => Promise.reject(new Error('context already gone')),
+      start: () => order.push('start'),
+      post: () => order.push('post'),
+    });
+    expect(ok).toBe(true);
+    expect(order).toEqual(['start', 'post']);
+  });
+
+  it('clears the single-flight flag even if the reopen throws', async () => {
+    let recovering = false;
+    await expect(
+      rebuildOverlay({
+        getOverlayOn: () => true,
+        isRecovering: () => recovering,
+        setRecovering: (v) => { recovering = v; },
+        stop: () => {},
+        start: () => { throw new Error('reopen failed'); },
+      })
+    ).rejects.toThrow('reopen failed');
+    expect(recovering).toBe(false);
+  });
+});
+
+describe('createPostRecovery (dead link → rebuild)', () => {
+  function harness({ threshold = 3, cooldownMs = 6000 } = {}) {
+    const state = { consecutiveFailures: 0, lastRebuildAt: 0 };
+    let clock = 100_000;
+    const order = [];
+    const run = createPostRecovery({
+      getState: () => state,
+      setState: (s) => {
+        state.consecutiveFailures = s.consecutiveFailures;
+        state.lastRebuildAt = s.lastRebuildAt;
+      },
+      now: () => clock,
+      getOverlayOn: () => true,
+      isRecovering: () => false,
+      setRecovering: () => {},
+      stop: () => order.push('stop'),
+      start: () => order.push('start'),
+      post: () => order.push('post'),
+      threshold,
+      cooldownMs,
+    });
+    return { state, order, run, tick: (ms) => { clock += ms; } };
+  }
+
+  it('rebuilds once after N consecutive failures, then a success resets the count', async () => {
+    const h = harness();
+    await h.run(false);
+    await h.run(false);
+    expect(h.order).toEqual([]); // below threshold — no rebuild yet
+    await h.run(false);
+    expect(h.order).toEqual(['stop', 'start', 'post']);
+    await h.run(true);
+    expect(h.state.consecutiveFailures).toBe(0);
+  });
+
+  it('does not rebuild every tick while the link stays dead (cooldown paces it)', async () => {
+    const h = harness();
+    await h.run(false);
+    await h.run(false);
+    await h.run(false); // rebuild #1
+    expect(h.order.filter((o) => o === 'start')).toHaveLength(1);
+    await h.run(false); // within cooldown → no rebuild
+    expect(h.order.filter((o) => o === 'start')).toHaveLength(1);
+    h.tick(6000); // cooldown elapses
+    await h.run(false); // rebuild #2
+    expect(h.order.filter((o) => o === 'start')).toHaveLength(2);
+  });
+});
+
+describe('runStopOverlay (manual Hide, best-effort close)', () => {
+  it('records the off intent and resolves even when the close rejects', async () => {
+    let off = false;
+    await expect(
+      runStopOverlay({
+        setOff: () => { off = true; },
+        stop: () => Promise.reject(new Error('context already gone')),
+      })
+    ).resolves.toBeUndefined();
+    expect(off).toBe(true);
+  });
+
+  it('records intent BEFORE awaiting the close', async () => {
+    const order = [];
+    await runStopOverlay({ setOff: () => order.push('off'), stop: () => order.push('stop') });
+    expect(order).toEqual(['off', 'stop']);
   });
 });

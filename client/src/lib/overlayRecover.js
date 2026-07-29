@@ -50,6 +50,8 @@ export function createVideoRecovery({
   getLastVideoOn,
   setLastVideoOn,
   getVideoState,
+  isRecovering = () => false,
+  setRecovering = () => {},
   stopCameraOverlay,
   startCameraOverlay,
   postOverlay,
@@ -65,20 +67,132 @@ export function createVideoRecovery({
         });
         setLastVideoOn(lastVideoOn);
         if (!recover) return undefined;
-        log('overlay-rearm:begin');
-        // Close THEN reopen — a single reopen does not re-composite (proven live).
-        return Promise.resolve()
-          .then(() => stopCameraOverlay?.())
-          .catch(() => {
-            /* close is best-effort: the context may already be torn down */
-          })
-          .then(() => startCameraOverlay?.())
-          .then(() => {
-            postOverlay();
-            log('overlay-rearm:done');
-          });
+        // Delegate the close→reopen to the shared rebuild (single-flight + intent re-check).
+        return rebuildOverlay({
+          getOverlayOn,
+          isRecovering,
+          setRecovering,
+          stop: stopCameraOverlay,
+          start: startCameraOverlay,
+          post: postOverlay,
+          log,
+        }).then(() => undefined); // the poll handler never surfaces a value
       })
       .catch(() => {
         /* a failed poll/recovery must not surface; the next tick retries */
       });
+}
+
+// Constants for dead-postMessage-link recovery. N consecutive failed sends before a
+// rebuild; minimum ms between rebuild attempts (so a persistently-dead link can't hot-loop).
+export const POST_FAIL_THRESHOLD = 3;
+export const REBUILD_COOLDOWN_MS = 6000;
+
+// Close THEN reopen the camera rendering context — a single reopen does not re-composite
+// (proven live). Shared by BOTH recovery paths: the camera-off edge and a dead postMessage
+// link. `isRecovering` is a single-flight guard so the two automatic paths — and a concurrent
+// manual Hide — can't overlap. Intent (`getOverlayOn`) is re-checked after the close and again
+// after the reopen: a Hide that lands mid-rebuild is honored, so an invalidated recovery exits
+// WITHOUT reopening (or without posting to an overlay the presenter just hid). The close is
+// best-effort (the context may already be gone) and never rejects; a reopen (`start`) rejection
+// propagates to the caller, which swallows it (the cooldown then rate-limits the next attempt).
+// @returns {Promise<boolean>} true when it reopened + posted; false when guarded/aborted.
+export async function rebuildOverlay({
+  getOverlayOn = () => true,
+  isRecovering = () => false,
+  setRecovering = () => {},
+  stop,
+  start,
+  post,
+  log = () => {},
+}) {
+  if (isRecovering()) return false; // another rebuild already in flight
+  if (!getOverlayOn()) return false; // overlay is meant to be off — nothing to rebuild
+  setRecovering(true);
+  log('overlay-rearm:begin');
+  try {
+    try {
+      await stop?.();
+    } catch {
+      /* close is best-effort: the context may already be torn down */
+    }
+    if (!getOverlayOn()) return false; // a manual Hide landed during the close — do NOT reopen
+    await start?.();
+    if (!getOverlayOn()) return false; // Hide landed during the reopen — skip the post
+    post?.();
+    log('overlay-rearm:done');
+    return true;
+  } finally {
+    setRecovering(false);
+  }
+}
+
+// Pure decision for dead-postMessage-link recovery. Given the latest send outcome (`ok`) and
+// the prior `{ consecutiveFailures, lastRebuildAt }`, return the COMPLETE next state plus a
+// `rebuild` effect signal. A success resets the failure count. A failure increments it; a
+// rebuild is due once the count reaches `threshold` AND `cooldownMs` has elapsed since the last
+// rebuild — on which we advance `lastRebuildAt` but KEEP the count, so persistent failures retry
+// at the cooldown cadence (not every tick). `now` is injected (Date.now in the app) for
+// table-testability. Owns the whole transition — the caller just persists the returned state.
+export function reducePostResult(
+  ok,
+  { consecutiveFailures = 0, lastRebuildAt = 0 } = {},
+  now = 0,
+  { threshold = POST_FAIL_THRESHOLD, cooldownMs = REBUILD_COOLDOWN_MS } = {}
+) {
+  if (ok) return { consecutiveFailures: 0, lastRebuildAt, rebuild: false };
+  const nextFailures = consecutiveFailures + 1;
+  const due = nextFailures >= threshold && now - lastRebuildAt >= cooldownMs;
+  return {
+    consecutiveFailures: nextFailures,
+    lastRebuildAt: due ? now : lastRebuildAt,
+    rebuild: due,
+  };
+}
+
+// Wire the dead-link reducer to the shared rebuild, decoupled from React so it is unit-testable
+// with stubbed deps (mirrors createVideoRecovery). Each call feeds one postMessage outcome
+// through reducePostResult, persists the next state, and — when a rebuild is due — runs
+// rebuildOverlay (close→reopen). Never rejects.
+export function createPostRecovery({
+  getState,
+  setState,
+  now = () => 0,
+  getOverlayOn,
+  isRecovering = () => false,
+  setRecovering = () => {},
+  stop,
+  start,
+  post,
+  log = () => {},
+  threshold = POST_FAIL_THRESHOLD,
+  cooldownMs = REBUILD_COOLDOWN_MS,
+}) {
+  return (ok) => {
+    const next = reducePostResult(ok, getState(), now(), { threshold, cooldownMs });
+    setState({ consecutiveFailures: next.consecutiveFailures, lastRebuildAt: next.lastRebuildAt });
+    if (!next.rebuild) return Promise.resolve(false);
+    return rebuildOverlay({
+      getOverlayOn,
+      isRecovering,
+      setRecovering,
+      stop,
+      start,
+      post,
+      log,
+    }).catch(() => false); // a failed reopen must not surface; the cooldown paces the retry
+  };
+}
+
+// Manual "Hide from video". Record the hidden INTENT first (so a rebuild racing in the
+// background re-checks getOverlayOn and bails before reopening), THEN best-effort close the
+// rendering context. The close is swallowed — the context may already be gone — so the click
+// never yields an unhandled rejection and the panel always reaches the hidden state.
+export async function runStopOverlay({ setOff, stop }) {
+  setOff();
+  try {
+    await stop?.();
+  } catch {
+    /* best-effort: the camera context may already be torn down */
+  }
 }

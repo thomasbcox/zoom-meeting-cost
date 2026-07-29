@@ -99,6 +99,7 @@ export class MockZoom {
   postMessage(payload) {
     this._lastMsg = payload;
     for (const cb of this._msgSubs) cb(payload);
+    return true; // parity with RealZoom's Promise<boolean> success (loopback always "sends")
   }
 
   onMessage(cb) {
@@ -171,9 +172,10 @@ export class RealZoom {
     this._sdk = sdk;
     this._log = log;
     this._msgSubs = new Set();
-    // Log only the FIRST successful postMessage (proves the bridge is live); steady-state
-    // per-tick successes are silent. Failures always log (see postMessage).
+    // postMessage logging is edge-triggered: first success + each recovery are logged, and
+    // only the first failure of a run — so a dead link can't spam once per tick (see postMessage).
     this._firstPostLogged = false;
+    this._postFailing = false;
     // Camera-overlay draw inputs, captured at init() so the camera instance can
     // composite without re-deriving them: the surface size reported by config()
     // and the presenter's own participantUUID (base video layer).
@@ -375,24 +377,35 @@ export class RealZoom {
   // sample pattern). Every send's outcome is logged (we're still debugging the
   // live overlay) and rejections are swallowed so a failed push never surfaces as
   // an unhandled rejection — the next tick posts a fresh snapshot anyway.
+  // Returns Promise<boolean> — true on a successful send, false on rejection — so the panel
+  // can observe a dead link (repeated false) and rebuild the rendering context. NEVER rejects.
   postMessage(payload) {
     // Defer the SDK call by one microtask (Promise.resolve().then) so a SYNCHRONOUS
     // throw from sdk.postMessage becomes a rejected promise too — caught and logged
     // ok:false alongside async rejections, and never escaping to the caller. The
     // caller posts from a React effect, where a synchronous throw would trip the
     // ErrorBoundary and blank the panel; the overlay push must never do that.
-    Promise.resolve()
+    return Promise.resolve()
       .then(() => this._sdk.postMessage(payload))
       .then(() => {
-        // Log only the first success; the per-tick stream is otherwise silent.
-        if (!this._firstPostLogged) {
+        // Edge-triggered: log the first success AND each recovery (fail→success); the
+        // steady per-tick success stream is otherwise silent.
+        if (!this._firstPostLogged || this._postFailing) {
           this._firstPostLogged = true;
+          this._postFailing = false;
           this._emitLog({ kind: 'zoom-overlay', method: 'postMessage', ok: true });
         }
+        return true;
       })
-      .catch((err) =>
-        this._emitLog({ kind: 'zoom-overlay', method: 'postMessage', ok: false, error: errMsg(err) })
-      );
+      .catch((err) => {
+        // Edge-triggered: log only the first failure of a run (success→fail); subsequent
+        // failures stay silent so a dead link can't spam the log once per tick.
+        if (!this._postFailing) {
+          this._postFailing = true;
+          this._emitLog({ kind: 'zoom-overlay', method: 'postMessage', ok: false, error: errMsg(err) });
+        }
+        return false;
+      });
   }
 
   onMessage(cb) {
