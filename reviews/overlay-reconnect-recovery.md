@@ -179,3 +179,16 @@ scope stands. Dispositions:
   drop the once-per-second spam.
 - **Q3 counter home:** the **existing 1 s tick** feeds `postMessage`'s boolean into the reducer;
   no new interval.
+
+## Build note (2026-07-29)
+
+AC → file map:
+- **AC1** (rebuild after N failed sends): `client/src/lib/overlayRecover.js` (`reducePostResult`,
+  `createPostRecovery`, `rebuildOverlay`) wired from the 1 s tick in `client/src/App.jsx`.
+- **AC2** (rate-limit + single-flight): `reducePostResult` cooldown + `rebuildOverlay` `isRecovering`
+  guard (`overlayRecover.js`); shared `recoveringRef` across both recovery paths (`App.jsx`).
+- **AC3** (reliable Hide): `runStopOverlay` (`overlayRecover.js`) used by `stopOverlay` (`App.jsx`).
+- **AC4** (edge-triggered logging): `postMessage` `_postFailing` edges (`client/src/zoom/zoomAdapter.js`).
+- **AC5** (pure tested reducer + observable send outcome): `overlayRecover.js` + `overlayRecover.test.js`;
+  `postMessage` returns `Promise<boolean>` + `zoomAdapter.test.js`.
+- **AC6** (scope): only the four files above (+ tests) and this story file.
