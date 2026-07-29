@@ -334,3 +334,18 @@ run locally.)
   close-rejection test was removed without equivalent controller coverage.
 - **Suggestion:** Add tests — a rejecting `stopCtx` where `hide()` resolves with `isOn()` false and
   a later `show()` starts cleanly, and where `rebuild()` continues past the failed close to start+post.
+
+## Decisions (2026-07-29) — correctness pass
+
+Correctness pass (base main, HEAD c9355ab) — Thomas's calls:
+- **IMPORTANT (best-effort close rejection lacks coverage) → FIX.** Add rejecting-`stopCtx` tests to
+  `overlayRecover.test.js`: `hide()` resolves with `isOn()` false and a later `show()` starts
+  cleanly; `rebuild()` continues past a failed close to start+post. **Test-only** — no product change.
+- **IMPORTANT (post outcomes reduced in completion order) → DEFER.** Negligible in practice: the
+  dead-link rebuild path is order-insensitive (all posts fail; order among failures doesn't matter),
+  `postMessage` settles in ms so reordering across 1 s-apart ticks doesn't occur, and the Hide→Show
+  contamination needs a post pending across a sub-second toggle and only nudges a counter needing 3.
+  The reviewer's run-token+sequence fix re-adds the per-run bookkeeping the controller removed —
+  complexity not worth the negligible gain. **Recorded as a known edge.**
+
+The one approved fix is test-only (no redesign), so `/close` reaches the re-review/merge fork.
