@@ -270,3 +270,16 @@ should pass through one serialized controller. No dependency supplies this Zoom 
 - **Win:** Removes the stale-close-after-new-Show path and centralizes ordering for all
   rendering-context mutations — replacing the scattered `generationRef` / `recoveringRef` /
   compensating-close coordination with one owner.
+
+## Decisions (2026-07-29) — approach pass #2
+
+Approach pass #2 (base main, HEAD dee6a37) — Thomas's call:
+- **BLOCKER (compensating close can destroy a newer Show) → FIX (serialized controller).** Replace
+  the `generationRef` / `recoveringRef` / compensating-close coordination with one small serialized
+  rendering-context controller (a promise queue) used by Show, Hide, and both recovery paths:
+  record intent immediately, serialize every SDK `start`/`close` so last-intent-wins by
+  construction. Keep the boolean-returning adapter, edge logging, the pure retry reducer
+  (`reducePostResult`), and the existing 1 s tick as the controller's input.
+
+**Correctness pass NOT run this round** — the approved redesign changes the shape, so it re-enters
+the **approach** pass on the new shape (a fresh `/review`) before any line-level pass. No merge authorized.
