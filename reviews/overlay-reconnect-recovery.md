@@ -311,3 +311,26 @@ rendering-context mutations. No installed dependency or React/Zoom primitive pro
 lifecycle; the controller **replaces rather than compounds** the prior coordination machinery.
 
 **Findings:** none — approach pass **clean**. Shape blessed; proceeding to the correctness pass.
+
+## Codex review (2026-07-29, base main, HEAD c9355ab)
+
+**Summary:** The serialized controller is consistent with the approved design. Two IMPORTANTs — a
+theoretical out-of-order race in how post outcomes are reduced, and a missing close-rejection test
+required by AC3. (Codex could not rerun the gate in its read-only sandbox; the gate is green when
+run locally.)
+
+### IMPORTANT — post outcomes reduced in completion order, not tick order · `client/src/App.jsx:187`
+- **Claim:** Each tick starts an independent `postOverlay().then(runPostRecovery)` and applies the
+  result when that promise resolves. If sends settle out of order, a slow earlier success could
+  reset the counter between failed ticks (blocking an AC1 rebuild); a stale failure could settle
+  after Hide→Show and contaminate the freshly reset state (premature rebuild in the new run).
+- **Suggestion:** Tag each send with an overlay-run token + sequence; ignore superseded/out-of-order
+  results, or serialize the observed sends. Add out-of-order + post-Hide→Show settling tests.
+
+### IMPORTANT — best-effort close rejection lacks required coverage · `client/src/lib/overlayRecover.test.js`
+- **Claim:** The controller suite tests a rejecting `startCtx` but has **no rejecting `stopCtx`**
+  case for `hide()` / `rebuild()`, despite AC3 + the test notes explicitly requiring proof that a
+  rejected close still resolves to hidden intent with no unhandled rejection. The old
+  close-rejection test was removed without equivalent controller coverage.
+- **Suggestion:** Add tests — a rejecting `stopCtx` where `hide()` resolves with `isOn()` false and
+  a later `show()` starts cleanly, and where `rebuild()` continues past the failed close to start+post.
