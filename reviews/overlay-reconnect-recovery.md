@@ -219,3 +219,17 @@ and rendering-context ownership aren't fully centralized.
   with Hide / new-overlay generations as explicit reset transitions.
 - **Win:** Removes the fire-and-forget outcome paths, stops stale state crossing lifecycles,
   centralizes the AC1 reset invariant.
+
+## Decisions (2026-07-29)
+
+Approach pass (base main, HEAD 6c8c91a) — Thomas's calls:
+- **BLOCKER (Hide loses race with in-flight reopen) → FIX.** Add last-intent-wins via an overlay
+  generation: a compensating close when intent flips during the reopen, so a manual Hide always
+  supersedes a background rebuild (AC3 becomes enforced, not timing-dependent).
+- **IMPORTANT (failure count survives Hide→Show) → FIX.** Scope/reset the dead-link failure state
+  to the current overlay generation so stale counts can't cross overlay runs. Comes with the
+  generation added for the BLOCKER.
+
+**Correctness pass NOT run this round** — the approved redesign changes the shape, so it re-enters
+the **approach** pass on the new shape (a fresh `/review`) before any line-level pass. No merge is
+authorized by these decisions.
