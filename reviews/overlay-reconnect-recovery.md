@@ -249,3 +249,24 @@ Applying the approach-pass decisions (both FIX):
   stale dead-link count can't cross overlay runs and rebuild a fresh overlay early.
 - **Tests:** two new `rebuildOverlay` cases — compensating-close on a Hide-during-reopen, and on a
   generation advance during the reopen. Gate green (71 client + 50 server + 14 secret-scan; build clean).
+
+## Codex approach review (2026-07-29, base main, HEAD dee6a37)
+
+**Verdict:** Keep the boolean-returning adapter, edge logging, pure retry reducer, and existing
+tick. But don't build rendering-context ownership this way — Show, Hide, and both recovery paths
+should pass through one serialized controller. No dependency supplies this Zoom lifecycle.
+
+### BLOCKER — compensating close can destroy a newer Show · two-way × kludgy
+- **Locus:** `client/src/lib/overlayRecover.js:128` (the compensating close).
+- **Claim:** Generation checks *detect* stale recovery but don't *serialize* the global
+  `runRenderingContext` / argument-free `closeRenderingContext`. If recovery is awaiting `start`
+  and the presenter does Hide→Show, the stale start resolves and its compensating `stop` closes the
+  **newer Show's** context. Final state: desired-on / UI-on with **no live context** — the very
+  invariant the redesign was meant to prevent, in a different sequence.
+- **Alternative:** One small rendering-context controller / promise queue used by Show, Hide, and
+  both recovery paths. Record intent immediately, but **serialize** every SDK start/close; a Hide
+  queued after an old start closes it, and a later Show is the final op. Keep the pure retry reducer
+  as the controller's input.
+- **Win:** Removes the stale-close-after-new-Show path and centralizes ordering for all
+  rendering-context mutations — replacing the scattered `generationRef` / `recoveringRef` /
+  compensating-close coordination with one owner.
