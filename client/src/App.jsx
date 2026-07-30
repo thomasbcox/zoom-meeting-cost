@@ -7,7 +7,11 @@ import { computeSimpleTotals } from './lib/cost.js';
 import { buildOverlayState } from './lib/overlayState.js';
 import { quantizeForDisplay } from './lib/displayCadence.js';
 import { logLifecycle } from './lib/lifecycleLog.js';
-import { createVideoRecovery } from './lib/overlayRecover.js';
+import {
+  createVideoRecovery,
+  createPostRecovery,
+  createOverlayController,
+} from './lib/overlayRecover.js';
 
 // The in-meeting SIDE PANEL: the presenter privately sets a manual attendee count and one
 // hourly opportunity-cost rate, sees a live readout, and starts/stops the camera overlay.
@@ -58,15 +62,17 @@ export default function App({ adapter }) {
   );
 
   // --- Camera overlay control ----------------------------------------------
+  // `overlayOn` is the React UI mirror (button rendering + effect gating); the serialized
+  // controller below owns the authoritative intent (isOn) and all rendering-context mutations.
   const [overlayOn, setOverlayOn] = useState(false);
-  const overlayOnRef = useRef(false);
-  overlayOnRef.current = overlayOn;
   // Warning shown when a start is refused (camera off, or the SDK rejected). Null = hidden.
   const [overlayNotice, setOverlayNotice] = useState(null);
   // Last polled camera on/off state, for overlay auto-recovery. Seeded true when the
   // overlay starts (the presenter is on-camera then), so the first poll doesn't read a
   // phantom off→on transition.
   const lastVideoOnRef = useRef(true);
+  // Dead-postMessage-link recovery state: consecutive failed sends + last rebuild time.
+  const postStateRef = useRef({ consecutiveFailures: 0, lastRebuildAt: 0 });
 
   // Latest values for the interval/poster without re-arming effects.
   const liveRef = useRef({});
@@ -77,25 +83,60 @@ export default function App({ adapter }) {
   };
 
   const postOverlay = useCallback(() => {
-    if (!adapter?.postMessage) return;
+    if (!adapter?.postMessage) return Promise.resolve(false);
     const { totals: t, status, displayIntervalSeconds } = liveRef.current;
-    adapter.postMessage(
-      buildOverlayState({
-        status,
-        totalCost: totalRef.current,
-        totals: t,
-        elapsedSeconds: elapsedRef.current,
-        updatedAt: Date.now(),
-        displayIntervalSeconds,
-      })
+    // Normalize to a Promise<boolean> — MockZoom returns a bare boolean, RealZoom a
+    // Promise<boolean> — so the tick can observe a dead link uniformly.
+    return Promise.resolve(
+      adapter.postMessage(
+        buildOverlayState({
+          status,
+          totalCost: totalRef.current,
+          totals: t,
+          elapsedSeconds: elapsedRef.current,
+          updatedAt: Date.now(),
+          displayIntervalSeconds,
+        })
+      )
     );
   }, [adapter]);
 
+  // Serialized owner of the camera rendering context: Show, Hide, and both recovery paths funnel
+  // through it, so every start/close runs one at a time and the last intent wins (no races).
+  const controller = useMemo(
+    () =>
+      createOverlayController({
+        startCtx: () => adapter?.startCameraOverlay?.(),
+        stopCtx: () => adapter?.stopCameraOverlay?.(),
+        post: postOverlay,
+        log: logLifecycle,
+      }),
+    [adapter, postOverlay]
+  );
+
+  // Dead-postMessage-link recovery: feed each tick's send outcome through the pure reducer and,
+  // when a rebuild is due (N consecutive failures + cooldown elapsed), ask the controller to rebuild.
+  const runPostRecovery = useMemo(
+    () =>
+      createPostRecovery({
+        getState: () => postStateRef.current,
+        setState: (s) => {
+          postStateRef.current = s;
+        },
+        now: Date.now,
+        rebuild: () => controller.rebuild(),
+      }),
+    [controller]
+  );
+
   const startOverlay = useCallback(async () => {
-    // Thin wrapper over the extracted, testable orchestrator: it does the check→commit→mutate
-    // work and never throws; we only translate its result into React state here.
+    // attemptStartOverlay does the camera-off probe → commit → mutate and never throws; the actual
+    // start is routed through the controller so it serializes with Hide and the recovery paths.
     const result = await attemptStartOverlay({
-      adapter,
+      adapter: {
+        getVideoState: () => adapter?.getVideoState?.(),
+        startCameraOverlay: () => controller.show(),
+      },
       status: liveRef.current.status,
       startSession: sessionActions.start,
       seedBaseline: () => {
@@ -107,19 +148,26 @@ export default function App({ adapter }) {
       log: logLifecycle,
     });
     if (result === 'started') {
+      // New overlay run: clear the dead-link failure state so a stale count can't cross runs.
+      postStateRef.current = { consecutiveFailures: 0, lastRebuildAt: 0 };
       setOverlayOn(true);
       setOverlayNotice(null); // clear any earlier warning
     } else {
-      // 'blocked-camera-off' or 'error' — show the same actionable, two-step warning and
-      // leave the overlay off. No session was started and no baseline was seeded.
+      // 'blocked-camera-off' or 'error' — reset intent (a failed start left the controller's
+      // desired=on via show()) and show the actionable two-step warning; the overlay stays off.
+      controller.hide();
+      setOverlayOn(false);
       setOverlayNotice(CAMERA_OFF_NOTICE);
     }
-  }, [adapter, sessionActions, postOverlay]);
+  }, [adapter, controller, sessionActions, postOverlay]);
 
-  const stopOverlay = useCallback(async () => {
-    await adapter?.stopCameraOverlay?.();
+  const stopOverlay = useCallback(() => {
+    // Record the hidden intent immediately (controller) and mirror it into the UI. The controller
+    // serializes a best-effort close, so the button always reaches "Show cost on video" — even if
+    // the context is already gone (a dead link) or a rebuild is racing in the background.
+    controller.hide();
     setOverlayOn(false);
-  }, [adapter]);
+  }, [controller]);
 
   // Tick: advance elapsed + accumulated cost while running, and stream the
   // overlay state once a second when the overlay is on.
@@ -134,10 +182,12 @@ export default function App({ adapter }) {
       totalRef.current += cps * dt;
       elapsedRef.current += dt;
       forceTick((n) => n + 1);
-      if (overlayOnRef.current) postOverlay();
+      // Observe each send: a run of failures means the camera instance is gone (e.g. a breakout
+      // teardown with the camera still on) → rebuild the rendering context, rate-limited.
+      if (controller.isOn()) postOverlay().then(runPostRecovery);
     }, 1000);
     return () => clearInterval(id);
-  }, [session.status, postOverlay]);
+  }, [session.status, controller, postOverlay, runPostRecovery]);
 
   // Push a fresh snapshot whenever the overlay turns on, the session status
   // changes, or the display cadence changes (so a paused/ended overlay shows the
@@ -158,20 +208,17 @@ export default function App({ adapter }) {
   useEffect(() => {
     if (!overlayOn || !adapter?.getVideoState) return undefined;
     const recover = createVideoRecovery({
-      getOverlayOn: () => overlayOnRef.current,
       getLastVideoOn: () => lastVideoOnRef.current,
       setLastVideoOn: (v) => {
         lastVideoOnRef.current = v;
       },
       getVideoState: () => adapter.getVideoState(),
-      stopCameraOverlay: () => adapter.stopCameraOverlay?.(),
-      startCameraOverlay: () => adapter.startCameraOverlay?.(),
-      postOverlay,
-      log: logLifecycle,
+      isOn: () => controller.isOn(),
+      rebuild: () => controller.rebuild(),
     });
     const id = setInterval(recover, 1500);
     return () => clearInterval(id);
-  }, [overlayOn, adapter, postOverlay]);
+  }, [overlayOn, adapter, controller]);
 
   // --- Viewer's-eye preview (aggregate, quantized to the chosen cadence) ----
   // Exactly what participants see on the camera overlay: total, $/min, stepped

@@ -75,6 +75,10 @@ describe('MockZoom camera overlay', () => {
     a.onMessage((p) => received.push(p));
     expect(received).toEqual([{ totalCost: 42 }]);
   });
+
+  it('postMessage returns true (parity with RealZoom Promise<boolean> success)', () => {
+    expect(new MockZoom().postMessage({ totalCost: 1 })).toBe(true);
+  });
 });
 
 describe('RealZoom camera-overlay draw placement', () => {
@@ -457,6 +461,45 @@ describe('RealZoom /api/log instrumentation', () => {
       ok: false,
       error: '10041',
     });
+  });
+});
+
+describe('RealZoom postMessage outcome + edge-triggered logging', () => {
+  it('resolves true on a successful send and false on rejection', async () => {
+    const okA = new RealZoom(makeFakeSdk());
+    await okA.init();
+    await expect(okA.postMessage({ status: 'running' })).resolves.toBe(true);
+
+    const failA = new RealZoom(makeFakeSdk({ postMessageRejects: true }));
+    await failA.init();
+    await expect(failA.postMessage({ status: 'running' })).resolves.toBe(false);
+  });
+
+  it('logs a run of failures ONCE, then logs the recovery on fail→success', async () => {
+    const logs = [];
+    const sdk = makeFakeSdk();
+    // Togglable link: makeFakeSdk captures its reject flag in a closure, so override postMessage.
+    let failing = true;
+    sdk.postMessage = () => (failing ? Promise.reject(new Error('10041')) : Promise.resolve({}));
+    const a = new RealZoom(sdk, { log: (p) => logs.push(p) });
+    await a.init();
+
+    // Three consecutive failures → exactly ONE ok:false log (edge, not per-tick spam).
+    await a.postMessage({ status: 'running' });
+    await a.postMessage({ status: 'running' });
+    await a.postMessage({ status: 'running' });
+    expect(logs.filter((l) => l.method === 'postMessage')).toEqual([
+      { kind: 'zoom-overlay', method: 'postMessage', ok: false, error: '10041' },
+    ]);
+
+    // Link recovers → a single ok:true recovery log; steady success after is silent.
+    failing = false;
+    await a.postMessage({ status: 'running' });
+    await a.postMessage({ status: 'running' });
+    expect(logs.filter((l) => l.method === 'postMessage')).toEqual([
+      { kind: 'zoom-overlay', method: 'postMessage', ok: false, error: '10041' },
+      { kind: 'zoom-overlay', method: 'postMessage', ok: true },
+    ]);
   });
 });
 
