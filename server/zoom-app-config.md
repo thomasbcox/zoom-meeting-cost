@@ -103,11 +103,33 @@ implements it at [`server/src/zoom/deauth.js`](src/zoom/deauth.js).
 ## Scopes (minimum for the MVP)
 Granular scopes — the dead-simple app needs only:
 
-- `zoomapp:inmeeting` — run as an in-meeting app
+- `zoomapp:inmeeting` — run as an in-meeting app. **Required, and left un-"Optional" in the
+  dashboard.** It is a *surface* grant ("make the app available in Meetings"), not a data
+  permission: it conveys no access to participants, meeting content, recordings, or user
+  records. Without it there is no side panel and no camera overlay, so the app cannot run.
+  Marking it Optional would let a user decline it at install and leave the app dead.
 
 (The participant-list scope `meeting:read:participant` / `getMeetingParticipants` and the
 `user:read:email` scope were dropped — the attendee count is a manual input now, and there is no
 name matching.)
+
+### Scope description (as submitted, 2026-07-30)
+
+The dashboard's **Scope description** field is what the Zoom reviewer reads to judge the scope
+request; it asks how the data is used *and* whether/how it is stored. Keep this text and the app's
+behaviour in sync — this is the exact string in the Production block:
+
+> zoomapp:inmeeting is the only scope this app requests. It allows Meeting Cost Meter to run
+> inside the Zoom Meeting client, where it renders a side panel and, optionally, composites a
+> running cost readout onto the presenter's own camera video via the Layers API. The app reads no
+> participant list, no user directory data, and no meeting content - the attendee count and hourly
+> rate are typed in by the presenter. No data is stored: those values live only in browser memory
+> for the duration of the meeting and are discarded when it ends. There is no database and no
+> server-side persistence, so no user data exists in either encrypted or plain-text form.
+
+*(Replaced an earlier draft — "Meeting Cost meter only needs to see if the user is in a meeting or
+not. No data is persisted." — which described `zoomapp:inmeeting` as an observation permission
+rather than the surface grant it is.)*
 
 ## Zoom Apps SDK capabilities to enable
 Add **every** API below under **Features → Zoom App SDK → Add APIs**. This list is the
