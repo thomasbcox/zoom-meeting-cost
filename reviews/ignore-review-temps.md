@@ -113,10 +113,33 @@ Each names the risk it targets and the check above that must catch it.
 step 9's demonstrate-red has nothing to run against. AC1 was observed red before the edit
 anyway, as recorded above.
 
+**Results (2026-09-27, on commit `196dc50`, after `git fetch origin`):**
+
+- **AC1: green.** With the three dummies present, `git status --porcelain --untracked-files=all`
+  and `git add -A --dry-run` both printed nothing. `git check-ignore -v` attributed all three
+  to `.gitignore:25:reviews/.*.tmp`. The dummies were deleted and the tree is clean.
+- **AC2: green.** The `--no-index` sweep over all 199 tracked files under `reviews/` printed
+  nothing (exit 1, meaning no match). The new `reviews/zz-probe.md` and
+  `reviews/zz-probe.design.abc1234.json` both appeared as `??`, and were then deleted.
+- **AC3: green.** The diff against `origin/main` has 0 removed lines; it adds a blank line,
+  the comment and the rule at the end of the file. The 12-path `check-ignore` output was
+  captured on `origin/main`'s `.gitignore` before the edit and again after it. The two are
+  byte-identical, and both `.env.example` templates are still matched only by the
+  `!**/.env.example` negation.
+- **AC4 (a): green.** Called directly for this branch, the runner's `warn_if_temp_uncommittable`
+  returned `True` and wrote nothing to stderr. The same call pointed at the main checkout,
+  which still has the old `.gitignore`, returned `False` and printed the warning, so the
+  check can go red. **AC4 (b)** is `/review`'s first `--run-codex` call, still to come.
+- **AC5: green.** `npm test && npm run build` on a clean tree at `196dc50` exited 0. Client:
+  22 files, 162 tests passed. Server: 50 + 14 tests passed, 0 failed. Build succeeded. CI's
+  required `test + build` check on the PR's final head is still to come, at `/close`.
+- **AC6: green.** `git diff --name-only origin/main...HEAD -- . ':(exclude)reviews/ignore-review-temps.*'`
+  prints only `.gitignore`.
+
 ## Loop record
 
 - frame/6 — n/a — design sketch is `N/A — mechanical` (one appended ignore rule; no new structure, pattern or dependency), so no design review ran; the builder wrote the regressions instead, as Test notes says
-- frame/9 — not yet reached
+- frame/9 — n/a — no criterion names a size: all six oracles are `manual` loop checks, ratified at the frame consult. AC1 was observed red before the edit and AC4(a) red against the unfixed main checkout; all checks except AC4(b) ran once and are recorded green under Test notes → Results.
 - review/6 — not yet reached
 - review/8 — not yet reached
 - close/3b — not yet reached
