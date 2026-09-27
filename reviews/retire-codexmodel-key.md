@@ -171,3 +171,12 @@ Thomas's disposition per design finding. Binding on implementation.
   row: the runner's preflight is the config's validator, and a gate test would couple the
   app's deploy CI to a config shape the workflow protocol owns.
 - **Regressions:** all five ratified; AC1, AC3 and AC4 mechanisms tightened to match.
+
+## Build note (2026-09-27)
+
+| AC | File |
+|----|------|
+| 1 | `.claude/workflow.json`: the `codexModel` line deleted; the `testCommand` line loses its trailing comma |
+| 2 | `.claude/workflow.json` (the same edit; evidence is the deployed runner's two preflights) |
+| 3 | none; the gate runs unchanged |
+| 4 | none; scope is `.claude/workflow.json` plus `reviews/retire-codexmodel-key.*` |
