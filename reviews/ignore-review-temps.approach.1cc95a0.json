@@ -1,0 +1,5 @@
+{
+  "verdict": "2026-09-27 11:19:50 PDT — Sound. I would build this exactly as shipped: a narrow, rooted Git ignore pattern plus an explanatory comment. This is already the minimal declarative design Git provides for the stated problem; no dependency, framework abstraction, cleanup code, or additional test harness is warranted.",
+  "regressions": [],
+  "findings": []
+}

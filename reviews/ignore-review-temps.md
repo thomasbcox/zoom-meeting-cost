@@ -129,7 +129,9 @@ anyway, as recorded above.
 - **AC4 (a): green.** Called directly for this branch, the runner's `warn_if_temp_uncommittable`
   returned `True` and wrote nothing to stderr. The same call pointed at the main checkout,
   which still has the old `.gitignore`, returned `False` and printed the warning, so the
-  check can go red. **AC4 (b)** is `/review`'s first `--run-codex` call, still to come.
+  check can go red. **AC4 (b): green.** `/review`'s approach pass (round `1cc95a0`) was the
+  first `--run-codex` call from this branch. Its stderr was captured to a file, and the
+  string `does not ignore review publish temps` appears 0 times.
 - **AC5: green.** `npm test && npm run build` on a clean tree at `196dc50` exited 0. Client:
   22 files, 162 tests passed. Server: 50 + 14 tests passed, 0 failed. Build succeeded. CI's
   required `test + build` check on the PR's final head is still to come, at `/close`.
@@ -147,11 +149,20 @@ anyway, as recorded above.
 | 5 | no file — the gate is unchanged |
 | 6 | no file — only `.gitignore` changes outside this story's files |
 
+## Codex (glm-latest) approach review (2026-09-27, base main, HEAD 1cc95a0)
+
+**Verdict:** Sound. The reviewer said it would build this exactly as shipped: a narrow,
+rooted ignore pattern plus an explanatory comment. It called this the minimal declarative
+design git provides for the problem, and said no dependency, framework abstraction, clean-up
+code or extra test harness is warranted.
+
+**Findings:** none. **Regressions:** none proposed (the approach pass is not asked for them).
+
 ## Loop record
 
 - frame/6 — n/a — design sketch is `N/A — mechanical` (one appended ignore rule; no new structure, pattern or dependency), so no design review ran; the builder wrote the regressions instead, as Test notes says
 - frame/9 — n/a — no criterion names a size: all six oracles are `manual` loop checks, ratified at the frame consult. AC1 was observed red before the edit and AC4(a) red against the unfixed main checkout; all checks except AC4(b) ran once and are recorded green under Test notes → Results.
-- review/6 — not yet reached
+- review/6 — ran (codex on glm-latest, 0 findings) → /Users/thomasbcox/Projects/zoom-meeting-cost/.claude/worktrees/awesome-dewdney-6bb750/reviews/ignore-review-temps.approach.1cc95a0.json
 - review/8 — not yet reached
 - close/3b — not yet reached
 - close/4 — not yet reached
