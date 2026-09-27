@@ -194,7 +194,7 @@ decide per finding. The merge decision is separate and belongs to `/close`.
 - review/6 — ran (codex on glm-latest, 0 findings) → /Users/thomasbcox/Projects/zoom-meeting-cost/.claude/worktrees/awesome-dewdney-6bb750/reviews/ignore-review-temps.approach.1cc95a0.json
 - review/8 — ran (codex: glm-latest correctness / kimi-latest hidden-failure, 0 / 0 findings; doc-drift shadow: trial closed) → /Users/thomasbcox/Projects/zoom-meeting-cost/.claude/worktrees/awesome-dewdney-6bb750/reviews/ignore-review-temps.correctness.1cc95a0.json, /Users/thomasbcox/Projects/zoom-meeting-cost/.claude/worktrees/awesome-dewdney-6bb750/reviews/ignore-review-temps.hidden-failure.1cc95a0.json
 - close/3b — activation, nothing new — (1) drift check, run from ~/Projects/claude-light-workflow because this consumer repo carries no install.sh: 2 artifacts STALE (skills/close, workflow-protocol.md), because that checkout sits on the in-flight feature branch claude/close-merge-script (another session's unmerged work), the same state retire-codexmodel-key recorded earlier today. The deployment is not at fault. (2) No guard-hook block observed this session. (3) No refused reviewer result: the doc-drift TRIAL CLOSED is an expected refusal before the run, and the correctness critic's one REACH line is the confinement check's designed over-reporting of a `$(...)` construct, not a refusal.
-- close/4 — not yet reached
+- close/4 — presented: re-review or merge (no approved fixes, no lesson proposal); Thomas chose merge, 2026-09-27
 
 ## Open questions
 
