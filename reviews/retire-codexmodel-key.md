@@ -89,10 +89,24 @@ merged, all checks green). This branch starts from the result, so its diff is on
 **Coverage:** every risk (R1–R4) received at least one regression. No criterion names a size,
 so there is no sized-criterion gap, and step 9's demonstrate-red has nothing to run against.
 
+**Results (2026-09-27, on commit `a1ef75c`, after `git fetch origin`):**
+
+- **AC1: green.** The file parses with duplicate keys rejected. Its keys are exactly
+  `baseBranch`, `branchPrefix`, `testCommand`, each equal to `origin/main`. The text diff
+  against `origin/main` is 1 line added and 2 removed: the `codexModel` line deleted, and the
+  `testCommand` line re-written without its trailing comma. Indentation is unchanged and the
+  final newline is present.
+- **AC2: green.** `--check-codex-model-retired` exit 0; `--check-reviewer-retired` exit 0.
+- **AC3: green.** `npm test && npm run build` on a clean tree at `a1ef75c` exited 0. Client:
+  22 files, 162 tests passed. Server: 50 + 14 tests passed, 0 failed. Build succeeded. CI's
+  required `test + build` check on the PR's final head is still to come, at `/close`.
+- **AC4: green.** `git diff --name-only origin/main...HEAD -- . ':(exclude)reviews/retire-codexmodel-key.*'`
+  prints only `.claude/workflow.json`.
+
 ## Loop record
 
 - frame/6 — ran (codex on kimi-latest, 3 findings, 5 regressions) → /Users/thomasbcox/Projects/zoom-meeting-cost/reviews/retire-codexmodel-key.design.4098560.json
-- frame/9 — not yet reached
+- frame/9 — n/a — no criterion names a size: all four oracles are `manual` loop checks, ratified at the frame consult. The four checks were run once and are recorded green under Test notes → Results.
 - review/6 — not yet reached
 - review/8 — not yet reached
 - close/3b — not yet reached
