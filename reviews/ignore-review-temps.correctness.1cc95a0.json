@@ -1,0 +1,4 @@
+{
+  "summary": "Sun Sep 27 11:22:46 PDT 2026 — The branch matches the approved spec: `.gitignore` adds only the anchored `reviews/.*.tmp` rule and a one-line explanatory comment. The rule matches the runner’s real-shaped and probe temp names while leaving ordinary review stories, round artifacts, hidden non-temp files, non-dot temp files, and nested paths visible; no currently tracked `reviews/` file matches it, and no existing ignore rule was removed or altered. No correctness issues found.",
+  "findings": []
+}

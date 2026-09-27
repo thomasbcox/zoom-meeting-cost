@@ -20,3 +20,6 @@ id_rsa*
 
 # Machine-local Claude settings (contains local paths; not for sharing)
 .claude/settings.local.json
+
+# Review-runner publish temps: a round killed mid-publish can leave one behind (never read)
+reviews/.*.tmp
