@@ -109,7 +109,7 @@ so there is no sized-criterion gap, and step 9's demonstrate-red has nothing to 
 - frame/9 — n/a — no criterion names a size: all four oracles are `manual` loop checks, ratified at the frame consult. The four checks were run once and are recorded green under Test notes → Results.
 - review/6 — ran (codex on glm-latest, 0 findings) → /Users/thomasbcox/Projects/zoom-meeting-cost/reviews/retire-codexmodel-key.approach.26c7c5a.json
 - review/8 — ran (codex: glm-latest correctness / kimi-latest hidden-failure, 0 / 0 findings; doc-drift shadow: trial closed) → /Users/thomasbcox/Projects/zoom-meeting-cost/reviews/retire-codexmodel-key.correctness.26c7c5a.json, /Users/thomasbcox/Projects/zoom-meeting-cost/reviews/retire-codexmodel-key.hidden-failure.26c7c5a.json
-- close/3b — not yet reached
+- close/3b — activation, nothing new — (1) drift check, run from ~/Projects/claude-light-workflow because this consumer repo carries no install.sh: 2 artifacts STALE (skills/close, workflow-protocol.md), because that checkout sits on the in-flight feature branch claude/close-merge-script (another session's unmerged work). The deployment is not at fault. (2) The guard hook blocked 3 pushes this session while HEAD was main, though the push target was a feature branch. This is the known keys-on-current-branch behaviour, filed as BUG-5 in the workflow repo's BACKLOG.md. (3) No refused reviewer result: the doc-drift TRIAL CLOSED is an expected refusal before the run, not a refused promotion.
 - close/4 — not yet reached
 
 ## Open questions
