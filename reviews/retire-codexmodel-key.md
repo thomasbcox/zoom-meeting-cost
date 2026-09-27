@@ -107,7 +107,7 @@ so there is no sized-criterion gap, and step 9's demonstrate-red has nothing to 
 
 - frame/6 — ran (codex on kimi-latest, 3 findings, 5 regressions) → /Users/thomasbcox/Projects/zoom-meeting-cost/reviews/retire-codexmodel-key.design.4098560.json
 - frame/9 — n/a — no criterion names a size: all four oracles are `manual` loop checks, ratified at the frame consult. The four checks were run once and are recorded green under Test notes → Results.
-- review/6 — not yet reached
+- review/6 — ran (codex on glm-latest, 0 findings) → /Users/thomasbcox/Projects/zoom-meeting-cost/reviews/retire-codexmodel-key.approach.26c7c5a.json
 - review/8 — not yet reached
 - close/3b — not yet reached
 - close/4 — not yet reached
@@ -180,3 +180,13 @@ Thomas's disposition per design finding. Binding on implementation.
 | 2 | `.claude/workflow.json` (the same edit; evidence is the deployed runner's two preflights) |
 | 3 | none; the gate runs unchanged |
 | 4 | none; scope is `.claude/workflow.json` plus `reviews/retire-codexmodel-key.*` |
+
+## Codex (glm-latest) approach review (2026-09-27, base main, HEAD 26c7c5a)
+
+**Verdict:** Sound shape. The reviewer would make the same edit: remove the retired key by hand,
+keep the three live values, and add no code or dependency. It found the scope correctly
+confined, the `deployed` class correctly declared, and the approach free of both a needless JSON
+round-trip and a gate test that would couple the app's CI to a workflow-owned schema. It did
+not reopen the design-review items Thomas already decided.
+
+**Findings:** none. The shape is blessed, so the correctness pass runs in the same round.
