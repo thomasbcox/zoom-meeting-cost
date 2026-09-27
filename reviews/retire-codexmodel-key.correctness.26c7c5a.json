@@ -1,0 +1,4 @@
+{
+  "summary": "2026-09-27 09:08:37 PDT — The change correctly removes only the retired codexModel key from .claude/workflow.json while preserving baseBranch, branchPrefix, and testCommand exactly as on main. The resulting file is valid JSON with no duplicate keys, exactly the three required keys, unchanged indentation, and a final newline; both retired-field preflight checks exit 0. The non-exempt diff contains only .claude/workflow.json, while the remaining changed files are the story's exempt review artifacts. No code, dependency, application behavior, or error-handling surface changed, and no correctness or hidden-failure issue was found.",
+  "findings": []
+}

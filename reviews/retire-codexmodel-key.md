@@ -108,7 +108,7 @@ so there is no sized-criterion gap, and step 9's demonstrate-red has nothing to 
 - frame/6 — ran (codex on kimi-latest, 3 findings, 5 regressions) → /Users/thomasbcox/Projects/zoom-meeting-cost/reviews/retire-codexmodel-key.design.4098560.json
 - frame/9 — n/a — no criterion names a size: all four oracles are `manual` loop checks, ratified at the frame consult. The four checks were run once and are recorded green under Test notes → Results.
 - review/6 — ran (codex on glm-latest, 0 findings) → /Users/thomasbcox/Projects/zoom-meeting-cost/reviews/retire-codexmodel-key.approach.26c7c5a.json
-- review/8 — not yet reached
+- review/8 — ran (codex: glm-latest correctness / kimi-latest hidden-failure, 0 / 0 findings; doc-drift shadow: trial closed) → /Users/thomasbcox/Projects/zoom-meeting-cost/reviews/retire-codexmodel-key.correctness.26c7c5a.json, /Users/thomasbcox/Projects/zoom-meeting-cost/reviews/retire-codexmodel-key.hidden-failure.26c7c5a.json
 - close/3b — not yet reached
 - close/4 — not yet reached
 
@@ -190,3 +190,30 @@ round-trip and a gate test that would couple the app's CI to a workflow-owned sc
 not reopen the design-review items Thomas already decided.
 
 **Findings:** none. The shape is blessed, so the correctness pass runs in the same round.
+
+## Codex correctness pass (2026-09-27, base main, HEAD 26c7c5a)
+
+### Correctness (glm-latest): 0 findings
+
+> The change correctly removes only the retired codexModel key from .claude/workflow.json while preserving baseBranch, branchPrefix, and testCommand exactly as on main. The resulting file is valid JSON with no duplicate keys, exactly the three required keys, unchanged indentation, and a final newline; both retired-field preflight checks exit 0. The non-exempt diff contains only .claude/workflow.json, while the remaining changed files are the story's exempt review artifacts. No code, dependency, application behavior, or error-handling surface changed, and no correctness or hidden-failure issue was found.
+
+**Digest:** the critic re-ran AC1, AC2 and AC4 independently and found all three green.
+**REACH, reported and not fatal:** to re-run AC2, the critic called the deployed runner at
+`~/.claude/skills/review/review_runner.py`, which is outside the review worktree. Both calls are
+read-only preflights.
+
+### Hidden-failure (kimi-latest): 0 findings
+
+> The diff contains no executable code at all: it deletes the retired `codexModel` key from `.claude/workflow.json` (dropping the now-trailing comma on `testCommand`) and adds review-trail artifacts under `reviews/`. There is no exception handling, no fallback path, and no assertion or safety check added or removed, so there is nothing that could swallow, absorb, or silently degrade on error. On the one conceivable hidden-failure angle — whether removing the key leaves a reader in a degraded state nothing surfaces — the evidence cuts the other way: the spec and design sketch document that the deployed runner's preflights treat an absent key and an empty one identically (both pass), and stop loudly on any non-empty value, so the failure mode the key guarded against remains loudly enforced after its removal. The config's validator (the runner preflight) fails loud on unparseable JSON rather than defaulting past it. No hidden failure found.
+
+**Digest:** the diff contains no error-handling surface, and removing the key leaves the
+runner's loud stop on a non-empty value intact.
+
+### Doc-drift (shadow): trial closed
+
+The doc-drift trial has used all 20 of its runs, so nothing ran. No verdicts file this round.
+
+## Decisions (2026-09-27)
+
+No findings in any group: approach 0, correctness 0, hidden-failure 0. There is nothing to
+decide per finding. The merge decision is separate and belongs to `/close`.
