@@ -1,0 +1,5 @@
+{
+  "verdict": "2026-09-27 09:06:48 PDT — Sound shape. I would make the same edit: remove the retired codexModel key by hand, preserve the three live values, and add no code or dependency for a five-line configuration whose external reader already treats an absent key and an empty one identically. The scope is correctly confined to the workflow config plus exempt review artifacts, the declared deployed class follows the protocol's hard-floor rule, and the approach avoids both a needless JSON round-trip and speculative enforcement that would couple this repository's application gate to a workflow-owned schema. Prior design-review concerns about the comparison base and the durable-test question were addressed or explicitly decided by Thomas, so they are not reopened.",
+  "regressions": [],
+  "findings": []
+}

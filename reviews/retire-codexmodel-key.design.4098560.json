@@ -1,0 +1,57 @@
+{
+  "verdict": "Sound shape. This is a one-key deletion from a 5-line config, and the sketch makes the two right calls: a hand edit rather than a JSON-library round-trip (preserving indent, key order, trailing newline — a round-trip through `json.dump` would reformat the file and pollute the diff for zero benefit), and no new code, test scaffolding, or tooling for a change whose only readers are the deployed runner's preflights, which already treat an absent key and an empty one identically. Nothing is reinvented; there is nothing to hand to a dependency. The change class (`deployed`) is correctly declared — `.claude/workflow.json` is on the protocol's hard floor. Deployment reach is handled correctly: the sketch judges the edit against the external consumer (the runner's preflights), not this repo's own stack. The 'what records that this ran' question: the story adds no new workflow step, and its three run-once manual checks land in the story's own Loop record, with AC4's substance independently re-performed by Thomas's merge review of the PR diff — so a skipped check is not invisible here; that is an explicit answer, not an unasked question. My reservations are in the oracle table, not the edit: AC1's mechanism compares against the local `main` ref in a repo whose own prelude documents that local and GitHub `main` diverged unnoticed for two months, and AC2 is a numbered acceptance criterion whose oracle is green before the change exists.",
+  "findings": [
+    {
+      "severity": "IMPORTANT",
+      "reversibility": "two-way",
+      "standing": "nonstandard",
+      "title": "AC1 oracle compares against local `main`, which this repo has already proved can lie",
+      "locus": "Oracle table, AC1 row ('compare ... against `git show main:.claude/workflow.json`')",
+      "claim": "The value-equality guarantee ('same value as on main') is only as good as the `main` ref being compared. This story's own prelude records that local `main` carried an unpushed merge for seven weeks while GitHub's `main` was the real base — the exact hazard this mechanism is blind to. A check that compares against a stale local `main` returns a confident green while verifying against the wrong base, which is worse than no check because it looks like evidence.",
+      "alternative": "Name the PR's actual base in the mechanism: `git show origin/main:.claude/workflow.json` (after a fetch), or `git merge-base`/the GitHub PR base, rather than the local branch ref.",
+      "win": "The one check that carries R2 (wrong base branch, wrong gate) is anchored to the base the PR will actually merge into; a silently-stale green is eliminated for one word in the story."
+    },
+    {
+      "severity": "NIT",
+      "reversibility": "two-way",
+      "standing": "kludgy",
+      "title": "AC2 is a criterion whose oracle cannot fail on the change it supposedly accepts",
+      "locus": "Acceptance criteria #2 and its oracle row",
+      "claim": "The author states the honest limit plainly: both preflight checks pass on `main` today, with the empty `codexModel` present, so a green AC2 'cannot show the key is gone.' A criterion whose oracle is satisfied before the work begins is not an acceptance criterion — it is a regression guard wearing an AC number. It adds a criterion to adjudicate at close while contributing no evidence the change happened.",
+      "alternative": "Drop AC2 as a numbered criterion and fold the preflight run into AC1's evidence line (or the Loop record) as what it is — a no-regression guard. AC1 remains the sole carrier of 'the key is gone.'",
+      "win": "The AC list becomes exactly the set of things that distinguish done from not-done; one fewer box to adjudicate, and the spec stops claiming evidence it does not have."
+    },
+    {
+      "severity": "QUESTION",
+      "reversibility": "two-way",
+      "standing": "standard",
+      "title": "Should AC1's parse-and-key-set assertion be a tiny durable gate test instead of run-once manual?",
+      "locus": "Oracle table, AC1 row ('Not a suite test, because the config's key set is a workflow property')",
+      "claim": "A ~10-line `node --test` asserting the file parses and its key set is exactly the three live keys would catch R1 (invalid JSON halts every loop step) and R2 (dropped/renamed key) in CI on every future PR, forever — the manual check catches them once, on this branch. The counterargument is real: the runner's preflight already halts loudly on unparseable JSON, so R1 is self-announcing the next time anyone runs a loop step, and a suite test couples this repo's gate to a workflow-config shape owned by the protocol. I genuinely cannot say the trade is wrong — but 'workflow property' is asserted, not argued, and the sibling workflow-repo convention of `tests/loop-record.sh` shows the loop already puts workflow-shape assertions in suites elsewhere.",
+      "alternative": "If Thomas wants it: one small test file under `scripts/` (matching the existing `node --test scripts/...` pattern) asserting parse + key set + value types, and AC1's oracle changes from `manual` to that test. If not, the story should say why loud-halt-at-preflight is sufficient, so the next repo's version of this story doesn't re-litigate.",
+      "win": "Either R1/R2 gain permanent CI coverage for ~10 lines, or the story gains one sentence of reasoning that kills the question for the two sibling repos that are about to copy this story."
+    }
+  ],
+  "regressions": [
+    {
+      "criterion": "R1",
+      "regression": "The edited file parses as JSON — letter satisfied — but contains a duplicate key (the edit leaves two `testCommand` lines after the comma surgery). Python's `json` silently accepts the last occurrence, so the parse check and the key-set comparison both pass, while the file is semantically ambiguous and any consumer that reads it differently (a stricter parser, a text-level grep) diverges from what the loop thinks the config says. The intent — a config every reader agrees on — is violated by an edit that never produced invalid JSON."
+    },
+    {
+      "criterion": "R2",
+      "regression": "All three live keys survive with values 'identical to main' — letter satisfied — but the comparison ran against a local `main` that is behind the PR's real base, the exact divergence this repo's prelude documents. The merged config then carries values nobody verified against the branch it merges into, and the loop branches from the wrong base or runs the wrong gate with a verification artifact on file saying it was checked."
+    },
+    {
+      "criterion": "R3",
+      "regression": "The scoped diff check prints only `.claude/workflow.json` — letter satisfied — because its exclusion pattern swallows the whole `reviews/` directory, not just this story's artifacts. An unrelated change riding the same branch (a stray edit to another story file, a leftover review artifact from a different round) is invisible to the check, so something unscoped ships inside the production deploy while the recorded evidence says nothing did."
+    },
+    {
+      "criterion": "R4",
+      "regression": "The gate was run and was green — letter satisfied — but on a state that is not what merges: run before the final amend of the config edit, or in a worktree with uncommitted changes, or green on an earlier PR commit with a 'harmless config-only' push after it. The merge then ships a commit the gate never saw, and the first time the merged state is exercised is the production deploy the merge triggers."
+    },
+    {
+      "criterion": "AC1 (manual oracle — no running test assigned)",
+      "regression": "A manual run-once check can pass while the file's formatting is left in a state no future edit can safely touch: e.g. the deletion leaves inconsistent indentation or a missing trailing newline that parses fine and diffs clean today, but makes the *next* hand edit of this file (the one that adds a future fourth key) produce a noisy reformatting diff that smuggles a value change past review. The letter — parses, right keys, right values — holds; the intent — a config that stays safely editable by hand, which is the sketch's stated reason for choosing a hand edit — is undermined. Worth noting this criterion is the strongest candidate in the table for a durable running test (see the QUESTION finding): it is the only one whose failure mode repeats on every future edit of this file."
+    }
+  ]
+}
