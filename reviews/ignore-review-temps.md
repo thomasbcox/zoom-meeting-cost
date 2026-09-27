@@ -136,6 +136,17 @@ anyway, as recorded above.
 - **AC6: green.** `git diff --name-only origin/main...HEAD -- . ':(exclude)reviews/ignore-review-temps.*'`
   prints only `.gitignore`.
 
+## Build note (2026-09-27)
+
+| AC | Where |
+|----|-------|
+| 1 | `.gitignore` — the appended `reviews/.*.tmp` rule and its comment (lines 24–25) |
+| 2 | `.gitignore` — the same rule, whose shape (dot prefix, `.tmp` suffix, `reviews/` anchor) keeps it off every trail file |
+| 3 | `.gitignore` — lines 1–22 untouched; the new lines are appended after them |
+| 4 | `.gitignore` — the rule the runner's `git check-ignore` probe now matches |
+| 5 | no file — the gate is unchanged |
+| 6 | no file — only `.gitignore` changes outside this story's files |
+
 ## Loop record
 
 - frame/6 — n/a — design sketch is `N/A — mechanical` (one appended ignore rule; no new structure, pattern or dependency), so no design review ran; the builder wrote the regressions instead, as Test notes says
