@@ -158,12 +158,41 @@ code or extra test harness is warranted.
 
 **Findings:** none. **Regressions:** none proposed (the approach pass is not asked for them).
 
+## Codex correctness pass (2026-09-27, base main, HEAD 1cc95a0)
+
+### Correctness (glm-latest): 0 findings
+
+> Sun Sep 27 11:22:46 PDT 2026 — The branch matches the approved spec: `.gitignore` adds only the anchored `reviews/.*.tmp` rule and a one-line explanatory comment. The rule matches the runner’s real-shaped and probe temp names while leaving ordinary review stories, round artifacts, hidden non-temp files, non-dot temp files, and nested paths visible; no currently tracked `reviews/` file matches it, and no existing ignore rule was removed or altered. No correctness issues found.
+
+**Digest:** the critic re-ran AC2 and AC3 on its own and probed more names than the story
+did: a plain `reviews/x.tmp`, a non-temp dot-file `reviews/.hidden`, and a nested
+`reviews/sub/.x.tmp`. All three stay visible, so the rule covers only what the spec says.
+**REACH, reported and not fatal:** one of its commands built its output with `$(...)`, which
+the confinement check cannot resolve, so it was reported rather than cleared. The command was
+a read-only loop of `git check-ignore` probes inside the review worktree.
+
+### Hidden-failure (kimi-latest): 0 findings
+
+> The diff touches no executable code: it appends one anchored ignore rule (`reviews/.*.tmp`) to `.gitignore` under a comment, plus this story's own review-trail files (the story markdown and the approach-pass artifact). There is no exception handling, no fallback, and no deleted assertion or safety check anywhere in the change. The ignore rule itself is a narrow, root-anchored pattern (dot-prefix plus `.tmp` suffix directly under `reviews/`), so it cannot silently hide a real trail file — the story's AC2/AC3 checks (`git check-ignore --no-index` sweep over all tracked review files, byte-identical before/after probe over a fixed path list) were run and recorded green. Nothing here can continue in a degraded state without surfacing it; the runner's own per-round `git check-ignore` probe remains the standing guard and now passes. No hidden-failure findings.
+
+**Digest:** the diff contains no executable code and no error-handling surface. The runner's
+per-round `git check-ignore` probe remains the standing guard.
+
+### Doc-drift (shadow): trial closed
+
+The doc-drift trial has used all 20 of its runs, so nothing ran. No verdicts file this round.
+
+## Decisions (2026-09-27)
+
+No findings in any group: approach 0, correctness 0, hidden-failure 0. There is nothing to
+decide per finding. The merge decision is separate and belongs to `/close`.
+
 ## Loop record
 
 - frame/6 — n/a — design sketch is `N/A — mechanical` (one appended ignore rule; no new structure, pattern or dependency), so no design review ran; the builder wrote the regressions instead, as Test notes says
 - frame/9 — n/a — no criterion names a size: all six oracles are `manual` loop checks, ratified at the frame consult. AC1 was observed red before the edit and AC4(a) red against the unfixed main checkout; all checks except AC4(b) ran once and are recorded green under Test notes → Results.
 - review/6 — ran (codex on glm-latest, 0 findings) → /Users/thomasbcox/Projects/zoom-meeting-cost/.claude/worktrees/awesome-dewdney-6bb750/reviews/ignore-review-temps.approach.1cc95a0.json
-- review/8 — not yet reached
+- review/8 — ran (codex: glm-latest correctness / kimi-latest hidden-failure, 0 / 0 findings; doc-drift shadow: trial closed) → /Users/thomasbcox/Projects/zoom-meeting-cost/.claude/worktrees/awesome-dewdney-6bb750/reviews/ignore-review-temps.correctness.1cc95a0.json, /Users/thomasbcox/Projects/zoom-meeting-cost/.claude/worktrees/awesome-dewdney-6bb750/reviews/ignore-review-temps.hidden-failure.1cc95a0.json
 - close/3b — not yet reached
 - close/4 — not yet reached
 
